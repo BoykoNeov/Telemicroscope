@@ -753,6 +753,27 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     pin it:* the same sweep through a copy of the prescription with the clipping
     aperture opened, the interaction falling back under ~1e-4 mm at 0.8 and 1.1;
     a height between 1.60 and 2.00 mm of image radius reading over 1e-4 refutes it.
+    Read again at [§ 6bf](VALIDATION.md#step-6bf--the-focus-surface-offered)'s restatement, on a grid of its own:
+    6.4e-6 mm at 1.1 mm of image radius, 6.3e-4 at 2.2 and 6.4e-3 at 3.3, and the
+    4×'s 430 nm field coefficient dips over the same step — the onset again, still
+    not a mechanism.
+34. **The 2×/0.10's slow samples do not settle across pupil lattices.** Found at
+    [§ 6bf](VALIDATION.md#step-6bf--the-focus-surface-offered)'s restatement on § 2q.3's resolved rim. On 47, 48 and 56
+    samples the 2× at 430 nm reads over the plateau threshold of 1, then 0.86,
+    then 0.96–0.98 — refused, read, read — and its edge field coefficient at the
+    design wavelength is 0.04281 / 0.04487 / 0.04742 mm/mm², ±5%, which swings
+    § 6bf.4's two focal-length exponents through it over 0.52–0.67 while the
+    4×–10× pair holds at 0.588–0.589. Both are the 2×'s, the worst-conditioned
+    objective swept (0.59 at its design wavelength, against 0.42 and 0.52). The
+    same lattices hold the 4×'s and 10×'s coefficients to about 1% (differences
+    of them, like § 6bf.7's interaction, to 3–7%), and § 6bg.8's
+    in-frame tilt, which did spread 17%, is the frame growing with the lattice —
+    per millimetre of field it holds to 0.18%. Item 32's untested lever, light a
+    hard edge diffracts past a frame that grows with the lattice, is the
+    candidate, larger where defocus is larger. *What would pin it:* the same two
+    readings over a run of lattices, 40–64, converging smoothly; or item 32's
+    grid-free referee applied to the 2×. A reading that keeps jumping between
+    adjacent lattices refutes the frame as the lever.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;
@@ -1252,5 +1273,6 @@ radial-map nodes · § 6ba differential bleaching.
     point-sampled rim, by up to 7e-3 mm on the axis; resolved at [§ 2q.3](VALIDATION.md#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout),
     opt-in, and the flip takes it with the interpolated peak (item 32 opened); the
     single plane takes it too, so § 6bb.2's seam can be read on one rim.
-    Restated on it so far: § 6bd's patched field, § 6bb's spectral volume and
-    § 6be's third axis (item 33 opened); next the focus chain, § 6bf–§ 6bg.
+    Restated on it so far: § 6bd's patched field, § 6bb's spectral volume,
+    § 6be's third axis (item 33 opened) and the focus chain, § 6bf–§ 6bg (item 34
+    opened); next the layout flip itself, then the mosaic chain, § 6bh on.

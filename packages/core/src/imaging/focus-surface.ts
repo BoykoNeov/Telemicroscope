@@ -29,25 +29,25 @@ import { focusDepthMm, formVolumePlane, neutralVolumeEmitterDensity } from "./sp
  *
  * **A coefficient is not the field curve.** § 6be read the field term as `h²`
  * and found one curve serving every wavelength to 2.3%. That reading is true of
- * the ladder's own 4×/0.10 at its own design wavelength — 3.9% across the whole
- * field — and of nothing else measured since. The same objective at 430 nm
- * drifts 11.1%, monotonely, and § 6be reported 1.04% because it read the outer
- * third, where the drift is already spent. A 10× from the same solver drifts
- * 48.7% over the same field on sweeps conditioned as well as the 4×'s own, and
- * the edge coefficient across three objectives goes as f^-0.60 where a form that
- * merely scaled would give f^-1. So the sampled curve is the readout and any
- * coefficient is a fit a caller may take from it — which is why `fieldDropMm`
- * is points and not a number.
+ * the ladder's own 4×/0.10 at its own design wavelength — 3.5% across the whole
+ * field on § 2q.3's resolved rim — and of nothing else measured since. The same
+ * objective at 430 nm spreads 12.7%, dipping where a pupil clip begins (register
+ * item 33); a 10× from the same solver drifts 48.8% over the same field and a
+ * 2× 34.1%, both monotonely; and the edge coefficient across the three goes as
+ * f^-0.59 where a form that merely scaled would give f^-1. So the sampled curve
+ * is the readout and any coefficient is a fit a caller may take from it — which
+ * is why `fieldDropMm` is points and not a number.
  *
  * **Every sample carries its own conditioning**, because a stage sweep can stop
- * resolving before it stops returning. On a 2×/0.10 at 430 nm — 12 depths of
- * focus from nominal, and past this doublet's Maréchal reach — the axial
- * response is a PLATEAU, and two object heights 0.35 mm apart returned best-focus
- * values 5e-4 mm apart, which is nothing. The parabola still fits. So each
- * sample reports the half-width at which its peak falls 5%, in depths of focus,
- * and `maxPlateauDepths` refuses the sweep rather than printing a vertex read
- * off a plateau — `analysis/focus`'s rule, that this engine refuses an undefined
- * readout instead of returning one.
+ * resolving before it stops returning. Each sample reports the half-width at
+ * which its peak falls 5%, in depths of focus, and `maxPlateauDepths` refuses
+ * the sweep rather than printing a vertex read off a plateau — `analysis/focus`'s
+ * rule, that this engine refuses an undefined readout instead of returning one.
+ * § 6bf.5 found it on a 2×/0.10 at 430 nm, point-sampled; on the resolved rim
+ * that configuration reads 0.86–0.99 against a threshold of 1 at 48 pupil
+ * samples, 0.96–0.98 at 56, and over 1 at 47 — it sits ON the threshold, and the
+ * lattice decides the side (register item 34). So the refusal is pinned as a
+ * threshold, not as a fact about that objective.
  *
  * Units: `focusMm` is a specimen depth in `EmitterSlice.zMm`'s direction —
  * positive away from the objective, so a positive figure means the stage racks
@@ -95,8 +95,9 @@ export interface FocusSweepOptions {
    * look like the engine's opinion rather than the caller's.
    *
    * It is a threshold on the OPTICS — see `plateauDepths` on why the sweep step
-   * cancels out of it. 1 refuses the 2×/0.10 at 430 nm and passes every other
-   * configuration § 6bf measured, whose samples read 0.32 to 0.90.
+   * cancels out of it. On § 2q.3's resolved rim every sample § 6bf measured
+   * passes 1 — 0.33 to 0.84 — and the 2× at 430 nm, refused point-sampled, reads
+   * 0.86 to 0.99 at 48 pupil samples and is refused again at 47.
    */
   readonly maxPlateauDepths: number;
   /** Default `"none"` — bitwise the pre-§ 6bf path. */
@@ -150,10 +151,11 @@ export interface FocusSweepPoint {
    * **It is a property of the optics and not of the sweep grid**, though the
    * expression carries `stepMm`: the second difference goes as step², the square
    * root turns that into 1/step, and the multiply cancels it. § 6bf.5 measures
-   * the cancellation at 0.08% on the plateau it exists to catch and 0.34% on a
-   * sharp sample, over a 4× range of step — and pins the exception, a sample
-   * whose local shape is not parabolic, which moves 23%, seventy times the sharp
-   * sample beside it. So compare it against `maxPlateauDepths`; do not do
+   * the cancellation at 0.15% on the flattest sample measured and 0.34% on a
+   * sharp one, over a 4× range of step, each bracketed on its own vertex. With
+   * the bracket off-centre it is looser — up to 4.5% on the flattest samples as the
+   * coarse pass opens them — and read off the brightest pixel one sample moved
+   * 23% (`peak`). So compare it against `maxPlateauDepths`; do not do
    * arithmetic with it.
    */
   readonly plateauDepths: number;
@@ -180,10 +182,11 @@ export interface FocusSurface {
    * The largest departure from separability over the grid (mm): at each height,
    * how far apart the wavelengths' field drops are.
    *
-   * § 6be measured 1.2e-3 mm on the default objective and showed it to be the
-   * estimator's floor rather than a coupling — it changed sign between heights
-   * and its wavelength ordering scrambled. A caller reading this figure is
-   * reading an upper bound on the coupling, not a coupling.
+   * Point-sampled, § 6be read 1.2e-3 mm on the default objective as the
+   * estimator's floor. On § 2q.3's resolved rim that floor is ~1e-4 mm inside a
+   * pupil clip and the figure past it is a coupling — 6.4e-3 mm, 0.148 of a depth
+   * of focus, on § 6bf.7's grid (register item 33). So it is the coupling the
+   * two-curve prediction leaves out, over that floor.
    */
   readonly interactionMm: number;
   /** …over the depth of focus at the bluest wavelength swept. */
@@ -463,8 +466,8 @@ export function separatedFocusMm(surface: FocusSurface, i: number, j: number): n
  *
  * **It is an interpolation and not the fit § 6bf.3 declined.** That refusal was
  * of a *coefficient* — one number claimed to be the field curve, which is wrong
- * on two of the three objectives measured, by 11.1% on the ladder's own 4× at
- * 430 nm and 48.7% on a 10×. A piecewise interpolation between adjacent measured
+ * on two of the three objectives measured, by 12.7% on the ladder's own 4× at
+ * 430 nm and 48.8% on a 10×. A piecewise interpolation between adjacent measured
  * samples has no order and no coefficient to be wrong about: it asserts only
  * that the curve does not do something between two samples that it does not do
  * at them, and it reproduces every sample it was built from exactly. Where the
@@ -477,16 +480,16 @@ export function separatedFocusMm(surface: FocusSurface, i: number, j: number): n
  * both ends, while a straight line in `h²` is exact for any quadratic and merely
  * approximate for anything else. § 6bg.3 measures the difference against real
  * sweeps at the midpoint of the first interval, at three wavelengths: the even
- * variable lands 1.1e-5 to 1.21e-4 mm from the swept answer and the odd one
- * 1.22e-3 to 1.35e-3 mm — 11× worse at worst and 123× at its best. The units
- * that matter are § 6be.2's: 1.2e-3 mm is the floor of the estimator that
- * measured the curve, so interpolating in h lands ON the floor, which is to say
- * indistinguishable from not knowing the field curve at all, while h² lands an
- * order under it.
+ * variable lands 1.3e-5 to 3.3e-5 mm from the swept answer and the odd one
+ * 1.28e-3 to 1.33e-3 mm — 39× worse at worst and 99× at its best. The units
+ * that matter are the estimator's floor, which § 2q.3's resolved rim puts at
+ * 8.7e-5 mm inside the pupil clip (§ 6be.2): h² lands under it, and h lands 15×
+ * over it — an error a sweep can see.
  *
- * The advantage is a ratio and it shrinks outward — 2.6× to 10× at the midpoint
- * of the outer interval, where the curve is no longer the quadratic § 6be read
- * (§ 6bf.3) and the interval is twice as wide. Absolute error follows the sample
+ * The advantage is a ratio and it shrinks outward — 1.1× to 2.2× at h = 0.825,
+ * the middle of the outer interval, past § 6be's pupil clip where the curve is
+ * no longer the quadratic § 6be read (§ 6bf.3) and the interval is twice as
+ * wide. Absolute error follows the sample
  * SPACING, which is the honest way to state an interpolation's error and the
  * reason this function has no other tolerance in it.
  *

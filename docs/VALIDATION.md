@@ -125,8 +125,8 @@ whole ladder.
 | [6bc](#step-6bc--the-units-a-formed-image-is-quoted-in) | Two renderers disagreed about brightness: normalizing a kernel is a choice of UNITS, exact while ONE pupil forms the frame and a measurement error the moment several do — colour 0.740%, field 10.7%, depth exactly 0 | `throughput-units` |
 | [6bd](#step-6bd--the-field-and-the-depth-on-one-callback) | The field and the depth on one callback, § 6bc having settled the units — and § 6bc read the field profile where it is FLAT: an on-axis frame varies 1.9e-8 across itself, one at 4.5 mm 6.73e-3, and the one-pupil error has ONE sign (§ 2q.3) | `field-volume` |
 | [6be](#step-6be--the-third-axis) | The third axis — best focus is a colour curve plus a field curve, coupled ≤ 0.14 of a depth of focus past a pupil clip; the field term is EVEN, so § 6bb.6's on-axis 3.77 depths of focus is 5.65 over the square | `spectral-field-volume` |
-| [6bf](#step-6bf--the-focus-surface-offered) | The focus surface, offered — and a COEFFICIENT is not the field curve: § 6be's h² is the ladder's own 4× at its own wavelength read over its outer third, the edge coefficient goes as f^-0.60 across three objectives, and a sweep that reads a plateau is refused | `focus-surface` |
-| [6bg](#step-6bg--the-correction-applied) | The correction applied — a stage per channel and per tile: 5.88× the peak on the axis, 39.0% more at the edge, and `inFocusFraction` INVERTS, reading zero on the sharpest render | `focus-correction` |
+| [6bf](#step-6bf--the-focus-surface-offered) | The focus surface, offered — and a COEFFICIENT is not the field curve: § 6be's h² holds for the ladder's own 4× at its own wavelength alone, the edge coefficient goes as f^-0.59 across three objectives, and a plateau is refused at a threshold | `focus-surface` |
+| [6bg](#step-6bg--the-correction-applied) | The correction applied — a stage per channel and per tile: 5.90× the peak on the axis, 35.5% more at the edge, and `inFocusFraction` INVERTS, reading zero on the sharpest render | `focus-correction` |
 | [6bh](#step-6bh--the-fluorescence-mosaic) | The tiles composed — and the guard band is the CORRECTION's business: a nominal blue tile leaks 9.82% of a point's light past its own frame, a corrected one 1.87%, and 0.24 mm of specimen adds 0.26 | `fluorescence-mosaic` |
 | [6bi](#step-6bi--the-flat-field-and-the-blend) | The seam's biggest artifact is a brightness STAIRCASE § 6bh never measured — 5.29e-3 at 1 mm of field, 2783× the axis — and a scanner's per-tile flat field makes it 11% WORSE | `mosaic-flat-field` |
 | [6bj](#step-6bj--the-stage-scanning-mosaic) | The other geometry: a stage scan collapses every field quantity to ONE constant the anchor chooses — focus step exactly 0, free flat field inert — and pays 95.7× the seam registration | `stage-mosaic` |
@@ -4648,7 +4648,7 @@ on a cloned prescription, which no earlier read can have touched.
 | **§ 2q.2 — a swept peak is read off the image, not off its brightest pixel** | a rotated elliptical Gaussian between pixels: amplitude 1 to 1e-14 and its centre to 1e-12 on 64 and 128 grids, where the brightest pixel reads under 0.993; a ring is refused | ✅ |
 | | the rendered plane is band-limited on its grid: Nyquist and past-±pupilSamples energy under 1e-28 of the non-DC on both layouts at 128/48, and NOT at size = 2·pupilSamples on axis on exit (rim nodes lit), which the sweep refuses | ✅ |
 | | the 4× at 430 nm, 0.825 mm, exit — the sample the trial flip refused at 1.22 — reads 0.7323 depths, within 0.2% over a 4× range of step; the brightest pixel reads 1.1869 on the same sweep | ✅ |
-| | § 6bf.5's ragged exception (23.47% on the pixel) is regular read off the image, under 0.4%; and the 2× at 430 nm is still refused on both layouts | ✅ |
+| | § 6bf.5's ragged exception (23.47% on the pixel) is regular read off the image, under 0.4%; and the 2× at 430 nm is still refused on both layouts — *point-sampled; on § 2q.3's resolved rim it reads 0.86 at 48 samples and is refused at 47 ([§ 6bf.5](#step-6bf--the-focus-surface-offered), register item 34)* | ✅ |
 | **§ 2q.3 — the rim is resolved, not point-sampled** | off, the kernel is bitwise the point-sampled one; on, the point count is unchanged and the cut cells are reported beside it | ✅ |
 | | a disc's area read off the kernel's centre is π to 4e-4 on ten lattices 32–127, where the staircase misses by −9.15e-3 at 48 and +3.49e-3 at 47 | ✅ |
 | | § 6bb.12's haze stack, resolved: its flux equal at 3, 6, 12 and 24 slices and slice by slice to 1e-13 — the edge's lost light returned as a floor | ✅ |
@@ -4703,7 +4703,11 @@ on exit — the real sample read 1.2223, above the plateau's 1.0796. Read off th
 image it is 19.2% on aim (1.0370 against 0.8696) and 25.4% on exit (1.0974
 against 0.8750). **Opt-in**: `peak` defaults to `"pixel"`, bitwise the old path, so
 the mosaic chain's sweeps do not move in this commit; the volume chain's flip
-asks for `"band-limited"` beside `layout: "exit"`.
+asks for `"band-limited"` beside `layout: "exit"`. *[§ 2q.3: on the resolved rim
+the margin is gone — on aim at 48 samples the 2× reads 0.86 against the 4×'s
+worst 430 nm sample at 0.84, and across 47, 48 and 56 samples it lands either
+side of 1 ([§ 6bf.5 restated](#step-6bf--the-focus-surface-offered), register
+item 34).]*
 
 ### § 2q.3 — the staircase rim
 
@@ -4783,8 +4787,11 @@ rim — § 6r.7 today, § 6az.5 once its frames are on the exit layout.
   the spectral volume, then the focus chain and the app. Every pinned focus in ~~§ 6bb.6~~ (restated, 3.77 depths of focus),
   ~~§ 6be~~ ([restated](#step-6be--the-third-axis): 5.65 depths of focus over the
   square, and the interaction a pupil clip's coupling, from 2.00–2.25 mm of image
-  radius) and § 6bf moves with it: the 4×'s 430 nm figure, 0.2140 mm at 48
-  samples, is 5e-3 mm from where the resolved rim settles.
+  radius) and ~~§ 6bf~~ ([restated](#step-6bf--the-focus-surface-offered) with
+  [§ 6bg](#step-6bg--the-correction-applied): the in-frame tilt's lattice spread is the frame's width; the 2×'s plateau
+  and coefficient do not settle, register item 34) moves with it: the 4×'s
+  430 nm figure, 0.2140 mm at 48 samples, is 5e-3 mm from where the resolved rim
+  settles.
 - **A smooth hump remains at 430 nm.** Resolved, the axial focus rises from
   0.2080 mm at 32 samples to 0.2101 at 56–64 and comes back to 0.2090 at 255.
   It is not the sub-sampling (8 against 16) and not the image grid; the frame,
@@ -22680,29 +22687,43 @@ output rather than a second construction that resembles it.
 What the deferral did not expect is that its own objection was right in a
 stronger way than it knew.
 
+**Restated at § 2q.3.** Every sweep below was first read on the point-sampled
+pupil rim and the brightest pixel; each is restated on the resolved rim
+(`edgeSamples` 8) and the band-limited peak, with the old figure struck, and
+checked against 47 and 56 pupil samples. The headline survives and is stronger —
+two of three objectives at their design wavelength now drift monotonely, not one
+— but four readings did not: the 430 nm coefficient is not a monotone drift, it
+dips where § 6be's pupil clip begins (register item 33); § 6be's outer-third pair
+is not where the drift is spent; the 10× is no longer conditioned as well as the
+4×; and the 2× at 430 nm is no longer a plateau as a fact about the optics — it
+sits on the threshold, and the lattice decides the side. That and two other
+readings that depend on the 2×'s coefficient do not settle across lattices
+(register item 34).
+
 | Rung | Pinned to | Status |
 | --- | --- | --- |
 | **§ 6bf.1 — the readout IS § 6be's estimator, bitwise** | five (wavelength, height) pairs at three wavelengths and two field radii: `Object.is` on the vertex and on the peak against the sweep written out | ✅ |
-| | and it returns § 6bb.6's on-axis figures, 0.21400556 / 0.04709541 / 0.06736525 mm, to the digits § 6be pinned them to | ✅ |
+| | and it returns § 6be.3's on-axis figures, ~~0.21400556 / 0.04709541 / 0.06736525~~ 0.20977356 / 0.04787834 / 0.06802565 mm, to the digits § 6be pinned them to | ✅ |
 | | § 6be's own file now calls it, so its twelve-point surface and every number read off it stand untouched | ✅ |
-| **§ 6bf.2 — the bracket does not have to be handed in** | a coarse pass seeded from `focusDepthMm` returns 0.21400523 mm against § 6be's hand-tabulated 0.21400556 — 3.3e-7 mm, under 1e-4 of a depth of focus and three orders below § 6be.2's floor | ✅ |
-| | and the seed is not an estimate: the paraxial shift is 0.1102 mm where the picture is sharpest at 0.2140, § 6bb.7's 50%, so it opens the bracket and cannot choose it | ✅ |
+| **§ 6bf.2 — the bracket does not have to be handed in** | a coarse pass seeded from `focusDepthMm` returns ~~0.21400523~~ 0.20977072 mm against § 6be's hand-tabulated ~~0.21400556~~ 0.20977356 — ~~3.3e-7 mm~~ 2.84e-6 mm, under 1e-4 of a depth of focus and ~~three orders below § 6be.2's floor~~ inside the 1.12e-5 mm the vertex itself moves as five bracket centres a fifth of a step apart shift the fine grid's points | ✅ |
+| | and the seed is not an estimate: the paraxial shift is 0.1102 mm where the picture is sharpest at ~~0.2140~~ 0.2098, § 6bb.7's 50%, so it opens the bracket and cannot choose it | ✅ |
 | | a window that may not widen onto a maximum **refuses** rather than returning its own edge | ✅ |
-| **§ 6bf.3 — a COEFFICIENT is not the field curve** | the 4× at its design wavelength is quadratic across the whole field: the h² coefficient runs −0.066276 → −0.068860 mm/mm², +3.90%, wobbling with no trend | ✅ |
-| | the SAME objective at 430 nm drifts −11.14% and **monotonely**, −0.076898 → −0.068331 — which a wobble about a constant does not do | ✅ |
-| | and § 6be could not have seen it: across its own outer-third pair the 430 nm coefficient is constant to 0.16%, against 12% over the full field | ✅ |
-| **§ 6bf.4 — the curve is per objective in SHAPE, not only in scale** | the edge coefficient is 0.045459 / 0.068860 / 0.120476 mm/mm² at focal lengths 75 / 37.5 / 15 mm — **f^-0.60**, three independent pairs agreeing to 2%, where a form that merely scaled gives f^-1 | ✅ |
-| | the negative control on that: a scaled form demands the 10× sit at 2.5× the 4×. It is 1.749579× | ✅ |
-| | and the shape differs too — the 10× drifts 48.70% across the same field the 4× is flat to 6.75% over, monotonely at every height | ✅ |
-| | not the estimator giving up: the 10×'s sweeps are conditioned within 2.2% of the 4×'s own, 0.405839 against 0.397282 of a depth of focus | ✅ |
-| | and the shape is the OBJECTIVE's and not the wavelength's: the 10× drifts at 430 nm too, spread 40.91% against the 4×'s 12.54% at the same wavelength — both of its rows several times both of the 4×'s | ✅ |
-| **§ 6bf.5 — a plateau is REFUSED, not reported** | the 2×/0.10 at 430 nm and object height 0.7 mm: the parabola fits, and the readout throws | ✅ |
-| | and the same objective at the same height at its design wavelength reads a real vertex, under one depth of focus — so the refusal is about the configuration and not about the objective | ✅ |
-| | and the conditioning is the OPTICS' and not the grid's: over a 4× range of sweep step it moves 0.08% on the plateau itself and 0.34% on a sharp sample, so the refusal fires at every step alike | ✅ |
-| | the exception, pinned rather than left to be discovered: a sample ~~whose local shape is not parabolic~~ read off a pixel that hands over beside its vertex ([§ 2q.2](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout)) moves 23.47% over the same three steps — seventy times the sharp one, and still under the threshold | ✅ |
+| **§ 6bf.3 — a COEFFICIENT is not the field curve** | the 4× at its design wavelength is quadratic across the whole field: the h² coefficient runs ~~−0.066276 → −0.068860 mm/mm², +3.90%~~ −0.068726 → −0.067953 mm/mm², −1.13%, a spread of 3.47%, wobbling with no trend | ✅ |
+| | the SAME objective at 430 nm ~~drifts −11.14% and **monotonely**, −0.076898 → −0.068331 — which a wobble about a constant does not do~~ spreads 12.68%, 3.65× as far — and **not** monotonely: −0.068641, −0.067128, −0.060916, −0.064034, a dip at h = 0.825 and a recovery, past where § 6be's pupil clip begins at h ≈ 0.50–0.56 (register item 33) | ✅ |
+| | ~~and § 6be could not have seen it: across its own outer-third pair the 430 nm coefficient is constant to 0.16%, against 12% over the full field~~ **withdrawn** — across that pair the coefficient moves 5.12% (5.14% / 5.08% at 47 / 56 samples), more than the design wavelength moves over the whole field | ✅ |
+| **§ 6bf.4 — the curve is per objective in SHAPE, not only in scale** | the edge coefficient is ~~0.045459 / 0.068860 / 0.120476~~ 0.044873 / 0.067953 / 0.116512 mm/mm² at focal lengths 75 / 37.5 / 15 mm — **~~f^-0.60~~ f^-0.59** (0.5987 / 0.5884 / 0.5929), three independent pairs agreeing to 2%, where a form that merely scaled gives f^-1. The 4×–10× pair holds at 0.588–0.589 on 47, 48 and 56 samples; the two pairs through the 2× do not (0.52–0.67), because the 2×'s coefficient moves ±5% with the lattice (register item 34) | ✅ |
+| | the negative control on that: a scaled form demands the 10× sit at 2.5× the 4×. It is ~~1.749579×~~ 1.714602× (1.7152 / 1.7145 at 47 / 56) | ✅ |
+| | and the shape differs too — the 10× drifts ~~48.70%~~ 48.80% across the same field the 4× is flat to ~~6.75%~~ 3.47% over, monotonely at every height; and the 2×, which wobbled point-sampled (15.41%), drifts too — 34.12%, monotonely | ✅ |
+| | ~~not the estimator giving up: the 10×'s sweeps are conditioned within 2.2% of the 4×'s own, 0.405839 against 0.397282 of a depth of focus~~ **weakened** — resolved the 10×'s worst sample is 0.517029 against the 4×'s 0.420705, 1.23× worse; both near half the refusal threshold, and what answers "the estimator gave up" is now the shape, a monotone 49% at every height | ✅ |
+| | and the shape is the OBJECTIVE's and not the wavelength's: the 10× drifts at 430 nm too, spread ~~40.91%~~ 46.16% against the 4×'s ~~12.54%~~ 12.68% at the same wavelength — both of its rows several times both of the 4×'s | ✅ |
+| **§ 6bf.5 — a plateau is REFUSED, not reported** | ~~the 2×/0.10 at 430 nm and object height 0.7 mm: the parabola fits, and the readout throws~~ **withdrawn as a fact about the optics** — resolved, the same sample reads 0.860568 at 48 pupil samples, 0.96–0.98 at 56, and is refused only at 47: it sits on the threshold and the lattice decides the side (register item 34). At 48 its vertex walks with the field, 0.531770 → 0.521498 → 0.512127 mm at h = 0, 0.35 and 0.7 | ✅ |
+| | and the refusal is the THRESHOLD's: set at 0.8, under the reading, the same sample throws — a test of the mechanism and not of the objective | ✅ |
+| | and the same objective at the same height at its design wavelength reads a real vertex, ~~under one depth of focus — so the refusal is about the configuration and not about the objective~~ 0.579822, so 430 nm is still the worse-conditioned half, 1.48× | ✅ |
+| | and the conditioning is the OPTICS' and not the grid's: over a 4× range of sweep step, each bracketed on its own vertex, it moves ~~0.08% on the plateau itself~~ under 0.2% on the flattest sample and 0.34% on a sharp sample ~~, so the refusal fires at every step alike~~; bracketed where the coarse pass opens it, up to 4.5% on the flattest | ✅ |
+| | ~~the exception, pinned rather than left to be discovered: a sample read off a pixel that hands over beside its vertex ([§ 2q.2](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout)) moves 23.47% over the same three steps — seventy times the sharp one, and still under the threshold~~ **gone** — read off the band-limited peak the same sample moves 0.28%, under the sharp one: § 2q.2's diagnosis confirmed | ✅ |
 | **§ 6bf.6 — a 10× renders only with a seeded bracket** | unseeded, the inverse chief-ray map refuses at object height 0.55 mm; seeded with the frame's own magnification the same sweep runs | ✅ |
 | | and the seed is opt-in because it is not free: where both paths work the table moves 3.9e-16 and a rendered pixel 1.6e-12, and § 6bb.1 compares bitwise | ✅ |
-| **§ 6bf.7 — the readout reports its own separability** | the interaction over the 4×'s grid is 2.152515e-3 mm, 4.980007e-2 of a depth of focus | ✅ |
+| **§ 6bf.7 — the readout reports its own separability** | the interaction over the 4×'s grid is ~~2.152515e-3 mm, 4.980007e-2~~ 6.395390e-3 mm, 0.1479622 of a depth of focus (0.1531 / 0.1439 at 47 / 56) — § 6be's clip coupling on a grid of its own: 6.4e-6 mm at h = 0.275 (inside the clip), 6.3e-4 at 0.55 (its onset) and 6.4e-3 at 0.825, past it (register item 33) | ✅ |
 | | and with two wavelengths the two-curve prediction's worst error is **exactly half** of it, to fifteen decimals — which is what makes the figure the thing to read the prediction against rather than a decoration on it | ✅ |
 | | a one-wavelength surface cannot disagree with itself: interaction 0, and the prediction is the sample | ✅ |
 | **§ 6bf.8 — the refusals** | a field curve read against a height other than 0, an empty band, a sweep whose window has no interior, and a non-positive plateau limit | ✅ |
@@ -22728,17 +22749,21 @@ is not a readout — which is § 6bf.2.
 
 `focusDepthMm` is the paraxial catalogue shift, and § 6bb.7 pins it 50% away
 from where the picture is actually sharpest. That is exactly what makes it a good
-seed and a useless estimate: 0.1102 mm against 0.2140 mm at 430 nm, close enough
+seed and a useless estimate: 0.1102 mm against ~~0.2140~~ 0.2098 mm at 430 nm, close enough
 to open a bracket around and nowhere near close enough to be mistaken for the
 answer. The coarse pass doubles its window until the maximum is interior and
 **throws** if it runs out of doublings — `analysis/focus`'s own rule, that this
 engine refuses an undefined readout instead of printing one, and for the reason
 § 1.6 gives: a search that returns its own edge does it silently.
 
-Auto-seeded, the answer lands 3.3e-7 mm from § 6be's hand-bracketed figure. That
-gap is worth naming for what it is: the vertex depends on where the fine grid's
-points happen to fall relative to the peak, and that dependence is three orders
-under the 1.2e-3 mm floor § 6be.2 measured for the estimator as a whole. *[§ 2q.3: § 6be.2's 1.2e-3 mm floor was the rim staircase's — resolved it is ~1e-4 mm, and past a pupil clip the interaction is a coupling; re-judged when this step is re-read.]*
+Auto-seeded, the answer lands ~~3.3e-7~~ 2.84e-6 mm from § 6be's hand-bracketed
+figure. That gap is worth naming for what it is: the vertex depends on where the
+fine grid's points happen to fall relative to the peak. ~~That dependence is
+three orders under the 1.2e-3 mm floor § 6be.2 measured for the estimator as a
+whole.~~ Restated at § 2q.3 that dependence is measured rather than argued: five
+bracket centres a fifth of a step apart move the vertex over 1.12e-5 mm, the
+auto-seeded answer lands inside that span, and all of it is under 3e-4 of a
+depth of focus — an order under the ~1e-4 mm floor § 6be.2 now reads.
 
 ### A coefficient is not the field curve
 
@@ -22747,49 +22772,70 @@ under the 1.2e-3 mm floor § 6be.2 measured for the estimator as a whole. *[§ 2
 statement about **one objective at one wavelength**.
 
 The 4× at its own design wavelength does hold it: the coefficient runs
-−0.066276, −0.069060, −0.070752 and −0.068860 mm/mm² — it rises and then falls,
+~~−0.066276, −0.069060, −0.070752 and −0.068860~~ −0.068726, −0.069213, −0.070312
+and −0.067953 mm/mm² — it rises and then falls, a spread of 3.47%,
 which is a wobble about a constant and not a shape. The same objective at 430 nm
-runs −0.076898, −0.076175, −0.068439, −0.068331: a monotone fall of 11.14%, four
-heights in a row, in the same direction.
+~~runs −0.076898, −0.076175, −0.068439, −0.068331: a monotone fall of 11.14%, four
+heights in a row, in the same direction~~ runs −0.068641, −0.067128, −0.060916
+and −0.064034: a spread of 12.68%, 3.65× the design wavelength's, and **not** a
+monotone fall — it dips at h = 0.825 and recovers at 1.1.
 
-And the reason § 6be reported 1.04% rather than 11% is **where it sampled**. Its
+~~And the reason § 6be reported 1.04% rather than 11% is **where it sampled**. Its
 two heights are the outer two of these four, and across just those the
 coefficient is constant to 0.16% — the drift is all in the inner field, which it
-did not read. That is the fourth time the ladder has been caught by where a
-quantity was sampled rather than by what it read: § 6bc on the axis, § 6bd's
-repair of it, § 6be's own finding that § 6bb.6 sat at the field term's flat spot,
-and now the outer third of that same field term.
+did not read.~~ Restated at § 2q.3 that explanation does not survive: across
+§ 6be's own outer pair the 430 nm coefficient moves 5.12%, more than the design
+wavelength moves over the whole field. What the resolved rim shows instead is
+WHERE the 430 nm term breaks. The dip begins between h = 0.55 and 0.825 — image
+radius 2.2 to 3.3 mm — and § 6be's pupil clip begins between 2.00 and 2.25 mm,
+the same place § 6bf.7's coupling turns on. That is a second reading of register
+item 33 and not a mechanism for it. The sampling lesson stands on § 6bc, § 6bd's
+repair and § 6be's own finding that § 6bb.6 sat at the field term's flat spot.
 
 ### The curve is per objective, and not by a rule either
 
 Three objectives from the same solver, at the same numerical aperture, over the
-same object heights, at the design wavelength. The edge coefficient is 0.045459,
-0.068860 and 0.120476 mm/mm² at focal lengths 75, 37.5 and 15 mm.
+same object heights, at the design wavelength. The edge coefficient is ~~0.045459,
+0.068860 and 0.120476~~ 0.044873, 0.067953 and 0.116512 mm/mm² at focal lengths
+75, 37.5 and 15 mm.
 
 A doublet form that merely scaled would put a Petzval-shaped term at f^-1 — a
-factor 5 across that range. It is a factor 2.65, and the three pairs of
-objectives give exponents 0.5991, 0.6104 and 0.6058: **f^-0.60 to 2%**, which is
-a clean power law and is not the one scaling predicts. The forms are not
+factor 5 across that range. It is a factor ~~2.65~~ 2.60, and the three pairs of
+objectives give exponents ~~0.5991, 0.6104 and 0.6058: **f^-0.60 to 2%**~~
+0.5987, 0.5884 and 0.5929: **f^-0.59 to 2%**, which is a clean power law and is
+not the one scaling predicts. At 48 pupil samples. The 4×–10× pair holds at
+0.588–0.589 on 47 and 56 samples too; the two pairs through the 2× swing to
+0.52–0.67, because the 2×'s edge coefficient — its worst-conditioned sample —
+moves ±5% with the lattice (register item 34). So "f^-1 is nowhere near" holds on
+every lattice, and "three pairs agree to 2%" holds on this one. The forms are not
 similar — the working focal ratio moves from F/3.38 to F/4.65 across the three —
 so the solver is not producing a scaled copy, and there is no rule here to
 substitute for measuring the objective in front of you.
 
 The **shape** is per objective as well, which is the stronger half. The 10×'s
-coefficient drifts 48.70% across the field, monotonely at every height, where the
-4× is flat to 6.75% over the same heights. The obvious objection is that a longer
-sweep on a worse-corrected objective is just a worse-conditioned estimate, and
-§ 6bf.4 answers it: the 10×'s sweeps are conditioned to 0.405839 of a depth of
-focus against the 4×'s own 0.397282, within 2.2%. The same estimator, at the same
-sharpness, reads a flat curve on one and a drifting one on the other.
+coefficient drifts ~~48.70%~~ 48.80% across the field, monotonely at every height,
+where the 4× is flat to ~~6.75%~~ 3.47% over the same heights — and resolved, the
+2× drifts too, 34.12% and monotonely, where point-sampled it wobbled. The obvious
+objection is that a longer sweep on a worse-corrected objective is just a
+worse-conditioned estimate. ~~§ 6bf.4 answers it: the 10×'s sweeps are
+conditioned to 0.405839 of a depth of focus against the 4×'s own 0.397282, within
+2.2%. The same estimator, at the same sharpness, reads a flat curve on one and a
+drifting one on the other.~~ Point-sampled § 6bf.4 answered it with the 10×'s
+conditioning within 2.2% of the 4×'s; resolved the 10× is 1.23× worse, 0.517029
+against 0.420705, so that answer is weaker. What still answers it is the shape:
+every 10× sample sits near half the refusal threshold, and a conditioning limit
+does not produce a monotone 49% at every height.
 
 The second objection is that the shape might belong to the **wavelength** rather
-than to the objective, and the 4×'s own two rows are what raise it — 6.75% at the
-design wavelength against 12.54% at 430 nm, so the wavelength does move it. So
-the 10× is swept at both: 48.70% at the design wavelength and 40.91% at 430 nm,
+than to the objective, and the 4×'s own two rows are what raise it — ~~6.75%~~
+3.47% at the design wavelength against ~~12.54%~~ 12.68% at 430 nm, so the
+wavelength does move it. So the 10× is swept at both: ~~48.70%~~ 48.80% at the
+design wavelength and ~~40.91%~~ 46.16% at 430 nm,
 each several times the 4×'s figure at the *same* wavelength. Two rows against two
 rows is what makes this the objective's shape rather than a colour's. (The 2×
-gets one row, and that is not an economy — at 430 nm it is the plateau below and
-cannot be read there at all.)
+gets one row, and that is not an economy — at 430 nm it is ~~the plateau below and
+cannot be read there at all~~ the sample below that sits on the refusal threshold,
+read at one lattice and refused at another.)
 
 ### A sweep stops resolving before it stops returning a number
 
@@ -22809,19 +22855,36 @@ between 0.32 and 0.90; on the 2× at 430 nm it does not, and the readout throws.
 The same objective at its design wavelength passes, which is what says the
 refusal is about a configuration and not about an objective.
 
+**Restated at § 2q.3: the plateau was mostly the staircase.** On the resolved rim
+the 2× at 430 nm reads 0.86–0.99 at 48 pupil samples, under the threshold at
+every height, and the evidence that made it a plateau is gone — its vertex walks
+1.03e-2 mm from the axis to 0.35 mm and 9.4e-3 more to 0.7, where point-sampled
+two heights 0.35 mm apart sat 5e-4 apart, and it holds to 2e-4 mm over a 4×
+range of step. It is not a measurement as a fact about the optics either: the
+same sample reads 0.96–0.98 at 56 samples and is refused, over 1, at 47. It sits
+on the threshold and the lattice decides the side (register item 34). So the
+refusal is now pinned as the mechanism — a threshold set at 0.8, under the
+reading, throws on the same sample — and every other sample § 6bf measures
+passes 1 at 0.33 to 0.84. It is still the worse-conditioned half of its
+objective, 1.48× the design wavelength's 0.579822.
+
 **And the figure is the optics' and not the grid's**, which is not obvious from
 the expression: it is `stepMm · sqrt(0.1/|curvature|)`, and the sweep step is
 right there in it. It cancels. The curvature is a second difference, so it goes
 as step²; the square root turns that into 1/step; the multiply removes it. The
 rung measures the cancellation rather than asserting it, over a fourfold range of
-step — 0.08% on the plateau it exists to catch, which is the case that had to
-hold, and 0.34% on a sharp sample. The exception is pinned beside them: where the
+step — ~~0.08% on the plateau it exists to catch, which is the case that had to
+hold,~~ under 0.2% on the flattest sample (resolved, each bracketed on its own
+vertex; up to 4.5% with the bracket where the coarse pass opens it) and 0.34% on
+a sharp sample. The exception ~~is~~ was pinned beside them: where the
 ~~local shape is not parabolic~~ brightest pixel hands over to its neighbour beside
 the vertex — the corner a maximum over a grid has, [§ 2q.2](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout), regular to
 0.3% read off the image — the cancellation is not exact, and the 4× at 430 nm
 at the field edge moves 23.47%, seventy times the sharp sample. So the figure is
 a threshold to compare against and not a quantity to do arithmetic on, and it is
-documented as one.
+documented as one. *Restated at § 2q.3: read off the band-limited peak the same
+sample moves 0.28%, under the sharp one — the exception is gone, which is
+§ 2q.2's diagnosis confirmed.*
 
 This is the discriminator lesson of § 6be.2 turned into an interface: a residual
 at the resolution limit needs something that distinguishes it from no residual,
@@ -22849,6 +22912,8 @@ costs is pinned so that nobody has to guess later.
 ### What this did to the prose already on the ladder
 
 No pinned number moved, and § 6bf.1's bitwise rung is why none could have.
+(§ 2q.3 restates § 6bf and § 6be together, on the resolved rim; § 6bf.1 still
+pins the two to the digit.)
 
 - **§ 6be's focus-surface deferral** is this step, and is struck above.
 - **§ 6be.4's h² reading** is not withdrawn — it is reproduced here to the digit —
@@ -22872,8 +22937,8 @@ No pinned number moved, and § 6bf.1's bitwise rung is why none could have.
   that the tilt inside one frame is 0.409 of a depth of focus says a per-tile
   correction is where this would first pay.~~ **Closed by
   [§ 6bg](#step-6bg--the-correction-applied)**, which takes a stage per channel
-  and per tile — and finds the correction is worth 5.88× the peak on the axis,
-  that `inFocusFraction` INVERTS under it, and that it costs 22.2% more channel
+  and per tile — and finds the correction is worth ~~5.88×~~ 5.90× the peak on the axis,
+  that `inFocusFraction` INVERTS under it, and that it costs ~~22.2%~~ 24.8% more channel
   misregistration for a reason § 6bb.10's bound does not cover.
 - **The seeded table is not the default**, for the ulp § 6bf.6 measures. Wiring
   it in is a re-pin of § 6bb.1 and a handful of bitwise seams below it, and it
@@ -22904,47 +22969,65 @@ tiles each at its own; `predictedFocusMm` reads a swept surface at a wavelength
 and a field radius it was not swept at. Both renders reduce to the pre-§ 6bg one
 **bitwise** when nothing is corrected (§ 6bg.1).
 
+**Restated at § 2q.3.** Every measurement render below is restated on the
+resolved rim (`edgeSamples` 8), the surface swept with the band-limited peak,
+with the old figure struck, and checked against 47 and 56 pupil samples. Every
+finding survives. Two readings change in kind. § 6bg.3 and § 6bg.8 were judged
+against § 6be.2's 1.2e-3 mm floor, which was the staircase's; against the
+resolved 8.7e-5 mm, interpolating in h is now an error a sweep can see, and the
+per-wavelength tile height is a correction it can confirm. And § 6bg.6's
+centroids are read with the frame's floor taken off — the resolved rim returns
+the edge's lost light as a uniform floor, and on an even grid a floor pulls a
+centroid with defocus; read raw, that pull was most of the axis shift. § 6bg.8's
+in-frame tilt reads 0.303 / 0.310 / 0.362 on 47 / 48 / 56 samples, which is the
+frame growing with the lattice: per millimetre of field it is the same to 0.18%.
+§ 6bg.4's
+peaks stay the brightest pixel: a tile's plane is cropped to the stack's ruler,
+which is not periodic, so the band-limited readout does not apply to it.
+
 | Rung | Pinned to | Status |
 | --- | --- | --- |
 | **§ 6bg.1 — the uncorrected render is unchanged, bitwise** | a constant per-channel stage against the scalar `focusMm`, `Object.is` on every pixel of every plane; and a one-tile series at a flat stage against the plain render, the same way | ✅ |
 | | omitting the option is the old default: stage 0, one exposure, every plane agreeing | ✅ |
 | **§ 6bg.2 — the prediction IS the surface it was built from** | `Object.is` against `separatedFocusMm` at all twelve swept points, and a bilinear over a separable grid separating — the interpolation invents no coupling the surface did not report | ✅ |
-| **§ 6bg.3 — h² is the interpolation variable, and the choice is a real one** | against real sweeps at the first interval's midpoint, three wavelengths: linear-in-h² is 1.1e-5 to 1.21e-4 mm out, linear-in-h 1.22e-3 to 1.35e-3 — 11× worse at worst, 123× at best, and ON § 6be.2's 1.2e-3 mm floor | ✅ |
-| **§ 6bg.4 — the correction pays, and by how much** | 430 nm on the axis: the probe renders **5.8834×** brighter at the swept stage than at the nominal one | ✅ |
-| | at the catalogued field edge the FIELD term alone — the axis's own correct stage against the edge's — is **1.3903×**, 39.0% of the peak | ✅ |
+| **§ 6bg.3 — h² is the interpolation variable, and the choice is a real one** | against real sweeps at the first interval's midpoint, three wavelengths: linear-in-h² is ~~1.1e-5 to 1.21e-4~~ 1.3e-5 to 3.3e-5 mm out, linear-in-h ~~1.22e-3 to 1.35e-3~~ 1.28e-3 to 1.33e-3 — ~~11×~~ 39× worse at worst, ~~123×~~ 99× at best; ~~and ON § 6be.2's 1.2e-3 mm floor~~ h² under the 8.7e-5 mm the resolved estimator reads inside the pupil clip (§ 6be.2), h 15× over it | ✅ |
+| **§ 6bg.4 — the correction pays, and by how much** | 430 nm on the axis: the probe renders **~~5.8834×~~ 5.9000×** brighter at the swept stage than at the nominal one (5.8972 / 5.9096 at 47 / 56 samples) | ✅ |
+| | at the catalogued field edge the FIELD term alone — the axis's own correct stage against the edge's — is **~~1.3903×~~ 1.3549×**, ~~39.0%~~ 35.5% of the peak (1.3536 / 1.3514 at 47 / 56) | ✅ |
 | | and on the axis the field term is exactly nothing: the two stages are the same number and the two peaks are `Object.is`-equal, not merely close | ✅ |
-| | the uncorrected picture is **sharper at its edge than at its centre**, by 2.38×, so the recovery runs the other way: 5.88× on the axis against 2.13× at the edge | ✅ |
-| **§ 6bg.5 — the haze readout does NOT follow the correction** | `inFocusFraction` reads **0** on the 5.88×-brighter corrected render and **1** on the blurred one | ✅ |
-| **§ 6bg.6 — what the correction costs, and what that cost is NOT** | blue against red at 1.0 mm of field: the channels' displacement grows from 6.4428e-3 to 7.8721e-3 mm, **+22.2%** | ✅ |
-| | and it is not the perspective: that term is exactly 0 uncorrected and 2.4238e-5 mm corrected, **1/59** of what was measured | ✅ |
-| | the mechanism, measured: with ONE channel's stage moved, that channel's own centroid walks 1.281e-3 mm at 1.0 mm of field and 1.179e-5 mm on the axis — 109× less, 0.0035 of a pixel | ✅ |
+| | the uncorrected picture is **sharper at its edge than at its centre**, by 2.38×, so the recovery runs the other way: ~~5.88×~~ 5.90× on the axis against 2.13× at the edge | ✅ |
+| **§ 6bg.5 — the haze readout does NOT follow the correction** | `inFocusFraction` reads **0** on the ~~5.88×~~ 5.90×-brighter corrected render and **1** on the blurred one | ✅ |
+| **§ 6bg.6 — what the correction costs, and what that cost is NOT** | blue against red at 1.0 mm of field: the channels' displacement grows from ~~6.4428e-3 to 7.8721e-3 mm, **+22.2%**~~ 6.2132e-3 to 7.7566e-3 mm, **+24.8%**, centroids read with the frame's floor taken off | ✅ |
+| | and it is not the perspective: that term is exactly 0 uncorrected and ~~2.4238e-5~~ 2.3818e-5 mm corrected, **~~1/59~~ 1/65** of what was measured | ✅ |
+| | the mechanism, measured: with ONE channel's stage moved, that channel's own centroid walks ~~1.281e-3 mm at 1.0 mm of field and 1.179e-5 mm on the axis — 109× less, 0.0035 of a pixel~~ 1.426e-3 mm at 1.0 mm of field and 3.09e-6 mm on the axis — **461×** less, under a thousandth of a pixel. Read raw, the axis shift is the floor's pull on an even grid: 1.18e-5 point-sampled, 2.48e-5 resolved, 1.6e-6 in a ±20-pixel window | ✅ |
 | **§ 6bg.7 — a picture with two stages in it is two exposures** | a step function over three filters reads 3, the same band as a smooth curve reads 9, and `focusMm` is `undefined` in both rather than reporting one of them | ✅ |
-| **§ 6bg.8 — the tile series, and what no stage reaches** | three tiles × three channels = 9 exposures over 0.232192 mm of stage travel, each plane rendered at the stage its own tile and channel asked for | ✅ |
-| | the height a tile is corrected at is per wavelength: 2.503e-3 mm of object radius across the band at the outer tile, worth 3.3485e-4 mm of stage — under § 6be.2's ~~1.2e-3~~ floor (~1e-4 resolved, § 2q.3: re-judged with this step), so it is bookkeeping and not a measurement | ✅ |
-| | across the tile it corrected, the surface still tilts 0.0137586 mm — **0.3183 of a depth of focus**, § 6be.7's quantity one tile further in, and a scalar stage does not reach it | ✅ |
+| **§ 6bg.8 — the tile series, and what no stage reaches** | three tiles × three channels = 9 exposures over ~~0.232192~~ 0.225204 mm of stage travel, each plane rendered at the stage its own tile and channel asked for | ✅ |
+| | the height a tile is corrected at is per wavelength: 2.503e-3 mm of object radius across the band at the outer tile, worth ~~3.3485e-4~~ 3.26471e-4 mm of stage — ~~under § 6be.2's 1.2e-3 floor, so it is bookkeeping and not a measurement~~ 3.7× the 8.7e-5 mm resolved floor, so a correction a sweep could confirm | ✅ |
+| | across the tile it corrected, the surface still tilts ~~0.0137586~~ 0.0134142 mm — **~~0.3183~~ 0.3103 of a depth of focus**, § 6be.7's quantity one tile further in, and a scalar stage does not reach it. At 47 and 56 pupil samples it reads 0.303 and 0.362 — the frame, pupilSamples·λ/(2·NA) wide, grows with the lattice; per millimetre of field the tilt is 0.130053 / 0.130250 / 0.130284 mm, the same to 0.18%, and every reading sits under § 6be.7's 0.392 | ✅ |
 | **§ 6bg.9 — the refusals** | a stage outside the swept band or field, a negative radius, a tile whose own traced radius runs past the sweep, a non-finite stage, an empty tile list, an empty band, and a surface whose axes do not ascend | ✅ |
 
 ### The correction pays, and the shape of the payoff is not the shape of the problem
 
-At 430 nm the ladder's 4×/0.10 renders its own probe **5.8834× brighter** on the
-axis at the stage § 6bf swept for it than at the nominal one. That is the whole
-of the colour term, and it is large because axial colour puts best focus 0.214 mm
-from nominal at the blue end (§ 6bb.6) against a 0.0432 mm depth of focus — five
-depths of focus of pure defocus, removed by moving one number.
+At 430 nm the ladder's 4×/0.10 renders its own probe **~~5.8834×~~ 5.9000×
+brighter** on the axis at the stage § 6bf swept for it than at the nominal one.
+That is the whole of the colour term, and it is large because axial colour puts
+best focus ~~0.214~~ 0.210 mm from nominal at the blue end (§ 6bb.6) against a
+0.0432 mm depth of focus — five depths of focus of pure defocus, removed by
+moving one number.
 
 The field term is the smaller half and it is the half that needed a renderer per
 tile. Setting the stage correctly for 430 nm **on the axis** and then imaging the
-field edge leaves 1.3903× on the table — 39.0% of the peak — and that residue is
+field edge leaves ~~1.3903×~~ 1.3549× on the table — ~~39.0%~~ 35.5% of the peak — and that residue is
 exactly what no single stage position can remove, because it is a different
 number at every field radius.
 
 **The uncorrected picture is sharper at its edge than at its centre**, by 2.38×,
 which is the one figure here that says the correction is not a uniform
 improvement to a uniformly bad picture. Field curvature carries best focus back
-*toward* the nominal stage as the field radius grows — 0.2140 mm from nominal on
-the axis, 0.1315 mm at the edge — so an uncorrected blue frame is worst where it
-is usually assumed to be best, and the recovery the correction wins runs the
-other way: 5.88× on the axis against 2.13× at the edge.
+*toward* the nominal stage as the field radius grows — ~~0.2140~~ 0.2098 mm from
+nominal on the axis, ~~0.1315~~ 0.1297 mm at the edge — so an uncorrected blue
+frame is worst where it is usually assumed to be best, and the recovery the
+correction wins runs the other way: ~~5.88×~~ 5.90× on the axis against 2.13× at
+the edge.
 
 ### The haze readout inverts, and a panel must not quote it
 
@@ -22979,14 +23062,15 @@ misregistration reaching parity with § 6ba.9's static 0.180% only at 83–86 mm
 specimen depth — says the price should be nothing.
 
 It is not nothing. One structure under two labels at 1.0 mm of field, blue
-against red, moves from 6.4428e-3 mm apart to 7.8721e-3 mm apart when each
-channel is put at its own stage: **+22.2%**.
+against red, moves from ~~6.4428e-3 mm apart to 7.8721e-3 mm apart~~ 6.2132e-3 mm
+apart to 7.7566e-3 mm apart when each channel is put at its own stage:
+**~~+22.2%~~ +24.8%**.
 
 And the mechanism is not the one the argument names. The perspective part is
 available in closed form — each channel's own rescale evaluated at its own stage,
 bluest against reddest, times the field radius and the magnification — and it is
 **exactly 0** uncorrected, because every plane is referred to the same stage, and
-**2.4238e-5 mm** corrected. That is **1/59** of the measured change, so 98% of
+**~~2.4238e-5~~ 2.3818e-5 mm** corrected. That is **~~1/59~~ 1/65** of the measured change, so 98% of
 the cost is something else. § 6bb.10's bound was sound about the quantity it
 bounded and silent about the one that dominates here, which is why this rung
 computes the bound alongside the measurement instead of citing it.
@@ -22994,14 +23078,27 @@ computes the bound alongside the measurement instead of citing it.
 **And the something else is measured, not inferred.** A negative — "not the
 perspective" — is not a mechanism, so the rung goes on to isolate one. Move
 **one** channel's stage, leave the other where it was, and watch that channel
-alone: its own centroid walks **1.281e-3 mm** sideways at 1.0 mm of field and
-**1.179e-5 mm** on the axis, which on this frame's ruler is 0.385 of a pixel
-against 0.0035 of one — **109×**. The field is the discriminator, and it is the
-right one: a symmetric pupil's defocus cannot move a centroid at all, an
-asymmetric one's can, and any field-INDEPENDENT mechanism would have shown up on
-the axis too. The two channels' shifts also reconstruct the pair's own change
-exactly (1.4293e-3 mm), which they must, since the planes are rendered
-independently and a channel is a reweighting of them.
+alone: its own centroid walks **~~1.281e-3~~ 1.426e-3 mm** sideways at 1.0 mm of
+field and **~~1.179e-5~~ 3.09e-6 mm** on the axis, which on this frame's ruler is
+~~0.385~~ over 0.4 of a pixel against ~~0.0035 of one~~ under a thousandth of one —
+**~~109×~~ 461×**. The field is the discriminator, and it is the right one: a
+symmetric pupil's defocus cannot move a centroid at all, an asymmetric one's can,
+and any field-INDEPENDENT mechanism would have shown up on the axis too. The two
+channels' shifts also reconstruct the pair's own change exactly (~~1.4293e-3~~
+1.5434e-3 mm), which they must, since the planes are rendered independently and a
+channel is a reweighting of them.
+
+**Restated at § 2q.3: the axis figure was mostly the frame's floor.** The
+resolved rim returns the light a cut pupil cell throws past the frame as a
+uniform floor, and the point-sampled rim's wrapped tails were one already. A
+centroid over the whole frame weights that floor, and on an even grid the axis is
+one sample off the frame's middle, so the floor pulls the centroid toward the
+middle by an amount that changes with defocus. Read raw, the on-axis shift is
+1.18e-5 mm point-sampled and 2.48e-5 resolved — the ratio falling to 55× —
+and with the floor taken off it is 5.4e-6 and 3.1e-6; in a ±20-pixel window,
+1.5e-6 and 1.6e-6 on either rim. Off the axis taking the floor off moves a
+channel's shift by 4% at most. So § 6bg.6 now reads every centroid with the
+frame's minimum subtracted, and the field discriminator is 461×.
 
 What is still not here is a closed form for the size of it. The mechanism is
 identified and its field dependence is pinned; predicting the number without
@@ -23028,8 +23125,8 @@ a representative value for an exposure that never happened.
 
 ### Why the tile and not the patch, and why this is not a mosaic
 
-§ 6be.3 measures the best-focus spread over the catalogued field at 0.250229 mm
-against 0.017685 mm across a single frame (§ 6be.7) — **14× of the problem lives
+§ 6be.3 measures the best-focus spread over the catalogued field at ~~0.250229~~
+0.244113 mm against ~~0.017685~~ 0.016959 mm across a single frame (§ 6be.7) — **14× of the problem lives
 between tiles and 1× inside one**, because a frame is 0.103 mm of specimen
 against a field 2.2 mm across.
 
@@ -23038,9 +23135,15 @@ exposure at one stage position, and `focusMm` is a scalar in the rasterizer
 because a stage is a scalar in the world. A patched render *carries* the in-frame
 tilt, which is how § 6be.7 measured it, but carrying is not removing and no patch
 count removes it. § 6bg.8 reads the residue off the surface instead of off patch
-columns and lands in the same place: **0.0137586 mm across the tile at 1.0 mm of
-field, 0.3183 of a depth of focus**, against § 6be.7's 0.409 one tile further
-out.
+columns and lands in the same place: **~~0.0137586~~ 0.0134142 mm across the tile
+at 1.0 mm of field, ~~0.3183~~ 0.3103 of a depth of focus**, against § 6be.7's
+~~0.409~~ 0.392 one tile further out. *Restated at § 2q.3: the same rung reads
+0.303 at 47 pupil samples and 0.362 at 56, a 17% spread on a quantity the other
+readings here hold to under 1% — and it is the RULER. A frame is
+pupilSamples·λ/(2·NA) wide, so it spans 0.10084, 0.10299 and 0.12015 mm of
+object at 47, 48 and 56 samples, and per millimetre of field the tilt is
+0.130053, 0.130250 and 0.130284 mm, the same to 0.18%. The figure in depths of
+focus is a per-frame quantity on a frame the lattice sizes, as § 6be.7's is.*
 
 **And this is not a mosaic.** `focusCorrectedTiles` renders a list and hands back
 a list: no guard band, no common ruler, no pitch. `mosaic-spectrum` does all of
@@ -23058,11 +23161,15 @@ radius, read off the very frame the render will use.
 
 The size of it is worth stating because it argues against itself: at the outer
 tile the band spans **2.503e-3 mm** of object radius, and choosing one shared
-height for every channel would move the predicted stage by at most **3.3485e-4
-mm** — under § 6be.2's 1.2e-3 mm floor for the estimator that measured the curve
-in the first place. So this is bookkeeping done because it is free and correct,
-not a measurement anyone could confirm, and § 6bg.8 pins it below the floor
-rather than quoting it as an effect. *[§ 2q.3: § 6be.2's 1.2e-3 mm floor was the rim staircase's — resolved it is ~1e-4 mm, and past a pupil clip the interaction is a coupling; re-judged when this step is re-read.]*
+height for every channel would move the predicted stage by at most **~~3.3485e-4~~
+3.26471e-4 mm** — ~~under § 6be.2's 1.2e-3 mm floor for the estimator that
+measured the curve in the first place. So this is bookkeeping done because it is
+free and correct, not a measurement anyone could confirm, and § 6bg.8 pins it
+below the floor rather than quoting it as an effect.~~ *Restated at § 2q.3:* that
+floor was the staircase's. Resolved, the estimator reads 8.7e-5 mm inside the
+pupil clip (§ 6be.2), and this is 3.7× that — small, 0.0076 of a depth of focus,
+and a correction a sweep could now confirm rather than bookkeeping under the
+noise.
 
 It has one visible consequence, and § 6bg.9 pins it: a tile placed at the field
 edge of a surface swept to that same edge **refuses**, because the blue channel's
@@ -23082,14 +23189,20 @@ than a form. Where the shape is in doubt the answer is a denser sweep.
 The one modelling choice left is the **variable**, and it is a real one. The
 field term is even, so a straight line in `h` has the wrong slope at both ends of
 the first interval. § 6bg.3 measures the difference against real sweeps at that
-interval's midpoint: linear-in-h² lands 1.1e-5 to 1.21e-4 mm from the swept
-answer and linear-in-h 1.22e-3 to 1.35e-3 mm — 11× worse at worst and 123× at
-best. The units that decide it are § 6be.2's: 1.2e-3 mm is the floor of the
-estimator that measured the curve, so interpolating in `h` lands **on** the
-floor, which is indistinguishable from not knowing the field curve at all, while
-h² lands an order under it. *[§ 2q.3: § 6be.2's 1.2e-3 mm floor was the rim staircase's — resolved it is ~1e-4 mm, and past a pupil clip the interaction is a coupling; re-judged when this step is re-read.]* The advantage is a ratio and it shrinks outward —
-2.6× to 10× at the outer interval's midpoint, where the curve is no longer the
-quadratic § 6be read and the interval is twice as wide.
+interval's midpoint: linear-in-h² lands ~~1.1e-5 to 1.21e-4~~ 1.3e-5 to 3.3e-5 mm
+from the swept answer and linear-in-h ~~1.22e-3 to 1.35e-3~~ 1.28e-3 to 1.33e-3 mm
+— ~~11×~~ 39× worse at worst and ~~123×~~ 99× at best. The units that decide it
+are the estimator's floor. ~~1.2e-3 mm is the floor of the estimator that
+measured the curve, so interpolating in `h` lands **on** the floor, which is
+indistinguishable from not knowing the field curve at all, while h² lands an
+order under it.~~ *Restated at § 2q.3:* point-sampled that floor was 1.2e-3 mm
+and interpolating in `h` landed on it; resolved it is 8.7e-5 mm inside the pupil
+clip, h² lands under it and `h` 15× over it — no longer indistinguishable from
+not knowing the curve, but an error a sweep can see. The advantage is a ratio
+and it shrinks outward — ~~2.6× to 10×~~ 1.1× to 2.2× at the outer interval's
+midpoint, h = 0.825, past § 6be's pupil clip, where the curve is no longer the
+quadratic § 6be read and the interval is twice as wide; there the even variable
+is itself 2.3e-3 to 4.1e-3 mm out.
 
 ### What this did to the prose already on the ladder
 
@@ -23102,12 +23215,16 @@ No pinned number moved, and § 6bg.1's two bitwise rungs are why none could have
   representative number stand in for an exposure that never happened. It gained
   `exposures` beside it, and `VolumePlane` gained its own `focusMm`.
 - **§ 6be.7's in-frame tilt** is reproduced from the other side, off the surface
-  rather than off patch columns, at 0.3183 of a depth of focus one tile inside
-  where § 6be.7 read 0.409.
+  rather than off patch columns, at ~~0.3183~~ 0.3103 of a depth of focus one tile
+  inside where § 6be.7 read ~~0.409~~ 0.392.
 - **§ 6bb.10's misregistration bound** is not withdrawn — it bounds the
   depth-dependent part and that part is 1/59 of what a per-channel correction
   costs — but it is now qualified where it stands: it is silent about the
   centroid of an aberrated PSF moving with its own defocus, which dominates.
+- *§ 2q.3:* **`incoherentPsf`'s `edgeFloor`** is a uniform pedestal, and a
+  centroid over a whole frame weights it; any rung that reads a centroid off a
+  resolved render should subtract the floor first, as § 6bg.6's `centroidOf`
+  now does.
 - **APP.md's fluorescence-colour and haze rows** said a focus control is
   per-exposure and not per-channel. It can be per-channel now, at the price of
   being several exposures, and the haze readout inverts under it.
@@ -23136,7 +23253,7 @@ No pinned number moved, and § 6bg.1's two bitwise rungs are why none could have
   asserted from one.
 - **The registration cost has no closed form.** § 6bg.6 measures it, eliminates
   the perspective as its cause, and pins the surviving mechanism's field
-  dependence at 109× between the axis and 1.0 mm — but the size of an off-axis
+  dependence at ~~109×~~ 461× between the axis and 1.0 mm — but the size of an off-axis
   PSF's centroid shift under defocus is not derived from the wavefront here, so a
   caller who wants to predict the cost rather than render it cannot.
 - **The seeded table is not the default**, **depth-dependent pupils are not
@@ -23181,7 +23298,7 @@ is not what § 6o's is.
 | | …and the two compound, 11.516% for a thick specimen at the nominal stage | ✅ |
 | | **`maxGridPhaseStepWaves` orders the escape** over all seven configurations of colour, correction and thickness — a readout that has shipped since § 6i, against a measurement that costs a second double-extent render | ✅ |
 | **§ 6bh.5 — the seam's focus step is a FIELD quantity** | 1.7978e-4 mm on the axis against 6.8737e-3 mm at 1 mm of field — **38.2×**, and 0.00416 against 0.15903 depths of focus | ✅ |
-| | the axial figure is under § 6be.2's ~~1.2e-3 mm~~ estimator floor (~1e-4 resolved, § 2q.3: re-judged with this step); the edge figure LANDS AT half § 6bg.8's in-frame tilt, read on a different grid and at a different radius, so the factor is suggestive and is not pinned | ✅ |
+| | the axial figure is under § 6be.2's ~~1.2e-3 mm~~ estimator floor (~1e-4 resolved, § 2q.3: re-judged with this step); the edge figure LANDS AT half § 6bg.8's in-frame tilt, read on a different grid and at a different radius, so the factor is suggestive and is not pinned *[§ 2q.3: § 6bg.8's 0.3183 is restated 0.3103 (0.303–0.362 across 47–56 pupil samples — the frame's width, which grows with the lattice; per millimetre of field the same to 0.18%); re-judged when this step is re-read.]* | ✅ |
 | **§ 6bh.6 — the refusals** | a fractional or non-positive tile count, a guard that is not whole pixels, a guard that eats the tile, a negative guard, an empty band, and a tile whose own traced height runs past the swept surface | ✅ |
 
 ### The guard band is the correction's business
@@ -23277,7 +23394,7 @@ estimator floor and is bookkeeping rather than a measurement. *[§ 2q.3: § 6be.
 The edge figure, **0.15903 of a depth of focus**, is the honest cost of composing
 a corrected mosaic, and it sits beside § 6bg.8 rather than competing with it: a
 seam step is the surface's rise across one *pitch* and § 6bg.8's 0.3183 is its
-rise across a whole *frame* one tile further out. That it lands at almost exactly
+rise across a whole *frame* one tile further out. *[§ 2q.3: § 6bg.8's 0.3183 is restated 0.3103 (0.303–0.362 across 47–56 pupil samples — the frame's width, which grows with the lattice; per millimetre of field the same to 0.18%); re-judged when this step is re-read.]* That it lands at almost exactly
 half is **suggestive and is not pinned as an identity** — the two are read on
 different grids (32 pupil samples here against 48 there) and at different radii,
 so a factor of 2.0018 is a coincidence this step has not earned the right to
@@ -23312,7 +23429,7 @@ without knowing it was in a mosaic.
   it — and this step declines rather than choosing.
 - **The seam step's factor of 2 against § 6bg.8 is not derived.** It lands at
   half, on a different grid and at a different radius, and is left as a
-  coincidence rather than promoted to a relation.
+  coincidence rather than promoted to a relation. *[§ 2q.3: § 6bg.8's 0.3183 is restated 0.3103 (0.303–0.362 across 47–56 pupil samples — the frame's width, which grows with the lattice; per millimetre of field the same to 0.18%); re-judged when this step is re-read.]*
 - ~~**The mosaic has no BLEND and no flat-field.**~~ **Built at
   [§ 6bi](#step-6bi--the-flat-field-and-the-blend)**, and the blend turned out to
   be the cosmetic half. What this rung did not know is that the throughput's field

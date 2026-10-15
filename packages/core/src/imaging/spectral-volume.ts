@@ -393,14 +393,15 @@ export interface FluorescenceVolumeOptions extends FieldPupilOptions {
    * sign reversal inside the band (§ 6az.4, § 6bb.9). So the correction buys
    * focus and spends inter-channel registration, and § 6bg.6 measures the price
    * rather than assuming it small: at 1.0 mm of field the blue-against-red
-   * displacement grows **22.2%**, 1.4293e-3 mm on 6.4428e-3 mm.
+   * displacement grows **24.8%**, 1.5434e-3 mm on 6.2132e-3 mm (§ 2q.3's resolved
+   * rim, centroids read with the frame's floor taken off).
    *
    * And the price is not the term that argument predicts. The perspective part
    * is available in closed form — each channel's own rescale at its own stage —
-   * and it is 2.4e-5 mm, **1/59** of what was measured. The rest is measured too,
+   * and it is 2.4e-5 mm, **1/65** of what was measured. The rest is measured too,
    * not inferred: move ONE channel's stage and watch that channel alone, and its
-   * centroid walks 1.281e-3 mm sideways at 1.0 mm of field against 1.179e-5 mm
-   * on the axis — 109× less, and 0.0035 of a pixel. A symmetric pupil's defocus
+   * centroid walks 1.426e-3 mm sideways at 1.0 mm of field against 3.09e-6 mm
+   * on the axis — 461× less, under a thousandth of a pixel. A symmetric pupil's defocus
    * cannot move a centroid and an asymmetric one's can, so what the correction
    * spends is the off-axis PSF's own asymmetry, and a correction that buys focus
    * at the field edge pays for it in the one place a two-stain overlay is read.
