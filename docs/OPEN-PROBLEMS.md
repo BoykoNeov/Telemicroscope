@@ -742,6 +742,17 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     48 samples it costs 8e-4 mm, 0.02 of a depth of focus. *What would pin it:* a
     grid-free referee for the on-axis peak — the traced axial pupil's PSF by a
     one-dimensional Hankel transform, imaged against the same probe.
+33. **§ 6be's colour × field coupling starts where a pupil clip starts, and the
+    route between them is not separated.** Found at [§ 6be](VALIDATION.md#step-6be--the-third-axis), when § 2q.3's
+    resolved rim withdrew the "estimator's floor" that had covered it. On the DIN
+    4×/0.10 a second aperture cuts the outward side of the pupil from between
+    2.00 and 2.25 mm of image radius. The 430-against-587.6 nm interaction is
+    8.7e-5 mm at h = 0.4 (1.60 mm, inside it) and 5.9e-3 / 4.7e-3 mm at h = 0.8 /
+    1.1 (past it) — 0.11–0.14 of a depth of focus; red against 587.6 nm reads
+    1.4e-4 / 1.8e-3. Two onsets that coincide are not yet a mechanism. *What would
+    pin it:* the same sweep through a copy of the prescription with the clipping
+    aperture opened, the interaction falling back under ~1e-4 mm at 0.8 and 1.1;
+    a height between 1.60 and 2.00 mm of image radius reading over 1e-4 refutes it.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;
@@ -1241,3 +1252,5 @@ radial-map nodes · § 6ba differential bleaching.
     point-sampled rim, by up to 7e-3 mm on the axis; resolved at [§ 2q.3](VALIDATION.md#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout),
     opt-in, and the flip takes it with the interpolated peak (item 32 opened); the
     single plane takes it too, so § 6bb.2's seam can be read on one rim.
+    Restated on it so far: § 6bd's patched field, § 6bb's spectral volume and
+    § 6be's third axis (item 33 opened); next the focus chain, § 6bf–§ 6bg.

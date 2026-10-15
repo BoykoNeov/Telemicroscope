@@ -21,8 +21,8 @@ import {
  *
  * Field curvature moves best focus across the field, so a wide picture is out of
  * focus away from wherever the stage was set. § 6be.3 measures the spread over
- * the catalogued field of the ladder's 4× at 0.250229 mm — 5.79 depths of focus
- * — against 0.017685 mm, 0.409 of one, across a single frame (§ 6be.7). The
+ * the catalogued field of the ladder's 4× at 0.244113 mm — 5.65 depths of focus
+ * — against 0.016959 mm, 0.392 of one, across a single frame (§ 6be.7). The
  * ratio is the whole design argument: **14× of the problem lives between tiles
  * and 1× inside one**, because one frame is 0.103 mm of specimen against a field
  * 2.2 mm across.

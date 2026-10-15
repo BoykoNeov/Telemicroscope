@@ -204,8 +204,9 @@ function normalise(planes: Float64Array[], nm: readonly number[], kind: FlatFiel
  * `blank` is required and has no default, for `TileStageMm`'s reason: a default
  * would be this module choosing the calibration. What a caller passes is the
  * uniform-density specimen a real flat-field slide stands for, and the
- * *spectrum* it is given barely matters — § 6be.6's null says the profile is
- * achromatic to 5.3e-7 — but the geometry must be the picture's, so the options
+ * *spectrum* it is given barely matters — § 6be.6 reads the profile achromatic
+ * to 1.7e-7 inside 2 mm of image radius and 0.16–0.23% chromatic past the clip
+ * there — but the geometry must be the picture's, so the options
  * are the picture's options and this refuses to invent them.
  *
  * It costs a whole second mosaic. That is the honest price and it is the price a

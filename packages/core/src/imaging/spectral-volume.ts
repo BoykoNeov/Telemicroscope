@@ -128,7 +128,7 @@ import { fieldDefocusing, renderFieldVolume, type FieldVolumeImage } from "./fie
  * except for a specimen uniform in z, which the rescale stops being uniform on
  * the grid the moment the system is not telecentric (§ 6az.11).
  *
- * ## § 6be — the third axis, and the surface that turned out to separate
+ * ## § 6be — the third axis, and the surface that turned out nearly to separate
  *
  * `patches` **is** supported now. It was blocked because the two renderers
  * disagreed about brightness, § 6bc chose, § 6bd built `renderFieldVolume`, and
@@ -140,29 +140,32 @@ import { fieldDefocusing, renderFieldVolume, type FieldVolumeImage } from "./fie
  *
  * What the third axis is *for* is not what the deferral expected.
  *
- * **The best-focus surface SEPARATES.** A stack is rendered at one stage
+ * **The best-focus surface NEARLY separates.** A stack is rendered at one stage
  * position, and where a channel is sharp depends on the wavelength (§ 6bb.6) and
- * on the field — but not on the two together. Sweeping the stage on a rendered
- * ball at four object heights and three wavelengths, best focus is a colour term
- * plus a field term, and the interaction is **under 0.0013 mm** — 0.5% of the
- * total spread and 0.03 of a depth of focus. That residual is the sweep's own
- * floor and not a coupling, and § 6be.2 says so with the evidence that decides
- * it: it *changes sign* and its ordering over the three wavelengths *scrambles*
- * between heights, while its absolute size stays ~0.0012 mm. So a focus
- * correction wants **two one-dimensional curves and not a two-dimensional map**.
+ * on the field — and only a little on the two together. Sweeping the stage on a
+ * rendered ball at four object heights and three wavelengths, best focus is a
+ * colour term plus a field term plus an interaction of 0.002 of a depth of focus
+ * at h = 0.4 and **0.11 to 0.14** at h = 0.8 and 1.1 — at most 2.4% of the total
+ * spread. § 6be.2 places it: a second aperture starts cutting the outward side
+ * of the pupil between image radius 2.00 and 2.25 mm, and h = 0.4 is the one
+ * height inside that. So a focus correction wants **two one-dimensional curves
+ * first**, with the clip's coupling a correction on top. (Point-sampled, the
+ * interaction read a flat 0.0012 mm that changed sign, and § 6be called it the
+ * sweep's floor; that floor was the rim staircase's — § 2q.3.)
  *
  * **The field term is even, which is why § 6bb.6 could not see it.** It goes as
- * h² — the drop divided by h² is constant to 5% over a 2.75× range of object
- * height where the drop divided by h moves 2.5× — so its gradient vanishes on
- * the axis exactly, and § 6bb.6 measured the focus at the one field position the
- * field term is flat at. This is the third time the ladder has read an even
- * quantity at its own symmetry point (§ 6bc's throughput, § 6bd's correction of
- * it, this), and the field curve is one curve for every wavelength: the h²
- * coefficient is −0.0682 to −0.0689 mm/mm² across 430–656 nm (§ 6be.4).
+ * h² — at h = 0.8 and 1.1 the drop divided by h² is constant to 6% where the drop
+ * divided by h moves 1.29× to 1.44× — so its gradient vanishes on the axis
+ * exactly, and § 6bb.6 measured the focus at the one field position the field
+ * term is flat at. This is the third time the ladder has read an even quantity
+ * at its own symmetry point (§ 6bc's throughput, § 6bd's correction of it,
+ * this), and the field curve is nearly one curve for every wavelength: the h²
+ * coefficient is −0.0640 to −0.0679 mm/mm² across 430–656 nm, the 6% between
+ * them being the clip's coupling (§ 6be.4).
  *
  * **And it is half as much again as § 6bb.6's number.** Over 430–656 nm and 0 to
- * 1.1 mm of object height the total best-focus spread is **0.250229 mm = 5.789
- * depths of focus at 430 nm**, against the 3.8775 § 6bb.6 read on the axis. The
+ * 1.1 mm of object height the total best-focus spread is **0.244113 mm = 5.648
+ * depths of focus at 430 nm**, against the 3.7709 § 6bb.6 reads on the axis. The
  * extremes are blue-on-axis and the design wavelength at the field edge
  * (§ 6be.3).
  *
@@ -170,15 +173,15 @@ import { fieldDefocusing, renderFieldVolume, type FieldVolumeImage } from "./fie
  * field term the objective's.** `rasterizeEmitterVolume` runs on a radial map
  * and a depth rescale that are *both* field-dependent, so a best focus that
  * moved with height could have been either. An aberration-free pupil returns
- * −2.8e-7 mm at object heights 0, 0.8 and 1.1 alike (§ 6be.5).
+ * −2.8e-7 mm at object heights 0, 0.8 and 1.1 alike, to 3.9e-9 mm (§ 6be.5).
  *
  * **Patches reach part of it, and only part.** Field curvature is phase, so a
  * patched frame carries its own focus tilt: across one frame at the field edge
- * the three patch columns' best focus spans 0.017685 mm — **0.409 of a depth of
- * focus** at 430 nm — and a patched render has it because each patch is imaged
- * through its own traced pupil. The rest is out of reach by construction. One
- * frame is 0.103 mm of specimen wide against a field 2.2 mm across, so the
- * 0.250229 mm above is a **mosaic** quantity and no patch count within a single
+ * the three patch columns' best focus spans 0.016959 mm — **0.392 of a depth of
+ * focus** at 430 nm, 0.165 of one per frame width — and a patched render has it
+ * because each patch is imaged through its own traced pupil. The rest is out of
+ * reach by construction. One frame is 0.103 mm of specimen wide against a field
+ * 2.2 mm across, so the 0.244113 mm above is a **mosaic** quantity and no patch count within a single
  * frame gets to it (§ 6be.7).
  *
  * That difference has a readout of its own: the volume path multiplies by
@@ -316,17 +319,18 @@ export interface FluorescenceVolumeOptions extends FieldPupilOptions {
    * § 6bb number stands untouched. Above 1 the cost is `N_λ × patches² × N_z`
    * convolutions, which is the price § 6bb named when it deferred this.
    *
-   * What the patches buy is the **phase**, not the brightness: § 6be.6 measures
-   * the field profile of what the pupil *transmits* and finds it achromatic to
-   * 5.3e-7, so every chromatic thing about a patched frame is in the wavefront —
-   * § 6bd.6's amplitude/phase split, one axis up.
+   * What the patches buy is mostly the **phase**: § 6be.6 measures the field
+   * profile of what the pupil *transmits* and finds it achromatic to 1.7e-7 out
+   * to 2 mm of image radius, and 0.16–0.23% chromatic past the clip that starts
+   * between 2.00 and 2.25 mm — § 6bd.6's amplitude/phase split, one axis up,
+   * with the clip's colour-shifted rim as the one amplitude term.
    *
    * Part of that phase is **focus**. Across one frame at the edge of the
-   * catalogued field the three patch columns' own best focus spans 0.017685 mm,
-   * 0.409 of a depth of focus at 430 nm (§ 6be.7), and a patched render carries
+   * catalogued field the three patch columns' own best focus spans 0.016959 mm,
+   * 0.392 of a depth of focus at 430 nm (§ 6be.7), and a patched render carries
    * that tilt because each patch is imaged through its own traced pupil. What no
    * patch count reaches is the rest: one frame is 0.103 mm of specimen wide
-   * against a field 2.2 mm across, so § 6be.3's 0.250229 mm is a **mosaic**
+   * against a field 2.2 mm across, so § 6be.3's 0.244113 mm is a **mosaic**
    * quantity.
    */
   readonly patches?: number;
@@ -478,16 +482,17 @@ export interface VolumePlane extends StackedSpectralPlane {
   /**
    * What each patch's pupil transmitted, in this channel, row-major.
    *
-   * The channel's own field profile of the throughput, and § 6be.6 reads the
-   * null off it: normalized to its own frame's centre, this profile is the
-   * **same at every wavelength** to 5.3e-7 inside the catalogued field.
+   * The channel's own field profile of the throughput, and § 6be.6 reads it:
+   * normalized to its own frame's centre, this profile is the **same at every
+   * wavelength** to 1.7e-7 out to 2 mm of image radius, and differs by 0.16–0.23%
+   * past the clip that starts between 2.00 and 2.25 mm.
    *
    * **Patch `p` is not the same field point in two channels.** A frame's
    * `halfExtentMm` is ∝ λ (§ 6h.2), so the red frame is wider than the blue one
    * about the same centre, and patch `p` of each sits at a different image
    * radius. Comparing these arrays elementwise across channels compares two
    * field positions and calls the difference a colour (§ 6be.8). Normalize each
-   * to its own centre first, which is what makes the null above a statement
+   * to its own centre first, which is what makes the reading above a statement
    * about the optics rather than about the two frames' sizes.
    */
   readonly patchThroughput: readonly number[];

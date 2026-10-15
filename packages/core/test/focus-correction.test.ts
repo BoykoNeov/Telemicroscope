@@ -651,9 +651,10 @@ describe("§ 6bg — the correction applied", () => {
       );
       expect(across).toBeCloseTo(0.0137586, 6);
       expect(across / DOF430).toBeCloseTo(0.3183, 3);
-      // § 6be.7 read 0.409 of a depth of focus across a frame at 1.1 mm; this is
-      // the same quantity one tile further in, and no patch count removes it.
-      expect(across / DOF430).toBeLessThan(0.409);
+      // § 6be.7 reads 0.392 of a depth of focus across a frame at 1.1 mm (0.409
+      // point-sampled); this is the same quantity one tile further in, and no
+      // patch count removes it.
+      expect(across / DOF430).toBeLessThan(0.392);
     });
   });
 
