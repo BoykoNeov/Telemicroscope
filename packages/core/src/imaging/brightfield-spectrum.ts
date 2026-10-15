@@ -14,7 +14,7 @@ import {
   type SpecimenMap,
   type SpectralSpecimen,
 } from "./specimen";
-import { radialMapCovering, type RadialMap } from "./radial-map";
+import { radialMapCovering, type RadialMap, type RadialMapSeed } from "./radial-map";
 import {
   stackSpectralPlanes,
   type SpectralPlaneInput,
@@ -200,6 +200,22 @@ export interface BrightfieldSpectrumOptions extends FieldPupilOptions {
    * rungs run on.
    */
   readonly radialMapNodes?: number;
+  /**
+   * Open each plane's radial-map bracket at the frame's own traced
+   * magnification — `radial-map.ts`'s `RadialMapSeed`, § 6ct.
+   *
+   * § 6bk put the seed on the fluorescence volume and named the failure it
+   * leaves behind wherever it is missing: unseeded, the bracket opens at the
+   * image radius, |M| object heights out, and on an objective past about 4× the
+   * chief ray is dead there, so the table THROWS. This path was the one left —
+   * every colour brightfield frame above 4× refused with that message, which
+   * is why the app's colour section could render only the low-power rows.
+   *
+   * `"none"` stays the default for § 6bf.6's reason: a seeded table differs
+   * from an unseeded one in the mantissa, and the colour rungs are pinned on
+   * the unseeded path. A table passed in as `radialMap` is used as given.
+   */
+  readonly radialMapSeed?: RadialMapSeed;
   readonly stack?: StackBrightfieldOptions;
   /** Called once per wavelength finished, for progress against a cost in minutes. */
   readonly onWavelength?: (done: number, total: number, nm: number) => void;
@@ -253,6 +269,11 @@ export function formBrightfieldPlane(
       : radialMapCovering(system, [frame], {
           nodes: options.radialMapNodes,
           ...(options.aim === undefined ? {} : { aim: options.aim }),
+          // The frame's OWN traced magnification — spectral-volume's reading,
+          // and the frame exists by this line, so a caller has nothing to pass.
+          ...(options.radialMapSeed === "magnification"
+            ? { magnification: frame.magnification }
+            : {}),
         }));
   const object = rasterizeSpecimen(system, frame, atWavelength(specimen, sample.nm), {
     ...(options.aim === undefined ? {} : { aim: options.aim }),

@@ -165,6 +165,7 @@ whole ladder.
 | [6cq](#step-6cq--the-first-interval-and-the-engine-change-that-was-not-needed) | A non-integer `pupilSamples` is not an engine change: § 6bn's first interval crosses 1 at a matched field, 1.1061 → 0.9500, and its "opposite ways" was the frame | ✅ |
 | [6cr](#step-6cr--hopkins-kernel-and-the-specimen-taken-out-of-the-sum) | The TCC: exactly Hermitian, PSD, and Abbe's image to 1e-15. A three-disc closed form pins it off the diagonal; § 6f's two curves are one complex number | `hopkins` |
 | [6cs](#step-6cs--the-coherent-systems-and-the-factor-that-was-already-there) | TCC = A·Aᴴ: the modes are a discarded factor's singular vectors, so 47.1 MB becomes 4.75 MB with nothing dropped. Truncation is lossy: 99% needs 48 of 69 | `coherent-systems` |
+| [6ct](#step-6ct--the-seed-reaches-the-colour-stack-and-high-power-renders-in-colour) | § 6bk's seed on the colour brightfield stack: the oil 100× renders in colour where it threw; off by default, and inert at 4× to six ulp | `colour-seed` |
 | [8a](#step-8a--the-photon-zero-point-and-the-one-draw-a-camera-makes) | AB = 0 is 3631 Jy: a 0-mag star is 996 photons·s⁻¹·cm⁻²·Å⁻¹ at 550 nm (textbook 1000), a band's count is (f_ν/h)·ln(λ₂/λ₁) for any spectrum, shot noise is Poisson | `photon-zero-point` |
 | [8b](#step-8b--the-sky-and-the-magnitude-it-hides) | The sky per pixel is B·Ω·A·t: twice the mirror at one focal ratio is 4× the star and 1.000000000000× the sky, and the limit deepens 1.5051 mag per 4× exposure, 0.7526 swamped | `sky-background` |
 | [8c](#step-8c--the-resampler-that-conserves) | Bilinear × k² is a one-point quadrature: the stack ran +0.3–3.0% heavy with `truncatedFraction` at 0. A conservative minmod regrid conserves AND beats it on accuracy | `resample-conservation` |
@@ -29802,6 +29803,55 @@ and they are in different units: `kernelTerms` counts bilinear terms and
 `transforms` counts inverse FFTs. **Dividing them would be a flop estimate
 dressed as a reading**, so which sum is faster is left as a wall-time question
 for whoever needs the answer, and `renderBrightfield` stays on the Abbe sum.
+
+## Step 6ct — the seed reaches the colour stack, and high power renders in colour
+
+Source: `packages/core/src/imaging/brightfield-spectrum.ts` ·
+Tests: `packages/core/test/colour-seed.test.ts`
+
+§ 6bk put `radialMapSeed` on the fluorescence volume after finding a 10× mosaic
+whose geometry computed and whose render threw, and it named the mechanism in
+`radial-map.ts`: unseeded, `objectHeightForImageRadius` opens its bracket at the
+image radius — |M| object heights out — and past about 4× the chief ray is dead
+there, so the table does not converge slowly, it throws. § 6bk closed the one
+caller it had found. `brightfieldSpectralStack` was another, and it was found the
+same way, from the app: the microscope diagram (APP.md Part S) drives the colour
+section's renderer with every catalogue objective, and every one above 10× —
+the 20×, the Lister 40×/0.20, both oil 100× rows — refused with § 6bk's message,
+including its own sentence about the seed.
+
+**The change is § 6bk's option on one more caller**, spelled as `spectral-volume`
+spells it: `BrightfieldSpectrumOptions.radialMapSeed`, default `"none"`, and on
+`"magnification"` the plane's table is opened at the frame's own traced
+magnification. The default stays off for § 6bf.6's reason — a seeded table
+differs from an unseeded one in the mantissa, and the colour rungs (§ 6r, § 6t,
+A9's) are pinned on the unseeded path. A table passed in as `radialMap` (the
+mosaic's) is used as given, unchanged.
+
+**Measured, on the app's catalogue** at the colour section's own sampling
+(`pupilSamples` 32, grid 64, three planes at 450/550/650 nm, S = 0.5): seeded,
+the 20×/0.10 renders with all three planes valid, the Lister 40×/0.20 the same,
+and the oil 100×/1.25 and 1.40 render with the guard refusing the blue (and, at
+1.40, every) plane — § 6r.7's lattice story, which the finer 64/128 sampling
+answers for the green and red planes at about 4.5–7 s. The Lister 40×/0.40 still
+refuses, and in § 6d's words, because that one is a design that does not exist
+rather than a bracket that opened in the wrong place.
+
+| Rung | Pinned to | Status |
+| --- | --- | --- |
+| **§ 6ct.1 — the oil objective's colour frame needs the seed** | the oil 100×/1.25 throws `/no object height reaches image radius…UNSEEDED/` unseeded, and seeded renders every pixel of every plane finite with the 550 nm plane `valid` | ✅ |
+| **§ 6ct.2 — where both paths work, the option is inert** | on the DIN 4×/0.10, `"none"` written out is `Object.is` the omitted option on every pixel of every plane | ✅ |
+| | and seeding moves no pixel by more than the mantissa — worst **1.33e-15** relative (six ulp), § 6m.2's "the seed chooses the path, not the answer" on this caller | ✅ |
+
+Damage run: with the seed's spread disabled in `formBrightfieldPlane`, § 6ct.1's
+seeded rung fails and nothing else does — the inertness rungs cannot see a seed
+that never arrives, which is why the oil rung is there.
+
+**Not done here, on purpose.** The app's own colour section (`#/section`) and
+the stage still build unseeded, so their high-power rows still refuse. Turning
+the seed on there moves their pinned numbers by the mantissa and is that panel's
+decision, recorded as Part S's leftover in APP.md rather than taken silently
+here.
 
 ## Step 8a — the photon zero point, and the one draw a camera makes
 
