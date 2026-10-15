@@ -40,31 +40,32 @@ import {
  * function of field radius, so its gradient vanishes at the axis exactly; the
  * on-axis frame is the one frame in the field across which the pupil does not
  * change. Move the frame out and its own patches spread over a range where the
- * profile is steep: **0.686% across a frame centred at 2.25 mm and 1.699% at
- * 4.5 mm** (§ 6bd.3), on patch centres that themselves span 2.152–2.351 mm and
- * 4.402–4.600 mm of radius. Those are not the same interval § 6bc.4 measured and
- * they do not contradict it — they are the local slope where § 6bc read the
- * value, and a frame at the field edge is the case a single centre pupil
- * represents worst.
+ * profile is steep: **0.319% across a frame centred at 2.25 mm and 0.673% at
+ * 4.5 mm** (§ 6bd.3, on the rim § 2q.3 resolved), on patch centres that
+ * themselves span 2.152–2.351 mm and 4.402–4.600 mm of radius. Those are not the
+ * same interval § 6bc.4 measured and they do not contradict it — they are the
+ * local slope where § 6bc read the value, and a frame at the field edge is the
+ * case a single centre pupil represents worst.
  *
- * ## Which is why the error of one pupil has no fixed sign
+ * ## The error of one pupil has one sign
  *
  * A frame rendered through its centre's pupil alone holds a different total flux
- * than the same frame patched, and **which way is a property of the radius**:
- * 0.99999999 on axis, 0.99917570 at 2.25 mm, 1.00112776 at 4.5 mm (§ 6bd.4).
- * The profile is concave where the aperture has not begun to clip and convex
- * once it has, so the centre value sits above its own frame average in one place
- * and below it in another. A correction factor fitted at one field radius has
- * the wrong sign at another, which is the reason this is a renderer and not a
- * scalar.
+ * than the same frame patched: 0.99999999 on axis, 0.99982783 at 2.25 mm,
+ * 0.99986837 at 4.5 mm (§ 6bd.4). The profile is concave everywhere — 1 − a·r²
+ * before the aperture clips, and a disc's cut-off segment grows as depth^{3/2}
+ * once it does — so the centre value sits above its own frame average wherever
+ * the frame is. A point-sampled rim reads the clip as a staircase, and its steps
+ * once read as a convexity that flipped the sign at 4.5 mm (1.00112776); pass
+ * `edgeSamples`. A scalar correction would have the right sign; what it cannot
+ * carry is the shape, which is why this is a renderer.
  *
  * ## What the patches buy is the PHASE, not the clip
  *
  * Split the traced field pupil into its two halves and render each against a
  * frozen other half. At 4.5 mm, on a five-slice stack, one patch against
- * sixteen moves the image by 4.1055e-2 in relative RMS; the patches' own
- * **phase** with the centre's amplitude accounts for 3.9219e-2 of it and their
- * own **amplitude** with the centre's phase for 8.9971e-3 (§ 6bd.6). So a patched
+ * sixteen moves the image by 3.8914e-2 in relative RMS; the patches' own
+ * **phase** with the centre's amplitude accounts for 3.8537e-2 of it and their
+ * own **amplitude** with the centre's phase for 3.7609e-3 (§ 6bd.6). So a patched
  * render is bought for the aberration and gets the vignetting as change. On the
  * axis the amplitude half vanishes outright — 2.8e-7 against 1.8e-2 — which is
  * the even function above seen a third way. A caller who has only a throughput
@@ -74,7 +75,7 @@ import {
  * ## Out-of-focus light dilutes the field variation
  *
  * The same one-against-sixteen comparison on a single in-focus plane moves
- * 5.5543e-2 at 4.5 mm where the five-slice stack moves 4.1055e-2 (§ 6bd.5). Haze
+ * 5.3913e-2 at 4.5 mm where the five-slice stack moves 3.8914e-2 (§ 6bd.5). Haze
  * is the part of the image that carries no detail, and it is also the part that
  * is nearly insensitive to which patch's kernel formed it, so it enters both
  * renders alike and enlarges the denominator of every relative error.
@@ -97,7 +98,7 @@ import {
  * pattern. It does for a uniform slab, which is exactly the specimen a lazy
  * check would use, and the cancellation there is exact to 4e-16. It does not for
  * a specimen whose in-focus material and whose haze sit at different field
- * positions, and there the fraction moves **0.363% on a 1.699% throughput span**
+ * positions, and there the fraction moves **0.314% on a 0.673% throughput span**
  * (§ 6bd.7). § 6k.2 keeps its statement and gains a condition.
  *
  * ## The two grid limits are one limit, and the readout already reported it

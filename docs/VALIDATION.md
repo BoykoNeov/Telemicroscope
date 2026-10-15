@@ -123,7 +123,7 @@ whole ladder.
 | [6ba](#step-6ba--the-spectral-emitter-density) | ONE band collapses to ONE kernel and TWO need TWO — a MONOCHROME failure, not colour's; colour needs the planes apart even for one label, and that halo is AXIAL COLOUR, not diffraction | `emitter-spectrum` |
 | [6bb](#step-6bb--the-spectral-volume) | Depth times colour: the perspective is NOT ordered by wavelength — the GREEN channel is telecentric where the blue and red are not — and the channels focus 3.88 depths of focus apart, which is not the paraxial shift | `spectral-volume` |
 | [6bc](#step-6bc--the-units-a-formed-image-is-quoted-in) | Two renderers disagreed about brightness: normalizing a kernel is a choice of UNITS, exact while ONE pupil forms the frame and a measurement error the moment several do — colour 0.740%, field 10.7%, depth exactly 0 | `throughput-units` |
-| [6bd](#step-6bd--the-field-and-the-depth-on-one-callback) | The field and the depth on one callback, § 6bc having settled the units — and § 6bc read the field profile where it is FLAT: an on-axis frame varies 1.9e-8 across itself, one at 4.5 mm varies 1.699e-2, and the one-pupil error changes SIGN with radius | `field-volume` |
+| [6bd](#step-6bd--the-field-and-the-depth-on-one-callback) | The field and the depth on one callback, § 6bc having settled the units — and § 6bc read the field profile where it is FLAT: an on-axis frame varies 1.9e-8 across itself, one at 4.5 mm 6.73e-3, and the one-pupil error has ONE sign (§ 2q.3) | `field-volume` |
 | [6be](#step-6be--the-third-axis) | The third axis — best focus SEPARATES into a colour curve plus a field curve (interaction 0.03 of a depth of focus), and the field term is EVEN, so § 6bb.6's on-axis 3.88 depths of focus is 5.79 over the square | `spectral-field-volume` |
 | [6bf](#step-6bf--the-focus-surface-offered) | The focus surface, offered — and a COEFFICIENT is not the field curve: § 6be's h² is the ladder's own 4× at its own wavelength read over its outer third, the edge coefficient goes as f^-0.60 across three objectives, and a sweep that reads a plateau is refused | `focus-surface` |
 | [6bg](#step-6bg--the-correction-applied) | The correction applied — a stage per channel and per tile: 5.88× the peak on the axis, 39.0% more at the edge, and `inFocusFraction` INVERTS, reading zero on the sharpest render | `focus-correction` |
@@ -4762,8 +4762,9 @@ suite moves in this commit.
 | Chain | Reading | Cause | Restated as |
 |---|---|---|---|
 | colour | § 2n's restatement of § 6r.7: "under 1.2% on exit at every λ, not monotone, so not the wavefront's" | `withFocus` shares the prescription: the refocused pupil was laid on the as-built rim, 0.50% wider | withdrawn — on exit 6.61% → 2.92% (rim) and 8.30% → 3.66% (telecentric), monotone, the aim layout's to 1.3e-4 and 1.0e-3: spherochromatism, as § 6r.5 first read it; the members' factor 1.252–1.262 on exit, 1.22–1.24 on aim |
+| field | § 6bd.3–§ 6bd.7, 21 readings (spans, the one-pupil sign, the phase/clip split, the haze move) | the 24-sample lattice point-sampled the clip: constant between nodes, a step at each | the resolved rim; § 6bd.4's sign change withdrawn — the profile is concave, so the error has one sign; every figure checked at 23 samples |
 
-Nothing else in the suite moved. Each test file runs in its own process, so only
+At § 2q.1 nothing else in the suite moved. Each test file runs in its own process, so only
 a file that reads a base and a variant of one prescription could meet the stale
 rim — § 6r.7 today, § 6az.5 once its frames are on the exit layout.
 
@@ -4786,7 +4787,10 @@ rim — § 6r.7 today, § 6az.5 once its frames are on the exit layout.
   0.2080 mm at 32 samples to 0.2101 at 56–64 and comes back to 0.2090 at 255.
   It is not the sub-sampling (8 against 16) and not the image grid; the frame,
   which grows with the lattice, is the untested lever.
-- **§ 6bd–§ 6be's 24-sample rim ties** (§ 6bd.4's 441 against 439 nodes,
+- **§ 6bd–§ 6be's 24-sample rim ties** (~~§ 6bd.4's 441 against 439 nodes~~ —
+  the patched-field group, § 6bd.3–§ 6bd.7, re-read on the resolved rim and
+  restated, the sign change withdrawn; § 6bd.3's ratio is 1.18 against the
+  resolved axis-to-2.25 mm deficit, 1.40 against § 6bc.4's lattice count;
   § 6be.6's shading) are the same staircase at its coarsest, and should be
   re-read on the resolved rim before any of them is restated.
 - **The pixel readout is still the default.** Every sweep outside the volume
@@ -22211,7 +22215,7 @@ the frame it is showing.
   the step actually found is that **this rung's own framing above was wrong
   about where the field varies**: § 6bc.4's 1.9e-8 was read on the axis, where
   an even function's gradient vanishes by construction, and a frame at 4.5 mm
-  spans 1.699e-2 across its own patches (§ 6bd.3).
+  spans 6.73e-3 across its own patches (§ 6bd.3, on the rim § 2q.3 resolved).
 - **The weight is not an absolute throughput.** It is Σ|P|² over a *normalized*
   pupil, so at fixed `pupilSamples` a 0.10 and a 0.95 objective count the same
   lattice points. It carries apodization and aperture clipping and it does not
@@ -22239,6 +22243,14 @@ carrying its own pupil's weight.
 What arrives is the measurement of a coupling nobody had priced, and it
 disagrees with the deferral's own framing in four places.
 
+**Restated at [§ 2q.3](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout)** on the resolved rim, which every render here now
+uses. The 24-sample lattice had point-sampled the clip as a staircase, and two
+of this step's findings were the staircase's: the 4.5 mm frame's span (1.699e-2,
+now 6.73e-3) and § 6bd.4's sign change, which is gone. Each restated figure is
+checked at 23 samples; the gap that remains there is the frame, which is
+`pupilSamples` wide, not the lattice. The superseded figures are kept in the
+rows below, struck.
+
 | Rung | Pinned to | Status |
 | --- | --- | --- |
 | **§ 6bd.1 — the renderer reduces to BOTH of the two it reconciles, bitwise** | one patch is `renderVolume`: `Object.is` on every pixel, and on `inFocusFraction`, `maxGridPhaseStepWaves` and every `sliceFlux` | ✅ |
@@ -22246,17 +22258,18 @@ disagrees with the deferral's own framing in four places.
 | | and the four refusals: a non-integer, zero or negative patch count, an empty volume, a slice of the wrong size, a slice of the wrong length | ✅ |
 | **§ 6bd.2 — the input split stays exact however defocused** | a field-independent pupil renders identically at 1, 4 and 8 patches to below 1e-14 at ±0.06, ±0.12, ±0.25 and ±0.45 mm — measured 3.0e-16 to 7.6e-16, and not degrading with depth | ✅ |
 | | and the deepest is not vacuous: 4.0909 waves, where **24.41%** of the kernel has left the frame against 1.39% at the shallowest. The wrap is the same wrap in both renders, so it cancels out of the comparison | ✅ |
-| **§ 6bd.3 — § 6bc read the field profile exactly where it is FLAT** | within-frame throughput span 1.9040e-8 on axis, 6.8646e-3 at 2.25 mm, 1.6990e-2 at 4.5 mm, 1.2755e-2 at 6 mm | ✅ |
-| | the radii those patch centres actually span — 2.1517–2.3506 mm and 4.4016–4.5996 mm — so the span and § 6bc.4's axis-to-2.25 mm 0.227% cannot be read as one interval | ✅ |
-| | and the same objective from the other side: the centre pupil reproduces § 6bc.4's 0.997728 / 0.941036 / 0.893415 to six decimals | ✅ |
-| **§ 6bd.4 — the one-pupil error has no fixed SIGN** | patched flux over centred flux 0.99999999 on axis, 0.99917570 at 2.25 mm, **1.00112776** at 4.5 mm — below one where the aperture has not begun to clip and above it once it has | ✅ |
-| **§ 6bd.5 — out-of-focus light dilutes the field variation** | one patch against sixteen moves a single plane 5.5543e-2 at 4.5 mm and a five-slice stack 4.1055e-2, a ratio of 0.7392; 2.6852e-2 against 2.0606e-2 at 2.25 mm | ✅ |
-| | four patches against eight is 6.4632e-3 — an order of magnitude under the 1-against-4 move and not two, so the field is not resolved at four patches, merely no longer ignored | ✅ |
+| **§ 6bd.3 — § 6bc read the field profile exactly where it is FLAT** | within-frame throughput span 1.9040e-8 on axis, 3.1909e-3 at 2.25 mm, 6.7306e-3 at 4.5 mm, 7.7254e-3 at 6 mm (~~6.8646e-3, 1.6990e-2, 1.2755e-2~~ on the staircase) | ✅ |
+| | the radii those patch centres actually span — 2.1517–2.3506 mm and 4.4016–4.5996 mm — so the span and the axis-to-2.25 mm deficit cannot be read as one interval; the 2.25 mm frame spans 1.18× that deficit (~~above 3×~~), because the clip begins inside it | ✅ |
+| | and the same objective from the other side: the resolved centre pupil reads 0.997303 / 0.936682 / 0.888489 (0.888087 at 23 samples), 4e-4 to 5e-3 under § 6bc.4's lattice count 0.997728 / 0.941036 / 0.893415 | ✅ |
+| **§ 6bd.4 — the one-pupil error has ONE sign** (~~no fixed sign~~) | patched flux over centred flux 0.99999999 on axis, 0.99982783 at 2.25 mm, 0.99986837 at 4.5 mm (~~1.00112776~~) — below one at every radius, because the profile is concave | ✅ |
+| | concave on the resolved rim: every second difference of the centre pupil's throughput, every 0.25 mm over 0–6 mm, negative at a 32² sub-grid (the convex kinks left at 8² and 16², 3.4e-5 and 6.9e-6, are the sub-grid's), where the staircase has them up to 1.5e-3 | ✅ |
+| **§ 6bd.5 — out-of-focus light dilutes the field variation** | one patch against sixteen moves a single plane 5.3913e-2 at 4.5 mm and a five-slice stack 3.8914e-2, a ratio of 0.7218 (0.7172 at 23 samples; ~~0.7392~~); 2.8774e-2 against 2.0514e-2 at 2.25 mm | ✅ |
+| | four patches against eight is 4.0973e-3 (~~6.4632e-3~~) — an order of magnitude under the 1-against-4 move and not two, so the field is not resolved at four patches, merely no longer ignored | ✅ |
 | | and the axis is the control: with no throughput gradient to dilute, the ordering reverses | ✅ |
-| **§ 6bd.6 — what the patches buy is the PHASE, not the clip** | of 4.1055e-2 at 4.5 mm, the patches' own phase against a frozen amplitude carries 3.9219e-2 and their own amplitude against a frozen phase 8.9971e-3 — a ratio above 4 where the clip is at its worst | ✅ |
+| **§ 6bd.6 — what the patches buy is the PHASE, not the clip** | of 3.8914e-2 at 4.5 mm, the patches' own phase against a frozen amplitude carries 3.8537e-2 and their own amplitude against a frozen phase 3.7609e-3 (~~8.9971e-3~~) — a ratio of 10 (9.8 at 23 samples; ~~4.4~~) | ✅ |
 | | on axis the amplitude half vanishes outright, 2.8e-7 against 1.8e-2, and the phase half is the whole effect to six decimals | ✅ |
 | **§ 6bd.7 — the haze fraction is the specimen's only if the specimen SEPARATES** | a slab uniform across the field: the throughput cancels from `inFocusFraction` to 1e-14, and the fraction is 3/7 to twelve decimals | ✅ |
-| | signal in one half of the frame and haze in the other: 0.19927341 against 0.2, a move of −3.6329e-3 on a 1.6990e-2 throughput span | ✅ |
+| | signal in one half of the frame and haze in the other: 0.19937138 against 0.2, a move of −3.1431e-3 on a 6.7306e-3 throughput span (~~0.19927341, −3.6329e-3, 1.6990e-2~~) | ✅ |
 | **§ 6bd.8 — the lattice's Nyquist and the frame's containment are ONE limit** | both give ǀwǀ = pupilSamples/8; at it the escape past the frame is 7.19 / 5.45 / 4.53% for pupilSamples 16 / 24 / 32, spanning 2.7 points and ordered | ✅ |
 | | a quarter past it they converge to 16.46 / 15.68 / 15.73% — within one point and no longer ordered, which is what makes it a knee | ✅ |
 | | on a TRACED pupil the identity fails and the readout does not: five pupils reach a half-wave step between 1.5965 and 3.1304 waves, a spread above 1.9×, and escape 3.67–6.49% there, a spread below 1.8× | ✅ |
@@ -22271,33 +22284,37 @@ vanishes at the axis exactly: the on-axis frame is the one frame in the field
 across which the pupil does not change, and it is the frame § 6bc measured.
 
 Move the frame out and its patches spread over a range where the profile is
-steep — 6.8646e-3 across a frame centred at 2.25 mm, 1.6990e-2 at 4.5 mm. That
+steep — 3.1909e-3 across a frame centred at 2.25 mm, 6.7306e-3 at 4.5 mm. That
 is **not** a correction of § 6bc.4, and the rung is written so no later step can
-read it as one: § 6bc.4's 0.227% is a centre-to-centre ratio along 2.25 mm of
+read it as one: § 6bc.4's figure is a centre-to-centre ratio along 2.25 mm of
 radius, and this is a max-against-min over a patch grid whose centres cover
-2.1517–2.3506 mm. Both are pinned, and § 6bd.3 re-derives § 6bc.4's own profile
-from this module to six decimals so the two rungs are pinned to one objective
-rather than to two measurements that happen to agree.
+2.1517–2.3506 mm. Both are pinned, and § 6bd.3 reads § 6bc.4's own profile
+from this module so the two rungs are pinned to one objective. Since [§ 2q.3](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout)
+they differ, by what the rim's cut cells pass: § 6bc.4 counts lattice points.
 
-The consequence is § 6bd.4, and it is the one that decides the API. The profile
-is concave before the aperture clips and convex once it has, so a frame rendered
-through its centre's pupil alone holds **more** light than the patched frame at
-one radius and **less** at another: 0.99917570 at 2.25 mm against 1.00112776 at
-4.5 mm. A correction factor fitted at one field radius has the wrong sign at
-another, which is why this is a renderer and not a scalar.
+The consequence is § 6bd.4. ~~The profile is concave before the aperture clips
+and convex once it has, so a frame rendered through its centre's pupil alone
+holds more light than the patched frame at one radius and less at another.~~
+That was the staircase: point-sampled, the 24-sample lattice holds the clip
+constant between nodes and steps it at each, and a step reads as convexity.
+Resolved ([§ 2q.3](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout)) the profile is concave everywhere — 1 − a·r² before the
+aperture clips, and a disc's cut-off segment grows as depth^{3/2} once it does —
+so by Jensen the centre pupil always holds a little more light than its frame:
+0.99982783 at 2.25 mm and 0.99986837 at 4.5 mm. A scalar correction would at
+least have the right sign; it is a renderer for the shape, which § 6bd.5–6 measure.
 
 ### What the patches buy, and what dilutes it
 
 Freeze one half of the traced pupil and let the other half vary. At 4.5 mm the
-**phase** carries 3.9219e-2 of the 4.1055e-2 total and the **amplitude** 8.9971e-3
-— so a patched render is bought for the aberration and gets the vignetting as
+**phase** carries 3.8537e-2 of the 3.8914e-2 total and the **amplitude** 3.7609e-3
+(the staircase read 8.9971e-3, 2.4× too large) — so a patched render is bought for the aberration and gets the vignetting as
 change. On the axis the amplitude half vanishes outright, 2.8e-7, which is the
 even function above seen a third way. A caller holding a throughput profile and
 no traced wavefront has the small half of the effect everywhere and none of it on
 axis.
 
-Out-of-focus light **dilutes** all of this: the same comparison moves 5.5543e-2
-on a single plane where the five-slice stack moves 4.1055e-2. Haze carries no
+Out-of-focus light **dilutes** all of this: the same comparison moves 5.3913e-2
+on a single plane where the five-slice stack moves 3.8914e-2. Haze carries no
 detail and is nearly insensitive to which patch's kernel formed it, so it enters
 both renders alike and enlarges the denominator of every relative error.
 
@@ -22319,7 +22336,7 @@ F factors into a field pattern times a depth pattern**.
 A uniform slab factors, and the cancellation there is exact to 1e-14 — which is
 exactly why a slab could never have caught this, and why the rung carries the
 non-separable case beside it. Put the in-focus material in one half of the frame
-and the haze in the other and the fraction moves −3.6329e-3 on a 1.6990e-2
+and the haze in the other and the fraction moves −3.1431e-3 on a 6.7306e-3
 throughput span. The same shape as § 6bc's own lesson: the quantity that reads
 like a property of the specimen was reading a normalizer that happened to cancel.
 

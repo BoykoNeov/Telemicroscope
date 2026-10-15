@@ -1265,8 +1265,10 @@ stack across the field, so A4's comparison does have an analogue here and the
 panel is wiring rather than engine work. What it would show is worth stating,
 because § 6bd.5 measured it: the haze **dilutes** the field variation, so a
 thick-specimen frame moves less between one patch and sixteen than a single
-plane does (4.1055e-2 against 5.5543e-2 at 4.5 mm) — and § 6bd.4 says the
-one-pupil error changes sign with field radius, so the panel may not offer a
+plane does (3.8914e-2 against 5.3913e-2 at 4.5 mm, on the rim § 2q.3
+resolved) — and ~~§ 6bd.4 says the one-pupil error changes sign with field
+radius~~ (the staircase's; resolved, it has one sign) § 6bd.6 says the patches
+buy the phase, which no throughput scalar carries, so the panel may not offer a
 scalar correction in place of the patches. **§ 6be.7 adds a second thing it
 would show**: a patched frame is not isoplanatic in FOCUS either — across one
 frame at the edge of the catalogued field the patch columns' own best focus
