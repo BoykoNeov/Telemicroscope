@@ -1047,6 +1047,14 @@ and a number that would refute it.
 - § 6c, § 6e, § 6z: a correction collar (index and NA, not thickness); water
   immersion; the chromatic aplanatic condition.
 - § 6ar: a control on the crossing uncertainty the panel exceeds.
+- § 6ct: the radial-map seed reaches the colour stack and the diagram uses it, but
+  `#/section` (`renderSection`) and `#/stage` (`mosaic-spectrum`'s own table) still
+  build unseeded, so every objective above 10× refuses there. Seeding them moves
+  their pinned colour numbers by six ulp (§ 6ct.2), so it is a re-pin, not a
+  free switch. App-side beside it: `#/section`'s condenser slider steps 0.05 where
+  the commensurate source needs S·N whole, so at its defaults (N = 32) only S = 0,
+  ¼, ½ and ¾ render and every other stop is refused — the diagram's 1/8 step
+  (APP.md Part S) is the fix.
 
 ## F. Everything else, by step
 
