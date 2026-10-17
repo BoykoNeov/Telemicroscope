@@ -311,7 +311,8 @@ describe("D10 — the two questions, and what each one keeps", () => {
   it("separates the mount's asymmetry from the objective's own residual defocus", () => {
     // A1 traces to the system's own image plane, so a row carries a residual
     // defocus that is already an asymmetry about w₂₀ = 0 with no mount in it —
-    // the 100×/1.25 reads 0.47× at zero depth. Quoting the mounted number alone
+    // the 100×/1.25 reads 0.35× at zero depth (0.47× on the aim layout, before
+    // § 2q.6 laid the panel's pupils where their rays went). Quoting the mounted number alone
     // would hand that share to the mount. The ideal-pupil control is what says
     // which is which, and a matched mount makes it exactly 1.
     const flat = axialResponse({ spec: entryOf("oil-100x-125").spec, mount: "matched", depthUm: 10 });
@@ -328,10 +329,18 @@ describe("D10 — the two questions, and what each one keeps", () => {
 
     const wet = axialResponse({ spec: entryOf("oil-100x-125").spec, mount: "WATER", depthUm: 10 });
     if (!wet.ok) throw new Error(wet.error);
-    // The mount's own share is LARGER than the mounted objective's, because the
-    // objective's residual works the other way — which is the whole reason the
-    // pair is printed rather than the single number.
-    expect(wet.readout.sweep.asymmetryIdeal!).toBeGreaterThan(wet.readout.sweep.asymmetry!);
+    // The mount's own share and the mounted objective's differ by 29%, which is
+    // the whole reason the pair is printed rather than the single number. Their
+    // ORDER is not a law: on the aim layout the mount's own was the larger
+    // (16.88× against 13.17×) and this rung said the objective's residual works
+    // the other way; laid where its rays went (§ 2q.6) the mounted objective
+    // reads 21.74× against the same 16.88× — the ideal pupil has no layout to
+    // move — while its residual still sits below 1. A ±1-wave ratio does not
+    // add its two causes, so a residual under 1 does not pull the mounted
+    // figure under the mount's.
+    expect(wet.readout.sweep.asymmetryIdeal!).toBeCloseTo(16.878339, 5);
+    expect(wet.readout.sweep.asymmetry!).toBeCloseTo(21.738545, 5);
+    expect(wet.readout.sweep.asymmetry! / wet.readout.sweep.asymmetryIdeal! - 1).toBeGreaterThan(0.2);
     expect(wet.readout.sweep.asymmetryBare!).toBeLessThan(1);
     // Best focus moves POSITIVE: water is rarer than D263, so the depth
     // aberration is negative and the compensating defocus is not.

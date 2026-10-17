@@ -582,9 +582,11 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     frame — a frame owns its layout, the brightfield and section panels ask for
     `"exit"` — and it needed two engine changes a PSF never did: a direction placed
     at its optical sine, and a field component carrying its own power. What is
-    left is ~~fluorescence and~~ the volume panels — single-plane fluorescence
-    flipped at [§ 2p](VALIDATION.md#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone), its absolute emitter units pinned to the collected cone
-    — then the mosaic, the seam chain last.
+    left is ~~fluorescence and the volume panels~~ — single-plane fluorescence
+    flipped at [§ 2p](VALIDATION.md#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone), its absolute emitter units pinned to the collected cone, and
+    the volume and focus-surface chain with the app's volume panels at
+    [§ 2q.6](VALIDATION.md#-2q6--the-flip), 184 readings in eight files and three claims reversed —
+    the mosaic, the seam chain last.
     Readings that moved INSIDE their tolerances under § 2m were not audited
     (§ 2j's follow-up did that for its own flip); one met while editing was the
     retinal Airy in APP.md, 1.384″ → 1.380″. Found
@@ -750,7 +752,9 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     most 1.6e-4) and not the image grid. The frame is PS·λ/(2·NA) wide, so it
     grows with the lattice, and the light a hard edge diffracts past it is left
     out — the untested lever, which this ruler cannot vary alone. At the ladder's
-    48 samples it costs 8e-4 mm, 0.02 of a depth of focus. *What would pin it:* a
+    48 samples it costs 8e-4 mm, 0.02 of a depth of focus. (These are the aim
+    layout's figures; on the exit one, [§ 2q.6](VALIDATION.md#-2q6--the-flip), the 48-sample
+    focus reads 0.20849 mm.) *What would pin it:* a
     grid-free referee for the on-axis peak — the traced axial pupil's PSF by a
     one-dimensional Hankel transform, imaged against the same probe.
 33. **§ 6be's colour × field coupling starts where a pupil clip starts, and the
@@ -767,12 +771,28 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     Read again at [§ 6bf](VALIDATION.md#step-6bf--the-focus-surface-offered)'s restatement, on a grid of its own:
     6.4e-6 mm at 1.1 mm of image radius, 6.3e-4 at 2.2 and 6.4e-3 at 3.3, and the
     4×'s 430 nm field coefficient dips over the same step — the onset again, still
-    not a mechanism.
+    not a mechanism. **Refuted as stated at [§ 2q.6](VALIDATION.md#-2q6--the-flip)**, on the exit
+    layout: h = 0.4 (1.60 mm) reads 7.7e-4 mm, and 8.8e-4 / 5.8e-4 / 6.2e-4 at 40 /
+    56 / 60 samples — one sign, over 1e-4 on every lattice. The coupling has a
+    second part inside the clip, an eighth of the clip's (7.2e-3 / 6.4e-3 at 0.8 /
+    1.1). The exit layout lays the off-axis rim where the rays cross the reference
+    sphere, and that bundle sits displaced from its chief ray along the field by
+    1.7e-3 of the pupil at 1 mm, by a share that differs per colour (pinned
+    against a sphere built from its definition, to 1e-12 along each ray's own
+    bearing); the aim layout laid every rim on the unit circle and could not
+    see it. That the displacement is the in-clip coupling's route is the
+    candidate, not shown. *What would pin it
+    now:* the clip opened as above, the interaction at 0.8 and 1.1 falling to the
+    in-clip 6–9e-4; and a sweep with each colour's bundle re-centred on its
+    chief ray, h = 0.4 falling under 3e-4 (the lattice's scatter).
 34. **The 2×/0.10's slow samples do not settle across pupil lattices.** Found at
     [§ 6bf](VALIDATION.md#step-6bf--the-focus-surface-offered)'s restatement on § 2q.3's resolved rim. On 47, 48 and 56
     samples the 2× at 430 nm reads over the plateau threshold of 1, then 0.86,
     then passes on its own bracket at 56 while off its vertex it reads 0.96–0.98
-    at two sweep steps and over 1 at the third — and its edge field coefficient at the
+    at two sweep steps and over 1 at the third. On the exit layout
+    ([§ 2q.6](VALIDATION.md#-2q6--the-flip)) the layout moves it across the threshold too: at 48
+    samples it reads 1.10 on the axis and 1.04 at h = 0.35, refused, and 0.94 at
+    0.7, where the aim layout read 0.91, 0.99 and 0.86 — and its edge field coefficient at the
     design wavelength is 0.04281 / 0.04487 / 0.04742 mm/mm², ±5%, which swings
     § 6bf.4's two focal-length exponents through it over 0.52–0.67 while the
     4×–10× pair holds at 0.588–0.589. Both are the 2×'s, the worst-conditioned
@@ -1311,3 +1331,6 @@ radial-map nodes · § 6ba differential bleaching.
     density's rim nodes, whose outer ring the glass does not reach — fixed at
     [§ 2q.5](VALIDATION.md#-2q5--the-ring-that-was-not-there) with the throughput folded into the density's fit (items
     35 and 36 opened). Every exit chain's readings were restated there.
+    The flip itself landed at [§ 2q.6](VALIDATION.md#-2q6--the-flip): three claims reversed and item
+    33 refuted as stated (a coupling inside the clip too). Next: the mosaic chain,
+    § 6bh on, then the seam chain.

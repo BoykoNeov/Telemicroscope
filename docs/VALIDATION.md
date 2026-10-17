@@ -38,7 +38,7 @@ whole ladder.
 | [2n](#step-2n--brightfield-on-the-exit-layout-a-direction-at-its-optical-sine) | Brightfield flips by its frame: a direction at its optical sine, a field component at its own cos θ; a clear field is Fresnel's to 1e-7 | `brightfield-exit-layout` |
 | [2o](#step-2o--the-exit-layouts-orientation-the-geometrys-not-the-aims) | Past infinity the aim mirrors a telecentric pupil (531–587 nm, DIN 4×) and the exit layout copied it; signed by convergence, its centroid is the rays' | `exit-orientation` |
 | [2p](#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone) | Single-plane fluorescence flips by its frame: a plane's light is the emitter's collected cone, 2/(1 + cos u) of the paraxial share, to 3e-4 | `throughput-units` |
-| [2q](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout) | Stale rim cache; pixel peak; staircase rim; counted edge; ringless rim. Keyed; interpolated; resolved; located; stencil slides | `aperture-sine-key`, `band-limited-peak`, `edge-resolved-kernel`, `edge-crossing`, `exit-density-rim` |
+| [2q](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout) | Stale cache; pixel peak; staircase rim; counted edge; ringless rim; flip. Keyed; interpolated; resolved; located; slid; restated | `aperture-sine-key`, `band-limited-peak`, `edge-resolved-kernel`, `edge-crossing`, `exit-density-rim` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -4626,7 +4626,7 @@ objective's sine-condition residual (~3e-4 on the DIN 4×).
 ## Step 2q — the volume and focus-surface chain on the exit layout
 
 Source: engine fix — `exitApertureSine`'s cache key (`pupil/opd.ts`) names every field of the system the reading depends on; engine change — `bandLimitedPeak` (`math/band-limited-peak.ts`), opt-in to a focus sweep as `FocusSweepOptions.peak`; engine change — `incoherentPsf`'s `edgeSamples` (`imaging/fluorescence.ts`), opt-in, carried by `renderVolume`, `renderFieldVolume`, the spectral volume, `FocusSweepOptions`, `renderFluorescence` and `formEmitterPlane`; engine change — `EdgeRule` `"crossing"` (`imaging/fluorescence.ts`), opt-in beside `edgeSamples` and carried with it; engine fix — `exitDensity`'s derivative slides inward at sixth order, and the exit layout's throughput rides in the density's fit (`ExitDensity.transmitted`, `pupilFunctionFromOpd`'s `apodizationCarriesThroughput`)
-· Tests: § 2q.1 in `packages/core/test/aperture-sine-key.test.ts`; § 2q.2 in `band-limited-peak.test.ts`; § 2q.3 in `edge-resolved-kernel.test.ts`; § 2q.4 in `edge-crossing.test.ts`; § 2q.5 in `exit-density-rim.test.ts`; § 6r.7 restated in `brightfield-spectrum.test.ts`
+· Tests: § 2q.1 in `packages/core/test/aperture-sine-key.test.ts`; § 2q.2 in `band-limited-peak.test.ts`; § 2q.3 in `edge-resolved-kernel.test.ts`; § 2q.4 in `edge-crossing.test.ts`; § 2q.5 in `exit-density-rim.test.ts`; § 2q.6's pins in `spectral-field-volume.test.ts` (§ 6be.2's reference sphere) and `spectral-volume.test.ts` (§ 6bb.2's `rimShape`), its restatements in the six volume and focus files and `packages/app/test/volume-cap`, `volume-mount`; § 6r.7 restated in `brightfield-spectrum.test.ts`
 
 Register item 24's last fluorescence chain, step 2 of the user's split: the
 volume and focus-surface pictures (§ 6k, § 6l's app panels, § 6az, § 6bb,
@@ -4661,6 +4661,9 @@ on a cloned prescription, which no earlier read can have touched.
 | **§ 2q.5 — the density's derivative slides inward where the continued chain ends** | the DIN 4×'s continued chain misses the singlet's back surface from aim radius 1.168, so the ring at 1.2 is never traced; every node, rim included, is p·\|∂c/∂e\| to 3.5e-6 (rim 4.5e-4 at fourth order), the oil's to 2.2e-4 (1.66e-3) | ✅ |
 | | the exit layout's light is the launches', ∫p·T·\|∂c/∂a\|: the DIN within 7e-8 at 0–2 mm, density and laid pupil alike (the wobble reached 1.9e-5); the oil on axis −1.58e-4, its throughput carried to 1.4e-6 (six terms: +1.66e-4) | ✅ |
 | | § 2j.3 off the launches: the oil's light inside half its exit radius is 0.20521 (emitter) and 0.29867 (field); the transform reads them to 1.4e-5 and 5.8e-5, where it read 1.4e-3 and 1.9e-3 high | ✅ |
+| **§ 2q.6 — the flip** | the volume and focus chain on the exit layout and the located edge: no pupil light past radius 1 is lost — the formed sum against a fine quadrature holds to 1e-4 from 0 to 6 mm, 0.2–0.3% of it past 1 | ✅ |
+| | the off-axis bundle's displacement is the rays': a reference sphere built from its definition puts the outward, inward and sideways rim rays on the laid rim to 1e-12 | ✅ |
+| | § 6bb.2's colour tilt, 1.56%, is the transmission times the rim brightening, which traced rays and cos³ predict to 1.1e-5 | ✅ |
 
 § 6az.5's NaN was the lever — the DIN 4× with its stop on the front surface —
 reading the default objective's rim after § 6az.2 had read it, so its two
@@ -4979,8 +4982,8 @@ both. Every one is on the exit layout or downstream of it.
 
 ### What it leaves
 
-- **The volume and focus-surface flip itself** — the rest of this step, on the
-  corrected density.
+- ~~**The volume and focus-surface flip itself** — the rest of this step, on the
+  corrected density.~~ Landed at [§ 2q.6](#-2q6--the-flip).
 - **The oil 100×'s exit-layout light is short by 1.6e-4 on axis** — the 21-node
   lattice on its cubic map — and off axis two older residues show: the √-fit
   slips by 6e-5 to 1.6e-4 of the light at 10–20 µm, and at 15–20 µm the 32-ray
@@ -4990,6 +4993,87 @@ both. Every one is on the exit layout or downstream of it.
   item 36).
 - **The aim layout's throughput is still fitted at six terms.** No aim-layout
   reading moved, and none was measured against the launches on the oil.
+
+### § 2q.6 — the flip
+
+The volume and focus-surface chain goes onto the exit layout, on the located
+edge. Every fixture in `emitter-volume`, `field-volume`, `spectral-volume`,
+`spectral-field-volume`, `focus-surface` and `focus-correction` builds its
+frames with `layout: "exit"` and resolves its rim with `edgeRule: "crossing"`.
+The app's volume panel asks for `"exit"` in its four frames (`renderVolumeScene`,
+`axialResponse` twice, `depthStrehl`); it does not yet resolve the rim, and
+what that would cost is measured before it is asked for.
+
+**Hypothesis.** What moves is the layout's — where a ray lands and at what
+irradiance — and not light lost or a ruler misapplied. **Refuted by** any of
+three: pupil light past radius 1 dropped by the transform; an off-axis rim the
+rays do not put where the layout does; a colour tilt in the transmitted light
+that traced rays and a closed form do not predict. None appears.
+
+- **No light is lost.** Off the axis 0.2–0.3% of the DIN 4×'s pupil light lies
+  past radius 1 (the bundle is displaced, next), and the formed sum against a
+  fine quadrature of the same pupil holds to 1e-4 of itself from 0 to 6 mm of
+  image radius on 24, 32 and 48 samples. The transform visits ±(1 + half a
+  cell); the rim reaches 1.005.
+- **The displacement is the rays'.** Off the axis the exit-layout bundle is not
+  centred on its chief ray: at 1 mm of image radius, 430 nm, the outward rim
+  reads 0.9981 and the inward 1.0015, the sideways ones 0.9999 — not a ruler,
+  which would scale all four alike. A reference sphere built from § 2i's
+  definition with the plain tracer puts every rim ray where the layout does to
+  1e-12, along the ray's own bearing (§ 6be.2's new rung). The rays' directions part differently (1.0e-2 against
+  the sphere's 3.4e-3, by the transverse aberration over R), and the share is a
+  colour. The aim layout laid every rim on the unit circle and could not see it.
+- **The colour tilt is the rays' and cos³'s.** § 6bb.2's formed sum tilts 1.56%
+  from 430 to 680 nm, where the aim layout read the objective's transmission
+  alone, 0.658%. The rest is the exit pupil brightening toward its rim, by a
+  colour: an emitter's power per unit of the aim (linear in slope) goes as
+  cos³θ, spread by the traced stretch (e/a)·de/da. From traced rays and cos³
+  alone that predicts 1.0089721 between the two colours; a fine quadrature of
+  the laid pupil reads 1.0089730, the formed sums 1.008961 (the 32-sample edge
+  cells). The cos³ itself, at aim radius 0.9: the laid density times the traced
+  stretch reads 0.98784 / 0.98779 / 0.98781 at 430 / 587.6 / 680 nm, against
+  cos³θ·T = 0.98778.
+
+### What moved, and why
+
+184 readings in eight files moved, each run twice — the whole flip, and the
+located edge alone on the aim layout. 80 moved with the layout alone and 100 in
+both runs; sized by which change moved them further, 86 of those hundred are the
+layout's and 14 the edge rule's (§ 6bd.3's spans and § 6bd.4's ratios, and
+§ 6be.6's field-edge shading — whose 14% lattice spread was the counted edge's).
+The last four sit after § 6bf.5's refusal, which the flip run never reached.
+Three claims reversed, two changed in kind (§ 6bd.6's vanishing amplitude half,
+§ 6be.8's ∝ λ) and three weakened; each test states its own.
+
+| Chain | Reading | Cause | Restated as |
+|---|---|---|---|
+| volume | § 6bd.3–§ 6bd.8, 29 recorded readings | layout; § 6bd.3–§ 6bd.4 the edge rule | re-recorded; a patched frame still holds less than its centre, 0.99987847 and 0.99991930 |
+| volume | § 6bd.4: every second difference of the throughput profile under 0 | layout | under 0 from 2 to 6 mm, past the clip; inside it under four times the exit density's 7e-8 of the axial light — a ±1–3e-8 zigzag 64² sub-samples leave unchanged, over a trend of −1.2e-8 |
+| volume | § 6bd.6: on axis the amplitude half under 1e-6 | layout | 1.35e-4, 130× under the phase half: the displaced rim has a gradient at the axis |
+| colour | § 6bb.2: the formed-sum tilt is the transmission, to 4.4e-6 | layout | 1.0155933, the transmission times the rim brightening, predicted to 1.1e-5 |
+| colour | § 6bb.4–§ 6bb.12, 20 readings | layout | re-recorded; channels 3.7493 depths apart, picture against paraxial 1.4628, ρ⁴ ratio 4.594 |
+| third axis | § 6be.2: interaction 8.7e-5 / 5.9e-3 / 4.7e-3 mm, "the coupling is a clip's" | layout | 7.7e-4 / 7.2e-3 / 6.4e-3, and h = 0.4 one sign over 40–60 samples: a coupling inside the clip too, an eighth of the clip's — **reversed** (register item 33) |
+| third axis | § 6be.2: the clip onset at a fixed probe, 0.995 | layout | by bisection: the outward-and-inward width under the sideways rim by 6e-4 at 2.00 mm, 5–7e-3 at 2.25 |
+| third axis | § 6be.3–§ 6be.5 and § 6be.7, 25 readings | layout | re-recorded; the square 5.620 depths, the coupling 3.0% of it, the in-frame tilt 0.388 |
+| third axis | § 6be.6: achromatic inside the clip to 1.7e-7; 4.5 mm 1.99 / 2.28 / 2.16e-3 | layout; the spread the edge rule | 2.7e-7; 2.1318e-3 on all three lattices to 1.2e-4 |
+| third axis | § 6be.8: the frame extent ∝ λ, to 12 digits | the exit ruler | ∝ λ/(n′σ) to 12 digits, ∝ λ to 0.43% |
+| focus | § 6bf.1–§ 6bf.4, § 6bf.7 and § 6bf.5's ragged sample, 44 readings | layout | re-recorded; the auto-seed 9.1e-6 inside a 1.69e-5 bracket phase; the exponent band 0.567–0.590 (2% → 4%, the 2×'s pair, item 34); at 430 nm the 4× spreads 2.08× its design wavelength (3.65×), rising before it dips — **weakened** |
+| focus | § 6bf.5: the 2× at 430 nm reads under 1 at every height | layout | refused at h = 0 and 0.35 (1.10, 1.04), 0.94 at 0.7 — **reversed** (item 34); its step invariance 0.05% about the new vertex |
+| correction | § 6bg.3: h² against h 40× apart, against a floor of 8.7e-5 | layout | 8.4× apart, against the in-clip coupling's lattice scatter, 3e-4 — **weakened** |
+| correction | § 6bg.4–§ 6bg.8, 19 readings | layout | re-recorded; 5.85×, 33.9%, misregistration +25.9%; § 6bg.8's per-colour height 1.1× the floor, no longer over it — **weakened** |
+| app | the oil 100×/1.25 in water: the mount's own asymmetry the larger | layout | 16.88× against the mounted 21.74× (13.17× on the aim layout) — **reversed**; the caption prints both, in no order |
+| app | the cap's grid-step ratio at 96 bins, 0.92 of 1/cos α | layout | 0.844, still climbing and under it |
+
+### What it leaves
+
+- **The app's volume panels on the point-sampled rim.** `edgeSamples` is not
+  asked for there yet; its cost per panel is measured first.
+- **The in-clip coupling's route** (register item 33, refuted as stated): the
+  displaced bundle is the candidate, not shown.
+- **The 2×'s threshold** (item 34): the layout moves it across, as the lattice did.
+- **§ 6bd.4's profile inside the clip** bends less than the exit density
+  resolves; its sign there is not a measurement.
+- **The mosaic chain**, § 6bh on, then the seam chain.
 
 ## Step 3a — the standard observer and thermal sources
 

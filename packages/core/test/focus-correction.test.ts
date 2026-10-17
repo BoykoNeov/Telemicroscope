@@ -33,21 +33,23 @@ import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/desi
  *
  * Every measurement render here is on § 2q.3's resolved rim (`edgeSamples` 8),
  * and the surface is swept with the band-limited peak; the figures restated
- * there are struck in VALIDATION.md.
+ * there are struck in VALIDATION.md. Every one is on the exit layout since
+ * § 2q.6, whose table records what that moved — and § 6bg.3's margin and
+ * § 6bg.8's floor are two of the claims it weakened.
  *
  * **The correction pays, and the size of it is the field's.** At 430 nm the
- * ladder's 4×/0.10 renders its own probe 5.90× brighter at the correct stage
+ * ladder's 4×/0.10 renders its own probe 5.85× brighter at the correct stage
  * than at the nominal one, on the axis. Off the axis the colour term alone is
  * worth less and the field term more, and at the catalogued field edge the field
  * term by itself — a stage set correctly for 430 nm on the axis against one set
- * correctly for 430 nm out there — is 35.5% of the peak.
+ * correctly for 430 nm out there — is 33.9% of the peak.
  *
  * **The uncorrected picture is sharper at its EDGE than at its centre**, which
  * is field curvature seen from an unusual side and is the one number here that
  * says the correction is not a monotone improvement in a picture that was
- * uniformly bad: an uncorrected 430 nm stage sits 0.210 mm from best focus on
- * the axis and 0.130 mm from it at the field edge, so the recovery the
- * correction wins runs the other way, 5.90× on the axis against 2.13× at the
+ * uniformly bad: an uncorrected 430 nm stage sits 0.208 mm from best focus on
+ * the axis and 0.129 mm from it at the field edge, so the recovery the
+ * correction wins runs the other way, 5.85× on the axis against 2.13× at the
  * edge.
  *
  * **And a picture corrected this way is not one exposure.** A microscope has one
@@ -60,17 +62,17 @@ import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/desi
  * **The haze readout does not follow the correction.** `inFocusFraction` is
  * measured about the NOMINAL stage, and axial colour is exactly the statement
  * that the nominal stage is not where the picture is sharp (§ 6bb.7's 50%). So
- * the corrected render — the 5.90×-brighter one — reports **no light in focus at
+ * the corrected render — the 5.85×-brighter one — reports **no light in focus at
  * all**, and the blurred one reports all of it. § 6bg.5 pins the inversion so
  * that a panel cannot quote it as a sharpness meter.
  *
  * **What the correction costs is registration, and it is not the perspective.**
  * Refocusing a channel re-refers its own `1 + z·k`, which is the coupling § 6bb
- * would have predicted — and that term is 1/65 of what is measured. The
- * blue-against-red displacement at 1.0 mm of field grows 24.8% when each channel
+ * would have predicted — and that term is 1/70 of what is measured. The
+ * blue-against-red displacement at 1.0 mm of field grows 25.9% when each channel
  * is put at its own stage, and the cause is measured rather than inferred: with
- * only ONE channel's stage moved, that channel's own centroid walks 1.426e-3 mm
- * sideways at 1.0 mm of field and 3.09e-6 mm on the axis — 461× less, under a
+ * only ONE channel's stage moved, that channel's own centroid walks 1.537e-3 mm
+ * sideways at 1.0 mm of field and 3.02e-6 mm on the axis — 509× less, under a
  * thousandth of a pixel. A symmetric pupil's defocus cannot move a centroid; an
  * off-axis one's can, and does. (Centroids are read with the frame's floor
  * taken off — see `centroidOf`.)
@@ -100,7 +102,9 @@ const BALL: FocusProbe = (centreMm) =>
 const SWEEP: FocusSweepOptions = {
   size: SIZE,
   pupilSamples: PS,
+  layout: "exit",
   edgeSamples: EDGE,
+  edgeRule: "crossing",
   peak: "band-limited",
   slabs: SLABS,
   probe: BALL,
@@ -114,10 +118,11 @@ const SWEEP: FocusSweepOptions = {
  *
  * Three wavelengths so the interpolation has an interval to be wrong in, and
  * four heights out to the catalogued field edge so the payoff is measured where
- * § 6be.3 measured the problem. Its own figures are § 6bf's: the interaction
- * comes back at 4.741138e-3 mm, the same digits § 6bf.7's denser grid reads at
- * h = 1.1, which is the cheapest possible check that this file's surface is that
- * file's surface.
+ * § 6be.3 measured the problem. Its own figures are § 6bf's: on the aim layout
+ * the interaction came back at 4.741138e-3 mm, the same digits § 6bf.7's denser
+ * grid read at h = 1.1, which was the cheapest possible check that this file's
+ * surface is that file's surface. On the exit layout (§ 2q.6) it reads
+ * 6.462937e-3 mm.
  */
 const HEIGHTS = [0, 0.275, 0.55, 1.1];
 const SURFACE = focusSurface(SYSTEM, {
@@ -145,7 +150,9 @@ function tilePeak(
   const base = {
     size: SIZE,
     pupilSamples: PS,
+    layout: "exit" as const,
     edgeSamples: EDGE,
+    edgeRule: "crossing" as const,
     samples: [{ nm: wavelengthNm, weight: 1 }],
     slabs: SLABS,
     centresMm: [centreMm],
@@ -230,6 +237,7 @@ describe("§ 6bg — the correction applied", () => {
       const base = {
         size: 64,
         pupilSamples: 24,
+        layout: "exit" as const,
         samples: quadratureSamples({ fromNm: 450, toNm: 650, count: 5 }),
         slabs: SLABS,
       };
@@ -262,6 +270,7 @@ describe("§ 6bg — the correction applied", () => {
       const stack = fluorescenceSpectralVolume(SYSTEM, (x, y, z) => ball(x, y, z), {
         size: 32,
         pupilSamples: 16,
+        layout: "exit",
         samples: quadratureSamples({ fromNm: 450, toNm: 650, count: 3 }),
         slabs: SLABS,
       });
@@ -281,6 +290,7 @@ describe("§ 6bg — the correction applied", () => {
       const base = {
         size: 64,
         pupilSamples: 24,
+        layout: "exit" as const,
         samples: quadratureSamples({ fromNm: 450, toNm: 650, count: 3 }),
         slabs: SLABS,
       };
@@ -333,6 +343,7 @@ describe("§ 6bg — the correction applied", () => {
 
   describe("§ 6bg.3 — h² is the interpolation variable, and the choice is a real one", () => {
     it("at an unswept height the even variable lands under the estimator's floor and h lands over it", () => {
+      // Restated at § 2q.6, and weaker there: see the end of this rung.
       const h = 0.1375;
       const drop = (j: number) =>
         SURFACE.fieldDropMm.reduce((s, row) => s + row[j]!, 0) / SURFACE.fieldDropMm.length;
@@ -347,26 +358,33 @@ describe("§ 6bg — the correction applied", () => {
       }
       const worstEven = Math.max(...errors.map((e) => Math.abs(e.even)));
       const worstOdd = Math.max(...errors.map((e) => Math.abs(e.odd)));
-      expect(worstEven).toBeCloseTo(3.29347e-5, 9);
-      expect(worstOdd).toBeCloseTo(1.330695e-3, 8);
-      // The floor that decides it is the estimator's, and § 2q.3 moved it: point-
-      // sampled § 6be.2 read 1.2e-3 mm and the odd variable landed ON it; resolved,
-      // the interaction inside the pupil clip is 8.7e-5 mm. The even variable lands
-      // under that, and the odd one 15× over it — so interpolating in h is now a
-      // measurable error rather than an indistinguishable one, and h² is not.
-      expect(worstEven).toBeLessThan(8.7e-5);
-      expect(worstOdd).toBeGreaterThan(10 * 8.7e-5);
-      expect(worstEven / DOF430).toBeLessThan(1e-3);
-      expect(worstOdd / worstEven).toBeGreaterThan(40);
+      expect(worstEven).toBeCloseTo(1.737682e-4, 9);
+      expect(worstOdd).toBeCloseTo(1.454115e-3, 8);
+      // The floor that decides it is the estimator's, and it has moved twice.
+      // Point-sampled, § 6be.2 read 1.2e-3 mm and the odd variable landed ON it.
+      // Resolved on the aim layout the interaction inside the pupil clip was a
+      // floor of 8.7e-5 mm; the even variable (3.29347e-5) landed under it and the
+      // odd one (1.330695e-3) 15× over, 40× the even. On the exit layout (§ 2q.6)
+      // that interaction is a coupling, not a floor — 6–9e-4 mm, one sign on four
+      // lattices — and what is left of a floor is its scatter across them, 3e-4.
+      // The even variable lands under that and the odd one 4.8× over it, 8.4× the
+      // even: h² still wins, and h is still a measurable error, by a margin a
+      // fifth of the aim layout's.
+      const floor = 3e-4;
+      expect(worstEven).toBeLessThan(floor);
+      expect(worstOdd).toBeGreaterThan(4 * floor);
+      expect(worstEven / DOF430).toBeLessThan(5e-3);
+      expect(worstOdd / worstEven).toBeGreaterThan(8);
     });
   });
 
   describe("§ 6bg.4 — the correction pays, and by how much", () => {
-    it("on the axis the whole of it is the colour term: 5.90× the peak", () => {
+    it("on the axis the whole of it is the colour term: 5.85× the peak", () => {
       const on = corrected(0, 430);
       const off = uncorrected(0, 430);
       expect(on.stageMm).toBe(AXIS_430);
-      expect(on.peak / off.peak).toBeCloseTo(5.9000, 3);
+      // 5.9000 on the aim layout (§ 2q.6)
+      expect(on.peak / off.peak).toBeCloseTo(5.8492, 3);
     });
 
     it("on the axis the FIELD term is exactly nothing, and the stage says so bitwise", () => {
@@ -379,12 +397,13 @@ describe("§ 6bg — the correction applied", () => {
       expect(Object.is(on.peak, axis.peak)).toBe(true);
     });
 
-    it("at the field edge the field term alone is 35.5% of the peak", () => {
+    it("at the field edge the field term alone is 33.9% of the peak", () => {
       const on = corrected(1.1, 430);
       const axis = atAxisStage(1.1, 430);
-      expect(on.stageMm).toBeCloseTo(0.12972, 4);
+      // 0.12972 and 1.3549 on the aim layout (§ 2q.6)
+      expect(on.stageMm).toBeCloseTo(0.12918, 4);
       expect(axis.stageMm).toBe(AXIS_430);
-      expect(on.peak / axis.peak).toBeCloseTo(1.3549, 3);
+      expect(on.peak / axis.peak).toBeCloseTo(1.3392, 3);
     });
 
     it("and the uncorrected picture is SHARPER at its edge than at its centre", () => {
@@ -393,13 +412,14 @@ describe("§ 6bg — the correction applied", () => {
       const edge = uncorrected(1.1, 430);
       const centre = uncorrected(0, 430);
       expect(edge.peak / centre.peak).toBeGreaterThan(2.3);
-      expect(edge.peak / centre.peak).toBeCloseTo(2.3826, 3);
-      expect(corrected(1.1, 430).peak / edge.peak).toBeCloseTo(2.1333, 3);
+      // 2.3826 and 2.1333 on the aim layout (§ 2q.6)
+      expect(edge.peak / centre.peak).toBeCloseTo(2.3708, 3);
+      expect(corrected(1.1, 430).peak / edge.peak).toBeCloseTo(2.1328, 3);
     });
   });
 
   describe("§ 6bg.5 — the haze readout does NOT follow the correction", () => {
-    it("the 5.90×-brighter render reports no light in focus, and the blurred one all of it", () => {
+    it("the 5.85×-brighter render reports no light in focus, and the blurred one all of it", () => {
       // `inFocusFraction` counts slices within half a depth of focus of the
       // NOMINAL stage. Axial colour is the statement that the nominal stage is
       // not where the picture is sharp (§ 6bb.7's 50%), so once the stage is
@@ -417,11 +437,12 @@ describe("§ 6bg — the correction applied", () => {
     const blue = boxcarBand(466.6666666666667, 66.66666666666667);
     const red = boxcarBand(628, 56);
 
-    it("the channels' misregistration grows 24.8%, and the perspective is 1/65 of it", () => {
+    it("the channels' misregistration grows 25.9%, and the perspective is 1/70 of it", () => {
       const centreMm = { x: imageRadiusForObjectHeight(SYSTEM, 1.0, 550), y: 0 };
       const located = focusCorrectedTiles(SYSTEM, () => 0, {
         size: SIZE,
         pupilSamples: PS,
+        layout: "exit",
         samples: [{ nm: 550, weight: 1 }],
         slabs: SLABS,
         centresMm: [centreMm],
@@ -445,7 +466,9 @@ describe("§ 6bg — the correction applied", () => {
         fluorescenceSpectralVolume(SYSTEM, density, {
           size: SIZE,
           pupilSamples: PS,
+          layout: "exit",
           edgeSamples: EDGE,
+          edgeRule: "crossing",
           samples,
           slabs: SLABS,
           centreMm,
@@ -464,16 +487,18 @@ describe("§ 6bg — the correction applied", () => {
 
       const before = displacement(flat);
       const after = displacement(perChannel);
-      expect(before).toBeCloseTo(6.213210e-3, 6);
-      expect(after).toBeCloseTo(7.756621e-3, 6);
+      // On the exit layout (§ 2q.6); the aim layout read 6.213210e-3,
+      // 7.756621e-3, 1.543412e-3 and 0.2484.
+      expect(before).toBeCloseTo(6.391385e-3, 6);
+      expect(after).toBeCloseTo(8.047678e-3, 6);
       const cost = after - before;
-      expect(cost).toBeCloseTo(1.543412e-3, 6);
-      expect(cost / before).toBeCloseTo(0.2484, 3);
+      expect(cost).toBeCloseTo(1.656293e-3, 6);
+      expect(cost / before).toBeCloseTo(0.2591, 3);
 
       // The coupling § 6bb would have predicted, in closed form: each channel's
       // own `1 + z·k` evaluated at its own stage, bluest against reddest. It is
       // exactly ZERO uncorrected — every plane is referred to the same stage —
-      // and 2.4e-5 mm corrected, which is 1.5% of what was measured. So the
+      // and 2.4e-5 mm corrected, which is 1.4% of what was measured. So the
       // price is not the map moving. An off-axis PSF is not symmetric, so
       // changing its defocus moves its centroid, and that is the other 98%.
       const perspective = (stack: ReturnType<typeof render>): number => {
@@ -485,7 +510,8 @@ describe("§ 6bg — the correction applied", () => {
         return spread * heightMm * Math.abs(first.frame.magnification);
       };
       expect(perspective(flat)).toBe(0);
-      expect(perspective(perChannel)).toBeCloseTo(2.3818e-5, 8);
+      // 2.3818e-5 on the aim layout (§ 2q.6)
+      expect(perspective(perChannel)).toBeCloseTo(2.3700e-5, 8);
       expect(perspective(perChannel) / cost).toBeLessThan(0.02);
     });
 
@@ -499,6 +525,7 @@ describe("§ 6bg — the correction applied", () => {
         const located = focusCorrectedTiles(SYSTEM, () => 0, {
           size: SIZE,
           pupilSamples: PS,
+          layout: "exit",
           samples: [{ nm: 550, weight: 1 }],
           slabs: SLABS,
           centresMm: [centreMm],
@@ -520,7 +547,9 @@ describe("§ 6bg — the correction applied", () => {
           fluorescenceSpectralVolume(SYSTEM, density, {
             size: SIZE,
             pupilSamples: PS,
+            layout: "exit",
             edgeSamples: EDGE,
+            edgeRule: "crossing",
             samples,
             slabs: SLABS,
             centreMm,
@@ -541,9 +570,10 @@ describe("§ 6bg — the correction applied", () => {
       const axis = shifts(0);
 
       // Off the axis one channel's own refocus walks its own image sideways.
-      expect(field.blue).toBeCloseTo(-1.426154e-3, 7);
-      expect(field.red).toBeCloseTo(1.172581e-4, 7);
-      // On the axis the same stage moves do essentially nothing — 3.09e-6 mm,
+      // -1.426154e-3 and 1.172581e-4 on the aim layout (§ 2q.6)
+      expect(field.blue).toBeCloseTo(-1.536563e-3, 7);
+      expect(field.red).toBeCloseTo(1.197301e-4, 7);
+      // On the axis the same stage moves do essentially nothing — 3.02e-6 mm,
       // under a thousandth of a pixel against over 0.4 of one off the axis. A
       // field-INDEPENDENT mechanism would show here too, and this is the rung that
       // says none does. (Read raw, with the frame's floor left in, the axis shift
@@ -555,7 +585,7 @@ describe("§ 6bg — the correction applied", () => {
 
       // And the two shifts ARE the cost measured above: the channels are
       // rendered independently, so what moved the pair is what moved each.
-      expect(field.red - field.blue).toBeCloseTo(1.543412e-3, 6);
+      expect(field.red - field.blue).toBeCloseTo(1.656293e-3, 6);
     });
   });
 
@@ -570,6 +600,7 @@ describe("§ 6bg — the correction applied", () => {
       const base = {
         size: 32,
         pupilSamples: 16,
+        layout: "exit" as const,
         samples: quadratureSamples({ fromNm: 433, toNm: 656, count: 9 }),
         slabs: SLABS,
       };
@@ -607,7 +638,9 @@ describe("§ 6bg — the correction applied", () => {
     const series = focusCorrectedTiles(SYSTEM, () => 0, {
       size: SIZE,
       pupilSamples: PS,
+      layout: "exit",
       edgeSamples: EDGE,
+      edgeRule: "crossing",
       samples: SERIES_SAMPLES,
       slabs: SLABS,
       centresMm,
@@ -617,7 +650,8 @@ describe("§ 6bg — the correction applied", () => {
     it("every tile gets its own stage per channel, and the series counts its own exposures", () => {
       expect(series.tiles).toHaveLength(3);
       expect(series.exposures).toBe(9);
-      expect(series.stageSpreadMm).toBeCloseTo(0.225204, 5);
+      // 0.225204 on the aim layout (§ 2q.6)
+      expect(series.stageSpreadMm).toBeCloseTo(0.223489, 5);
       for (const tile of series.tiles) {
         expect(tile.exposures).toBe(3);
         expect(tile.focusMm).toHaveLength(3);
@@ -631,7 +665,7 @@ describe("§ 6bg — the correction applied", () => {
       expect(series.tiles[0]!.focusMm[2]).toBe(SURFACE.colourMm[2]);
     });
 
-    it("the height a tile is corrected at is per wavelength, and it is over the resolved floor", () => {
+    it("the height a tile is corrected at is per wavelength, and it sits on the resolved floor", () => {
       const outer = series.tiles[2]!;
       const heights = outer.objectHeightMm;
       const spread = Math.max(...heights) - Math.min(...heights);
@@ -640,17 +674,20 @@ describe("§ 6bg — the correction applied", () => {
       expect(spread).toBeCloseTo(2.503e-3, 6);
       // What using one shared height for every channel would have moved the
       // stage by. Point-sampled it sat under § 6be.2's 1.2e-3 mm floor and this
-      // rung called it bookkeeping. Resolved, the floor inside the pupil clip is
-      // 8.7e-5 mm and this is 3.7× that — small, and a measurement a sweep could
-      // now confirm.
+      // rung called it bookkeeping. Resolved on the aim layout the floor inside
+      // the pupil clip was 8.7e-5 mm and this (3.26471e-4) 3.7× that, a
+      // measurement a sweep could confirm. On the exit layout (§ 2q.6) what is
+      // left of a floor is the 3e-4 mm the lattice scatters the in-clip coupling
+      // by, and this is 1.1× it: a sweep at 48 samples could not confirm it.
       let worst = 0;
       for (let k = 0; k < 3; k++) {
         const own = predictedFocusMm(SURFACE, SERIES_SAMPLES[k]!.nm, heights[k]!);
         const shared = predictedFocusMm(SURFACE, SERIES_SAMPLES[k]!.nm, heights[1]!);
         worst = Math.max(worst, Math.abs(own - shared));
       }
-      expect(worst).toBeCloseTo(3.26471e-4, 7);
-      expect(worst).toBeGreaterThan(3 * 8.7e-5);
+      expect(worst).toBeCloseTo(3.24307e-4, 7);
+      expect(worst).toBeGreaterThan(3e-4);
+      expect(worst).toBeLessThan(2 * 3e-4);
       expect(worst / DOF430).toBeLessThan(8e-3);
     });
 
@@ -662,27 +699,31 @@ describe("§ 6bg — the correction applied", () => {
       const frame = objectFieldTile(SYSTEM, {
         size: SIZE,
         pupilSamples: PS,
+        layout: "exit",
         wavelengthNm: 430,
         centreMm: centresMm[2]!,
       });
       const halfObjectMm = Math.abs(frame.halfExtentMm / frame.magnification);
-      expect(halfObjectMm).toBeCloseTo(0.051494, 5);
+      // 0.051494 on the aim layout's ruler (§ 6be.8)
+      expect(halfObjectMm).toBeCloseTo(0.051672, 5);
       const across = Math.abs(
         predictedFocusMm(SURFACE, 430, 1.0 + halfObjectMm) -
           predictedFocusMm(SURFACE, 430, 1.0 - halfObjectMm),
       );
-      expect(across).toBeCloseTo(0.0134142, 6);
-      expect(across / DOF430).toBeCloseTo(0.3103, 3);
-      // § 6be.7 reads 0.392 of a depth of focus across a frame at 1.1 mm (0.409
-      // point-sampled); this is the same quantity one tile further in, and no
-      // patch count removes it. The figure is this lattice's FRAME: a frame is
-      // pupilSamples·λ/(2·NA) wide, so on 47 and 56 samples it spans 0.10084 and
-      // 0.12015 mm of object and the same rung reads 0.303 and 0.362. Per
-      // millimetre of field the tilt is 0.130053 / 0.130250 / 0.130284 mm on
-      // 47 / 48 / 56 — the same to 0.18%, so the lattice moves the ruler and not
-      // the surface. All three sit under § 6be.7's.
-      expect(across / (2 * halfObjectMm)).toBeCloseTo(0.13025, 4);
-      expect(across / DOF430).toBeLessThan(0.392);
+      // On the exit layout (§ 2q.6); the aim layout read 0.0134142 and 0.3103.
+      expect(across).toBeCloseTo(0.0133714, 6);
+      expect(across / DOF430).toBeCloseTo(0.3094, 3);
+      // § 6be.7 reads 0.388 of a depth of focus across a frame at 1.1 mm (0.392
+      // on the aim layout, 0.409 point-sampled); this is the same quantity one
+      // tile further in, and no patch count removes it. The figure is this
+      // lattice's FRAME: a frame is pupilSamples·λ/(2·NA) wide, so on the aim
+      // layout 47 and 56 samples spanned 0.10084 and 0.12015 mm of object and
+      // the same rung read 0.303 and 0.362. Per millimetre of field the tilt was
+      // 0.130053 / 0.130250 / 0.130284 mm on 47 / 48 / 56 — the same to 0.18%, so
+      // the lattice moves the ruler and not the surface — and on the exit
+      // layout it reads 0.129387 at 48. All of them sit under § 6be.7's.
+      expect(across / (2 * halfObjectMm)).toBeCloseTo(0.12939, 4);
+      expect(across / DOF430).toBeLessThan(0.388);
     });
   });
 
@@ -702,6 +743,7 @@ describe("§ 6bg — the correction applied", () => {
         focusCorrectedTiles(SYSTEM, () => 0, {
           size: SIZE,
           pupilSamples: PS,
+          layout: "exit",
           samples: [{ nm: 433, weight: 1 }],
           slabs: SLABS,
           centresMm: [{ x: imageRadiusForObjectHeight(SYSTEM, 1.1, 550), y: 0 }],
@@ -715,6 +757,7 @@ describe("§ 6bg — the correction applied", () => {
         focusCorrectedTiles(SYSTEM, () => 0, {
           size: 32,
           pupilSamples: 16,
+          layout: "exit",
           samples: [{ nm: DESIGN, weight: 1 }],
           slabs: SLABS,
           centresMm: [{ x: 0, y: 0 }],
@@ -725,6 +768,7 @@ describe("§ 6bg — the correction applied", () => {
         fluorescenceSpectralVolume(SYSTEM, () => 0, {
           size: 32,
           pupilSamples: 16,
+          layout: "exit",
           samples: [{ nm: DESIGN, weight: 1 }],
           slabs: SLABS,
           channelFocusMm: () => Number.POSITIVE_INFINITY,
@@ -737,6 +781,7 @@ describe("§ 6bg — the correction applied", () => {
         focusCorrectedTiles(SYSTEM, () => 0, {
           size: 32,
           pupilSamples: 16,
+          layout: "exit",
           samples: [{ nm: DESIGN, weight: 1 }],
           slabs: SLABS,
           centresMm: [],
@@ -747,6 +792,7 @@ describe("§ 6bg — the correction applied", () => {
         focusCorrectedTiles(SYSTEM, () => 0, {
           size: 32,
           pupilSamples: 16,
+          layout: "exit",
           samples: [],
           slabs: SLABS,
           centresMm: [{ x: 0, y: 0 }],

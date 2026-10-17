@@ -780,6 +780,7 @@ export function renderVolumeScene(request: VolumeRequest): VolumeResult {
     const { system, frame } = buildFrame({
       spec: request.spec,
       pupilSamples: request.pupilSamples,
+      layout: "exit",
       size: request.size,
     });
     const tracedNA = objectNumericalAperture(system, LAMBDA_NM);
@@ -1272,6 +1273,7 @@ export function axialResponse(request: AxialRequest): AxialResult {
     const response0 = buildFrame({
       spec: request.spec,
       pupilSamples: AXIAL_PUPIL_SAMPLES,
+      layout: "exit",
       size: AXIAL_SIZE,
     });
     const axis = fieldPupilAt(response0.system, response0.frame, 0.5, 0.5);
@@ -1329,6 +1331,7 @@ export function axialResponse(request: AxialRequest): AxialResult {
     const cone0 = buildFrame({
       spec: request.spec,
       pupilSamples: CONE_PUPIL_SAMPLES,
+      layout: "exit",
       size: CONE_SIZE,
     });
     const conePupil = fieldPupilAt(cone0.system, cone0.frame, 0.5, 0.5).pupil;
@@ -1735,6 +1738,7 @@ export function depthStrehl(request: DepthRequest): DepthResult {
     const { system, frame } = buildFrame({
       spec: request.spec,
       pupilSamples: AXIAL_PUPIL_SAMPLES,
+      layout: "exit",
       size: AXIAL_SIZE,
     });
     const options = { pupilSamples: AXIAL_PUPIL_SAMPLES, size: AXIAL_SIZE };

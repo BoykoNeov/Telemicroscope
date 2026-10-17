@@ -97,7 +97,7 @@ const OBJECT_PLANE_Z = -SCOPE.objectDistanceMm;
 const NODES = 128;
 
 const tile = (system: OpticalSystem, wavelengthNm: number, size = 128): ObjectFieldFrame =>
-  objectFieldTile(system, { size, pupilSamples: 32, wavelengthNm, centreMm: { x: 0, y: 0 } });
+  objectFieldTile(system, { size, pupilSamples: 32, layout: "exit", wavelengthNm, centreMm: { x: 0, y: 0 } });
 
 const mapFor = (system: OpticalSystem, frame: ObjectFieldFrame): RadialMap =>
   radialMapCovering(system, [frame], { nodes: NODES });

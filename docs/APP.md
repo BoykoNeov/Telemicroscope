@@ -4206,18 +4206,21 @@ are corrections to this section as it was written.
   +1.11 waves and 4.51× are all **NA 1.2 on an ideal pupil**, and no catalogue row
   is NA 1.2. The panel computes its own: on the **oil 100×/1.25 in water** the
   budget over-reports by **5.75×** (18.71 µm quoted against **3.25 µm** bisected),
-  and at 10 µm of depth the axial response is **13.17×** asymmetric with best focus
-  at **+0.72 waves**. The engine's own figures are cited on the page as § 6l.4's
+  and at 10 µm of depth the axial response is **21.74×** asymmetric with best focus
+  at **+0.84 waves** (13.17× and +0.72 before § 2q.6 laid the panel's pupils on
+  the exit layout; the budget's three figures did not move). The engine's own figures are cited on the page as § 6l.4's
   and § 6l.7's reference points and labelled as such — this doc has been burned
   once already by quoting a core probe as a panel's number.
 - **The asymmetry needed a control the step had not thought of.** A1 traces to the
   system's *own* image plane, so a row carries a residual defocus that is already
-  an asymmetry about w₂₀ = 0 with no mount in it: the 100×/1.25 reads **0.47×** at
-  zero depth. Quoting the mounted 13.17× alone would hand that share to the mount —
-  whose own contribution is **larger** at 16.88×, because the objective's residual
-  works the other way. So the panel prints three numbers where the step expected
-  one: mounted, the mount's own (ideal pupil, same NA), and the objective's at zero
-  depth. The prediction below about D4 needing something D0 did not measure holds
+  an asymmetry about w₂₀ = 0 with no mount in it: the 100×/1.25 reads **0.35×** at
+  zero depth. Quoting the mounted 21.74× alone would hand that share to the mount,
+  whose own contribution is **16.88×**. So the panel prints three numbers where the
+  step expected one: mounted, the mount's own (ideal pupil, same NA), and the
+  objective's at zero depth. (On the aim layout these read 13.17×, 16.88× and 0.47×,
+  and this entry said the mount's share was the larger "because the objective's
+  residual works the other way". § 2q.6 reversed the order and not the residual's
+  side, so that reason was not one: a ±1-wave ratio does not add its causes.) The prediction below about D4 needing something D0 did not measure holds
   for D10 as well, and this is its version of it.
 - **§ 6k.4's support-edge check comes apart, and the split is § 6l.6's.** The
   missing cone stays **empty** through a mount (ν = 0 reads ~2e-15, unchanged),

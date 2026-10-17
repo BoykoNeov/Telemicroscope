@@ -69,12 +69,13 @@ const SYSTEM: OpticalSystem = finiteConjugateMicroscope({
 /** § 2q.3's resolved rim, on every render here but the lattice's own rungs. */
 const EDGE = 8;
 
-const OPT = { pupilSamples: PS, numericalAperture: NA, wavelengthNm: LAMBDA, edgeSamples: EDGE };
+const OPT = { pupilSamples: PS, numericalAperture: NA, wavelengthNm: LAMBDA, edgeSamples: EDGE, edgeRule: "crossing" as const };
 
 const tileAt = (xMm: number) =>
   objectFieldTile(SYSTEM, {
     size: SIZE,
     pupilSamples: PS,
+    layout: "exit",
     wavelengthNm: LAMBDA,
     centreMm: { x: xMm, y: 0 },
   });
@@ -165,6 +166,7 @@ describe("§ 6bd.1 — the two renderers this one reduces to, bitwise", () => {
       pupilSamples: PS,
       throughput: { kind: "transmitted" },
       edgeSamples: EDGE,
+      edgeRule: "crossing",
     });
     const stack = renderFieldVolume(thin, fieldDefocusing(pupils), { ...OPT, patches: 4 });
     for (let i = 0; i < plane.intensity.length; i++) {
@@ -280,36 +282,39 @@ describe("§ 6bd.3 — the field varies fastest where § 6bc did not read it", (
     const at225 = spanAt(2.25);
     const at450 = spanAt(4.5);
     const at600 = spanAt(6);
-    // Resolved (§ 2q.3). Point-sampled these read 6.8646e-3, 1.6990e-2 and
-    // 1.2755e-2: the staircase, which at 23 samples is a different staircase.
-    // Resolved, 23 samples reads 3.2090e-3, 6.4833e-3 and 7.3036e-3 — the rest
-    // of the gap is the frame, which is pupilSamples wide.
-    expect(at225.span).toBeCloseTo(3.1909e-3, 6);
-    expect(at450.span).toBeCloseTo(6.7306e-3, 6);
-    expect(at600.span).toBeCloseTo(7.7254e-3, 6);
+    // On the exit layout (§ 2q.6); the aim layout read 3.1909e-3, 6.7306e-3 and
+    // 7.7254e-3. Point-sampled these read 6.8646e-3, 1.6990e-2 and 1.2755e-2:
+    // the staircase, which at 23 samples is a different staircase. Resolved on
+    // the aim layout, 23 samples read 3.2090e-3, 6.4833e-3 and 7.3036e-3 — the
+    // rest of the gap is the frame, which is pupilSamples wide.
+    expect(at225.span).toBeCloseTo(3.1463e-3, 6);
+    expect(at450.span).toBeCloseTo(6.6540e-3, 6);
+    expect(at600.span).toBeCloseTo(7.3148e-3, 6);
     // The comparison, stated so it cannot be read as a correction of § 6bc.4:
     // that rung's figure is the AXIS-to-2.25 mm ratio; this is the span across
     // one frame whose patch centres cover only these radii.
-    expect(at225.radii[0]).toBeCloseTo(2.1517, 3);
-    expect(at225.radii[1]).toBeCloseTo(2.3506, 3);
-    expect(at450.radii[0]).toBeCloseTo(4.4016, 3);
-    expect(at450.radii[1]).toBeCloseTo(4.5996, 3);
-    // 0.319% across 0.199 mm of radius, against 0.270% across the 2.25 mm
-    // beneath it: the clip begins inside this frame. The staircase read 3.0×.
+    expect(at225.radii[0]).toBeCloseTo(2.1511, 3);
+    expect(at225.radii[1]).toBeCloseTo(2.3513, 3);
+    expect(at450.radii[0]).toBeCloseTo(4.4009, 3);
+    expect(at450.radii[1]).toBeCloseTo(4.6003, 3);
+    // 0.315% across 0.200 mm of radius, against 0.260% across the 2.25 mm
+    // beneath it: the clip begins inside this frame. The staircase read 3.0×,
+    // the aim layout 1.1831.
     const deficit = 1 - spanAt(2.25).centre / spanAt(0).centre;
-    expect(at225.span / deficit).toBeCloseTo(1.1831, 3);
+    expect(at225.span / deficit).toBeCloseTo(1.2101, 3);
     expect(at225.span / deficit).toBeGreaterThan(1);
   });
 
   it("and the centre pupil reads § 6bc.4's radial profile on the resolved rim", () => {
     // The same objective from the other side. § 6bc.4 counts lattice points
     // (0.997728 / 0.941036 / 0.893415); the resolved rim passes the clipped
-    // cells' light too, and reads 4e-4 to 5e-3 lower — 0.997365 / 0.936488 /
-    // 0.888087 at 23 samples, so the lattice is not what remains.
+    // cells' light too, and reads 3e-4 to 4e-3 lower on the exit layout (§ 2q.6;
+    // 0.997303 / 0.936682 / 0.888489 on the aim one, and 0.997365 / 0.936488 /
+    // 0.888087 there at 23 samples, so the lattice is not what remains).
     const axial = spanAt(0).centre;
-    expect(spanAt(2.25).centre / axial).toBeCloseTo(0.997303, 6);
-    expect(spanAt(4.5).centre / axial).toBeCloseTo(0.936682, 6);
-    expect(spanAt(6).centre / axial).toBeCloseTo(0.888489, 6);
+    expect(spanAt(2.25).centre / axial).toBeCloseTo(0.997400, 6);
+    expect(spanAt(4.5).centre / axial).toBeCloseTo(0.937047, 6);
+    expect(spanAt(6).centre / axial).toBeCloseTo(0.889053, 6);
   });
 });
 
@@ -319,7 +324,10 @@ describe("§ 6bd.4 — the error of one pupil has one sign", () => {
     // cut-off segment grows as depth^{3/2} once it does — so the centre value
     // sits above its own frame average wherever the frame is (Jensen). The
     // staircase rim read 1.00112776 at 4.5 mm and called the sign radius-
-    // dependent; resolved, 0.99986837 there, and 0.999787 at 23 samples.
+    // dependent; resolved, 0.99991930 there on the exit layout (§ 2q.6), and on
+    // the aim one 0.99986837, 0.999787 at 23 samples. On the axis the frame and
+    // its centre agree to 2.3e-9 (the aim layout's 1e-8 the other way), under
+    // the exit density's 7e-8 (§ 2q.5).
     const volume = beads([-0.06, -0.03, 0, 0.03, 0.06]);
     const ratioAt = (r: number): number => {
       const frame = tileAt(r);
@@ -331,31 +339,47 @@ describe("§ 6bd.4 — the error of one pupil has one sign", () => {
       });
       return four.weightedEmittedFlux / one.weightedEmittedFlux;
     };
-    expect(ratioAt(0)).toBeCloseTo(0.99999999, 8);
-    expect(ratioAt(2.25)).toBeCloseTo(0.99982783, 8);
-    expect(ratioAt(4.5)).toBeCloseTo(0.99986837, 8);
+    expect(ratioAt(0)).toBeCloseTo(1.00000000, 8);
+    expect(ratioAt(2.25)).toBeCloseTo(0.99987847, 8);
+    expect(ratioAt(4.5)).toBeCloseTo(0.99991930, 8);
     // stated as the finding rather than as three numbers
     expect(ratioAt(2.25)).toBeLessThan(1);
     expect(ratioAt(4.5)).toBeLessThan(1);
   });
 
-  it("and the profile it rests on is concave, which the staircase was not", () => {
+  it("and the profile it rests on is concave where the clip bends it, which the staircase was not", () => {
     // The centre pupil's throughput every 0.25 mm over 0–6 mm. Point-sampled,
     // second differences of both signs up to 1.5e-3: a constant between lattice
     // nodes and a step at each. Resolved, the convex kinks left are the cut
     // cells' own sub-grid — 3.4e-5 at 8², 6.9e-6 at 16² — and at 32² there are
-    // none, against a concave trend of −2.6e-4.
+    // none past the clip, against a concave trend of −2.6e-4.
+    //
+    // Before the clip (under 2 mm) the trend is the glass's oblique loss, −1.2e-8
+    // (1.2e-7 of the axial light) on the aim layout, and on the exit layout
+    // (§ 2q.6) that is under what the traced density can resolve: it meets the
+    // launches' light to 7e-8 there (§ 2q.5), and a second difference carries
+    // four such errors. It reads +1.2e-8 at 0.75 and 1.25 mm and −2.9e-8 between,
+    // a zigzag 64² sub-samples leave unchanged — so the sign there is not a
+    // measurement, and what is asserted is the bound the density puts on it.
     const radii = Array.from({ length: 25 }, (_, i) => 0.25 * i);
-    const secondDifferences = (edgeSamples: number): number[] => {
-      const t = radii.map((r) =>
-        pupilThroughput(tracedAt(tileAt(r), 0.5, 0.5), { pupilSamples: PS, size: SIZE, edgeSamples }),
+    const throughputs = (edgeSamples: number): number[] =>
+      radii.map((r) =>
+        pupilThroughput(tracedAt(tileAt(r), 0.5, 0.5), {
+          pupilSamples: PS,
+          size: SIZE,
+          edgeSamples,
+          ...(edgeSamples > 1 ? { edgeRule: "crossing" as const } : {}),
+        }),
       );
-      return t.slice(1, -1).map((v, i) => t[i]! - 2 * v + t[i + 2]!);
-    };
-    const resolved = secondDifferences(32);
-    for (const d of resolved) expect(d).toBeLessThan(0);
+    const secondDifferences = (t: readonly number[]): number[] =>
+      t.slice(1, -1).map((v, i) => t[i]! - 2 * v + t[i + 2]!);
+    const t = throughputs(32);
+    const resolved = secondDifferences(t);
+    const clip = radii.indexOf(2) - 1;
+    for (const d of resolved.slice(clip)) expect(d).toBeLessThan(0);
+    for (const d of resolved.slice(0, clip)) expect(d).toBeLessThan(4 * 7e-8 * t[0]!);
     expect(Math.min(...resolved)).toBeLessThan(-2e-4);
-    expect(Math.max(...secondDifferences(1))).toBeGreaterThan(1e-3);
+    expect(Math.max(...secondDifferences(throughputs(1)))).toBeGreaterThan(1e-3);
   });
 });
 
@@ -373,13 +397,14 @@ describe("§ 6bd.5 — out-of-focus light dilutes the field variation", () => {
       });
       return rel(four.intensity, one.intensity);
     };
-    // Resolved (§ 2q.3); the staircase read 2.6852e-2, 2.0606e-2, 5.5543e-2,
-    // 4.1055e-2 and a ratio of 0.7392. At 23 samples the ratio is 0.7172.
-    expect(moveAt(2.25, thin)).toBeCloseTo(2.8774e-2, 5);
-    expect(moveAt(2.25, thick)).toBeCloseTo(2.0514e-2, 5);
-    expect(moveAt(4.5, thin)).toBeCloseTo(5.3913e-2, 5);
-    expect(moveAt(4.5, thick)).toBeCloseTo(3.8914e-2, 5);
-    expect(moveAt(4.5, thick) / moveAt(4.5, thin)).toBeCloseTo(0.7218, 3);
+    // Resolved on the exit layout (§ 2q.6); the aim layout read 2.8774e-2,
+    // 2.0514e-2, 5.3913e-2, 3.8914e-2 and a ratio of 0.7218 (0.7172 at 23
+    // samples), the staircase 2.6852e-2, 2.0606e-2, 5.5543e-2, 4.1055e-2 and 0.7392.
+    expect(moveAt(2.25, thin)).toBeCloseTo(2.8701e-2, 5);
+    expect(moveAt(2.25, thick)).toBeCloseTo(2.0609e-2, 5);
+    expect(moveAt(4.5, thin)).toBeCloseTo(5.4163e-2, 5);
+    expect(moveAt(4.5, thick)).toBeCloseTo(3.9284e-2, 5);
+    expect(moveAt(4.5, thick) / moveAt(4.5, thin)).toBeCloseTo(0.7253, 3);
 
     // The corollary that does NOT follow is "a thick specimen needs fewer
     // patches". Haze carries no detail and is nearly insensitive to which
@@ -399,11 +424,11 @@ describe("§ 6bd.5 — out-of-focus light dilutes the field variation", () => {
     const pupils = fieldDefocusing(tracedFieldPupils(SYSTEM, frame));
     const four = renderFieldVolume(thick, pupils, { ...OPT, patches: 4 });
     const eight = renderFieldVolume(thick, pupils, { ...OPT, patches: 8 });
-    // 6.4632e-3 on the staircase rim.
-    expect(rel(eight.intensity, four.intensity)).toBeCloseTo(4.0973e-3, 5);
+    // 6.4632e-3 on the staircase rim, 4.0973e-3 on the aim layout.
+    expect(rel(eight.intensity, four.intensity)).toBeCloseTo(4.1741e-3, 5);
     // an order of magnitude under the 1-against-4 move, not two: the field is
     // not resolved at four patches, it is merely no longer ignored
-    expect(rel(eight.intensity, four.intensity)).toBeLessThan(3.8914e-2 / 5);
+    expect(rel(eight.intensity, four.intensity)).toBeLessThan(3.9284e-2 / 5);
   });
 });
 
@@ -428,21 +453,28 @@ describe("§ 6bd.6 — what the patches buy is the phase, not the clip", () => {
     };
 
     const edge = split(4.5);
-    expect(edge.full).toBeCloseTo(3.8914e-2, 5);
-    expect(edge.phase).toBeCloseTo(3.8537e-2, 5);
-    expect(edge.amplitude).toBeCloseTo(3.7609e-3, 5);
-    // the aberration is 10× the clip. The staircase read the clip at 8.9971e-3,
-    // 2.4× too large, and the ratio at 4.4×; resolved at 23 samples, 9.8×.
+    expect(edge.full).toBeCloseTo(3.9284e-2, 5);
+    expect(edge.phase).toBeCloseTo(3.9069e-2, 5);
+    expect(edge.amplitude).toBeCloseTo(4.0279e-3, 5);
+    // the aberration is 10× the clip (9.7×; the aim layout's 3.8537e-2 over
+    // 3.7609e-3 was 10.2×). The staircase read the clip at 8.9971e-3, 2.4× too
+    // large, and the ratio at 4.4×; resolved at 23 samples, 9.8×.
     expect(edge.phase / edge.amplitude).toBeGreaterThan(9);
 
-    // On axis the amplitude half vanishes outright — 2.8e-7 against 1.8e-2 —
-    // which is § 6bd.3's even function seen a third way: there is no clip
-    // gradient at the axis to buy. A caller holding a throughput profile and no
-    // traced wavefront has the small half of the effect everywhere, and none of
-    // it here.
+    // On axis the amplitude half is 1.3e-4 against 1.8e-2 — 130× under the
+    // phase half. On the aim layout it vanished outright (2.8e-7), § 6bd.3's
+    // even function seen a third way: that layout lays every field point's rim
+    // on the unit circle, so there was no clip gradient at the axis to buy. The
+    // exit layout lays the rim where the rays went, and off axis that bundle sits
+    // displaced by a share that grows from the axis out (§ 2q.6), so the amplitude
+    // has a gradient there too — odd in field, and small. A caller holding a
+    // throughput profile and no traced wavefront has the small half of the
+    // effect everywhere.
     const axis = split(0);
-    expect(axis.amplitude).toBeLessThan(1e-6);
-    expect(axis.phase).toBeCloseTo(axis.full, 6);
+    expect(axis.amplitude).toBeCloseTo(1.346e-4, 7);
+    expect(axis.amplitude).toBeLessThan(axis.full / 100);
+    // and the phase half alone misses the whole by less than the amplitude half
+    expect(Math.abs(axis.phase - axis.full)).toBeLessThan(axis.amplitude);
   });
 });
 
@@ -486,12 +518,13 @@ describe("§ 6bd.7 — the haze fraction is the specimen's only if the specimen 
     const varied = inFocus(split, varying);
     const flat = inFocus(split, constant);
     expect(flat).toBeCloseTo(0.2, 12);
-    // Resolved (§ 2q.3); the staircase read 0.19927341 and −3.6329e-3.
-    expect(varied).toBeCloseTo(0.19937138, 7);
-    expect(varied / flat - 1).toBeCloseTo(-3.1431e-3, 6);
+    // Resolved on the exit layout (§ 2q.6); the aim layout read 0.19937138 and
+    // −3.1431e-3, the staircase 0.19927341 and −3.6329e-3.
+    expect(varied).toBeCloseTo(0.19938129, 7);
+    expect(varied / flat - 1).toBeCloseTo(-3.0935e-3, 6);
     // and it is the throughput span that carries it — under the frame's
-    // 6.7306e-3, the most the two halves could disagree by
-    expect(Math.abs(varied / flat - 1)).toBeLessThan(6.7306e-3);
+    // 6.6540e-3, the most the two halves could disagree by
+    expect(Math.abs(varied / flat - 1)).toBeLessThan(6.6540e-3);
     expect(Math.abs(varied / flat - 1)).toBeGreaterThan(1e-3);
   });
 });
@@ -538,7 +571,7 @@ describe("§ 6bd.8 — the lattice's Nyquist and the frame's containment are one
     // applied, so pupilSamples/8 is no longer where the knee sits — on axis the
     // step is already 0.245 waves at zero defocus. Read against
     // `maxGridPhaseStepWaves` instead of against the defocus and five pupils
-    // spanning 1.60 to 3.13 waves collapse onto one escape.
+    // spanning 1.59 to 3.13 waves collapse onto one escape.
     const cases: [string, PupilFunction][] = [
       ["ideal", idealPupil() as PupilFunction],
       ["axis", tracedAt(tileAt(0), 0.5, 0.5)],
@@ -566,11 +599,13 @@ describe("§ 6bd.8 — the lattice's Nyquist and the frame's containment are one
       atHalfWave.push(escaped(pupil, waves, SIZE, PS));
     }
     // the defocus that reaches a half-wave step spans very nearly 2×…
-    expect(Math.min(...defocus)).toBeCloseTo(1.5965, 3);
+    // (1.5887 on the exit layout, § 2q.6; 1.5965 on the aim one)
+    expect(Math.min(...defocus)).toBeCloseTo(1.5887, 3);
     expect(Math.max(...defocus)).toBeCloseTo(3.1304, 3);
     expect(Math.max(...defocus) / Math.min(...defocus)).toBeGreaterThan(1.9);
-    // …and the escape at it spans well under that
-    expect(Math.min(...atHalfWave)).toBeCloseTo(0.0367, 3);
+    // …and the escape at it spans well under that (the least is 0.0518 on the
+    // exit layout, 0.0367 on the aim one)
+    expect(Math.min(...atHalfWave)).toBeCloseTo(0.0518, 3);
     expect(Math.max(...atHalfWave)).toBeCloseTo(0.0649, 3);
     expect(Math.max(...atHalfWave) / Math.min(...atHalfWave)).toBeLessThan(1.8);
   });
@@ -674,6 +709,7 @@ describe("§ 6k.9 — the aperture angle reaches the patched renderer", () => {
       numericalAperture: NA,
       wavelengthNm: LAMBDA,
       edgeSamples: EDGE,
+      edgeRule: "crossing",
     });
     expect(plain.exactInFocusFraction!).toBeCloseTo(image.exactInFocusFraction!, 12);
   });
@@ -687,7 +723,7 @@ describe("§ 6k.9 — the aperture angle reaches the patched renderer", () => {
     // pupil is truncated there; neither of these two is.
     const field = { size: SIZE, values: new Float64Array(SIZE * SIZE).fill(1) };
     const volume: EmitterVolume = { size: SIZE, slices: [{ zMm: 0, field }] };
-    const opts = { pupilSamples: PS, numericalAperture: NA, wavelengthNm: LAMBDA, edgeSamples: EDGE };
+    const opts = { pupilSamples: PS, numericalAperture: NA, wavelengthNm: LAMBDA, edgeSamples: EDGE, edgeRule: "crossing" as const };
     const bad = { numericalAperture: 1.4 };
     const patched = renderFieldVolume(volume, fieldDefocusing(pupils), { ...OPT, ...bad });
     const plain = renderVolume(volume, defocusing(idealPupil()), { ...opts, ...bad });

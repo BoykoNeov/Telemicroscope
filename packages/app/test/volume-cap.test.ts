@@ -142,9 +142,11 @@ describe("§ 6k.9 in the app — the picture is on the exact cap", () => {
     );
     for (const r of ratios) expect(r).toBeLessThan(ceiling);
     for (let i = 1; i < ratios.length; i++) expect(ratios[i]!).toBeGreaterThan(ratios[i - 1]!);
-    // Climbing, and still 8% short at 96 bins: the last sample is half a bin in
-    // from the rim and that is where the whole factor lives.
-    expect(ratios.at(-1)!).toBeGreaterThan(0.9 * ceiling);
+    // Climbing, and still 16% short at 96 bins: the last sample is half a bin in
+    // from the rim and that is where the whole factor lives. (8% short on the aim
+    // layout, 0.857 to 0.921 of the ceiling over these four grids; laid where its
+    // rays went (§ 2q.6) the oil's rim samples climb slower, 0.782 to 0.844.)
+    expect(ratios.at(-1)!).toBeGreaterThan(0.84 * ceiling);
   });
 
   it("changes nothing a reader would see at the panel's own default objective", () => {

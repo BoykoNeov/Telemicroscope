@@ -28,12 +28,18 @@ import {
   imageRadiusForObjectHeight,
   objectHeightForImageRadius,
   objectFieldTile,
+  tracedPupil,
 } from "../src/imaging/object-field";
 import { getMedium } from "../src/materials/catalog";
 import { objectNumericalAperture } from "../src/pupil/microscope";
 import { quadratureSamples } from "../src/photometry/spectrum";
 import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/designs/microscope";
 import type { OpticalSystem } from "../src/trace/system";
+import { aimRay } from "../src/pupil/aiming";
+import { imagePlaneZ, pupils } from "../src/pupil/pupils";
+import { traceRay } from "../src/trace/sequential";
+import { asCompiled } from "../src/trace/compile";
+import { toImageSpace } from "../src/trace/axis";
 import { bandLimitedPeak } from "../src/math/band-limited-peak";
 
 /**
@@ -54,26 +60,30 @@ import { bandLimitedPeak } from "../src/math/band-limited-peak";
  * curve.** A stack is rendered at one stage position, so where a channel is sharp
  * depends on its wavelength (§ 6bb.6) and, it turns out, about half as much again
  * on where in the field it is looking. The two together add little: the
- * interaction between them is 0.002 of a depth of focus at h = 0.4 and 0.11 to
- * 0.14 at h = 0.8 and 1.1 — 2.4% of the total spread at most. § 6be.2 places that
- * remainder: a second aperture starts cutting the outward side of the pupil
- * between image radius 2.00 and 2.25 mm, and the one height inside that radius is
- * the one with no interaction. (How a cut couples colour to field is not yet
- * separated; the likely route is that a cut pupil drops zones whose aberration
- * differs most in the blue, which § 6bb.6 already reads as the farthest from
- * focus.) The consequence is a
- * design one: a focus correction wants two one-dimensional curves first, with the
- * clip's coupling a correction on top rather than a reason for a 2-D map.
- * (Restated at § 2q.3: point-sampled, the interaction read a flat 0.0012 mm that
- * changed sign, and § 6be called it the estimator's floor. That floor was the rim
- * staircase's; resolved, it is ~1e-4 mm.)
+ * interaction between them is 0.018 of a depth of focus at h = 0.4 and 0.15 to
+ * 0.17 at h = 0.8 and 1.1 — 3.0% of the total spread at most. § 6be.2 places most
+ * of that remainder: a second aperture starts cutting the outward side of the
+ * pupil between image radius 2.00 and 2.25 mm, and the two heights past it couple
+ * eight times as strongly as the one inside. (How a cut couples colour to field is
+ * not yet separated; the likely route is that a cut pupil drops zones whose
+ * aberration differs most in the blue, which § 6bb.6 already reads as the farthest
+ * from focus.) The consequence is a design one: a focus correction wants two
+ * one-dimensional curves first, with the coupling a correction on top rather
+ * than a reason for a 2-D map.
+ * (Restated twice. At § 2q.3: point-sampled, the interaction read a flat 0.0012 mm
+ * that changed sign, and § 6be called it the estimator's floor; that floor was
+ * the rim staircase's, and resolved on the aim layout h = 0.4 read ~1e-4 mm, of
+ * either sign. At § 2q.6, on the exit layout, h = 0.4 reads 6–9e-4 mm and one sign
+ * on four lattices: the traced off-axis bundle is not centred on its chief ray,
+ * by a share that is a colour, so there is a coupling inside the clip too — an
+ * eighth of the clip's.)
  *
  * **The field term is even, which is why § 6bb.6 could not have seen it.** It
  * goes as h², so its gradient vanishes on the axis exactly and § 6bb.6 measured
  * the focus at the one field position at which the field term is flat. § 6be.4
  * pins the evenness the way it has to be pinned — the drop divided by h² is
- * constant to 6% across a range over which the drop divided by h moves 1.29× to
- * 1.44× — and that is the **third** time the ladder has read an even quantity at
+ * constant to 7% across a range over which the drop divided by h moves 1.29× or
+ * more — and that is the **third** time the ladder has read an even quantity at
  * its own symmetry point, after § 6bc's throughput profile and § 6bd's repair of
  * it.
  *
@@ -81,21 +91,23 @@ import { bandLimitedPeak } from "../src/math/band-limited-peak";
  * the field term the objective's: `rasterizeEmitterVolume` runs on a radial map
  * and a depth rescale which are *both* field-dependent, so a best focus that
  * moved with height could have belonged to either. An aberration-free pupil
- * returns −2.8e-7 mm at every height alike, to 3.9e-9 mm.
+ * returns −2.8e-7 mm at every height alike, to 4.0e-9 mm.
  *
  * **And the amplitude half follows the clip.** § 6be.6 measures the field profile
  * of what the pupil transmits, normalized to each frame's own centre: inside the
- * clip it is the same at every wavelength to 1.7e-7 on every lattice; past it the
+ * clip it is the same at every wavelength to 2.7e-7 on every lattice; past it the
  * clip's rim sits at a slightly different pupil radius in each colour, and the
- * profile is 0.16% to 0.23% chromatic — again on every lattice, so it is the
- * optics' and not a sampling floor. (Point-sampled, the rim's colour shift was
- * far below one lattice step and read as nothing; § 6be called the amplitude
- * half a null.)
+ * profile is 0.21% chromatic at the field edge — on every lattice to 1.2e-4 of
+ * itself, so it is the optics' and not a sampling floor. (Point-sampled, the rim's
+ * colour shift was far below one lattice step and read as nothing; § 6be called
+ * the amplitude half a null.)
  *
  * The external numbers are § 6bb.6's own rendered focus sweep, reproduced here
- * to within 1.8e-4 mm before being taken off axis (§ 6be.3), and § 6h.2's closed form
- * for the frame extent, which is ∝ λ exactly and is why patch `p` is a different
- * field point in every channel (§ 6be.8).
+ * to within 2.1e-4 mm before being taken off axis (§ 6be.3), § 6h.2's closed form
+ * for the frame extent, which is ∝ λ/(n′σ) exactly and is why patch `p` is a
+ * different field point in every channel (§ 6be.8), and a reference sphere built
+ * from its definition, which puts the displaced off-axis rim where the layout does
+ * (§ 6be.2).
  */
 
 /** § 6bb's own probe, unchanged: the DIN 4×/0.10. */
@@ -139,7 +151,9 @@ const nAt = (nm: number) => getMedium(SYSTEM.prescription.objectMedium ?? "AIR")
 const driverOptions = (centreMm: { x: number; y: number }): FluorescenceVolumeOptions => ({
   size: SIZE,
   pupilSamples: PS,
+  layout: "exit",
   edgeSamples: EDGE,
+  edgeRule: "crossing",
   samples: SAMPLES,
   slabs: uniformSlabs(-0.02, 0.02, 3),
   centreMm,
@@ -159,6 +173,7 @@ function tileAtHeight(nm: number, objectHeightMm: number) {
   return objectFieldTile(SYSTEM, {
     size: FOCUS_SIZE,
     pupilSamples: FOCUS_PS,
+    layout: "exit",
     wavelengthNm: nm,
     centreMm: { x: imageRadiusForObjectHeight(SYSTEM, objectHeightMm, nm), y: 0 },
   });
@@ -190,6 +205,7 @@ function idealPeakAt(nm: number, objectHeightMm: number, focusMm: number): numbe
   const { intensity } = renderVolume(volume, defocusing(idealPupil()), {
     pupilSamples: FOCUS_PS,
     edgeSamples: EDGE,
+    edgeRule: "crossing",
     numericalAperture: objectNumericalAperture(SYSTEM, nm),
     wavelengthNm: nm,
     refractiveIndex: 1,
@@ -212,7 +228,9 @@ const BALL: FocusProbe = (centreMm) =>
 const SWEEP: Omit<FocusSweepOptions, "stepMm" | "halfMm"> = {
   size: FOCUS_SIZE,
   pupilSamples: FOCUS_PS,
+  layout: "exit",
   edgeSamples: EDGE,
+  edgeRule: "crossing",
   peak: "band-limited",
   slabs: uniformSlabs(-0.008, 0.008, 3),
   probe: BALL,
@@ -333,6 +351,7 @@ describe("§ 6be — the third axis", () => {
             {
               pupilSamples: PS,
               edgeSamples: EDGE,
+              edgeRule: "crossing",
               numericalAperture: plane.numericalAperture,
               wavelengthNm: sample.nm,
               refractiveIndex: nAt(sample.nm),
@@ -425,31 +444,39 @@ describe("§ 6be — the third axis", () => {
     });
   });
 
-  describe("§ 6be.2 — the best-focus surface NEARLY separates: the coupling is a clip's", () => {
-    it("0.002 of a depth of focus inside the clip, 0.11 to 0.14 past it", () => {
+  describe("§ 6be.2 — the best-focus surface NEARLY separates: the coupling is mostly a clip's", () => {
+    it("0.018 of a depth of focus inside the clip, 0.15 to 0.17 past it", () => {
       // The interaction on the widest colour interval in the set, at each height.
       const interaction = (h: number) => drop(430, h) - drop(DESIGN, h);
-      // Resolved (§ 2q.3). Point-sampled these read -1.231174e-3, 1.136270e-3
-      // and 7.506299e-4 — a flat 0.0012 mm that changed sign, which § 6be read
-      // as the estimator's floor. That floor was the rim staircase's: resolved,
-      // h = 0.4 reads 8.7e-5 here and -3.0e-5 at 56 samples, so the floor is
-      // ~1e-4, and the two outer heights stand fifty times above it.
-      expect(interaction(0.4)).toBeCloseTo(8.747570e-5, 7);
-      expect(interaction(0.8)).toBeCloseTo(5.929590e-3, 7);
-      expect(interaction(1.1)).toBeCloseTo(4.731926e-3, 7);
+      // On the exit layout (§ 2q.6). Point-sampled these read -1.231174e-3,
+      // 1.136270e-3 and 7.506299e-4 — a flat 0.0012 mm that changed sign, which
+      // § 6be read as the estimator's floor. That floor was the rim staircase's:
+      // resolved on the aim layout, h = 0.4 read 8.7e-5 here and -3.0e-5 at 56
+      // samples, ~1e-4 of either sign, and the outer heights 5.929590e-3 and
+      // 4.731926e-3. On the exit layout h = 0.4 is not a floor: 8.79e-4, 7.71e-4,
+      // 5.77e-4 and 6.19e-4 at 40, 48, 56 and 60 samples — one sign, scattered by
+      // 3e-4, which is the lattice's. The traced bundle off the axis is displaced
+      // from its chief ray by a share that is a colour (the test below), and the
+      // aim layout, which lays every rim on the unit circle, could not see it.
+      expect(interaction(0.4)).toBeCloseTo(7.710935e-4, 7);
+      expect(interaction(0.8)).toBeCloseTo(7.169432e-3, 7);
+      expect(interaction(1.1)).toBeCloseTo(6.445635e-3, 7);
 
-      expect(Math.abs(interaction(0.4))).toBeLessThan(1e-4);
-      expect(Math.abs(interaction(0.4)) / DOF430).toBeLessThan(0.003);
+      expect(interaction(0.4)).toBeGreaterThan(3e-4);
+      expect(interaction(0.4)).toBeLessThan(1e-3);
+      expect(interaction(0.4) / DOF430).toBeLessThan(0.02);
       for (const h of [0.8, 1.1]) {
-        expect(interaction(h)).toBeGreaterThan(4e-3);
-        expect(interaction(h) / DOF430).toBeGreaterThan(0.1);
-        expect(interaction(h) / DOF430).toBeLessThan(0.14);
+        expect(interaction(h)).toBeGreaterThan(6e-3);
+        expect(interaction(h) / DOF430).toBeGreaterThan(0.14);
+        expect(interaction(h) / DOF430).toBeLessThan(0.17);
+        // the clip's coupling is eight times the one inside it
+        expect(interaction(h) / interaction(0.4)).toBeGreaterThan(8);
       }
-      // Still small against what it couples: 2.4% of § 6be.3's spread and 7.2%
-      // of the field term, so two curves remain the right first description —
-      // but the remainder is a coupling now, and no longer a floor.
+      // Still small against what it couples: 3.0% of § 6be.3's spread and 8.7%
+      // of the field term (2.4% and 7.2% on the aim layout), so two curves
+      // remain the right first description — with a coupling on top.
       const largest = Math.max(interaction(0.8), interaction(1.1));
-      expect(largest / Math.abs(drop(DESIGN, 1.1))).toBeLessThan(0.075);
+      expect(largest / Math.abs(drop(DESIGN, 1.1))).toBeLessThan(0.09);
     });
 
     it("the clip begins between image radius 2.00 and 2.25 mm — h = 0.4 inside, 0.8 and 1.1 past", () => {
@@ -461,12 +488,33 @@ describe("§ 6be — the third axis", () => {
       // The pupil's outward rim, just inside the stop: whole at 2.00 mm, cut at
       // 2.25 mm, at every wavelength. The inward and sideways rims stay whole,
       // so it is a second aperture vignetting one side, not the stop shrinking.
+      //
+      // Read by bisection, because on the exit layout (§ 2q.6) an off-axis pupil
+      // is not the unit disc even where nothing cuts it: the traced bundle sits
+      // displaced along the field, its outward rim in and its inward rim out by
+      // 2–4e-3 at these radii, its sideways rims within 5e-4 of 1. So the clip is
+      // read as the outward-and-inward width falling below the sideways rim — by
+      // 5.6–6.7e-4 at 2.00 mm and 5.4–7.0e-3 at 2.25 mm. (On the aim layout every
+      // rim sat on the unit circle, and a fixed probe at 0.995 read it.)
+      const rimAt = (pupil: { amplitude(px: number, py: number): number }, dx: number, dy: number) => {
+        let lit = 0.9;
+        let dark = 1.1;
+        for (let k = 0; k < 40; k++) {
+          const mid = 0.5 * (lit + dark);
+          if (pupil.amplitude(mid * dx, mid * dy) > 0) lit = mid;
+          else dark = mid;
+        }
+        return lit;
+      };
+      const width = (pupil: { amplitude(px: number, py: number): number }) =>
+        0.5 * (rimAt(pupil, 1, 0) + rimAt(pupil, -1, 0));
       const pupilAtRadius = (nm: number, r: number) =>
         fieldPupilAt(
           SYSTEM,
           objectFieldTile(SYSTEM, {
             size: 128,
             pupilSamples: FOCUS_PS,
+            layout: "exit",
             wavelengthNm: nm,
             centreMm: { x: r, y: 0 },
           }),
@@ -476,32 +524,103 @@ describe("§ 6be — the third axis", () => {
       for (const nm of [430, 480, 530, DESIGN, RED]) {
         const inside = pupilAtRadius(nm, 2.0);
         const past = pupilAtRadius(nm, 2.25);
-        expect(inside.amplitude(0.995, 0)).toBeGreaterThan(0.9);
-        expect(past.amplitude(0.995, 0)).toBe(0);
-        expect(past.amplitude(-0.995, 0)).toBeGreaterThan(0.9);
-        expect(past.amplitude(0, 0.995)).toBeGreaterThan(0.9);
+        expect(rimAt(inside, 0, 1) - width(inside)).toBeLessThan(1e-3);
+        expect(rimAt(past, 0, 1) - width(past)).toBeGreaterThan(4e-3);
+        expect(rimAt(past, -1, 0)).toBeGreaterThan(1);
+        expect(Math.abs(rimAt(past, 0, 1) - 1)).toBeLessThan(1e-3);
       }
-      // The one height inside it is the one with no interaction; § 6be.6 reads
-      // the same onset in what the pupil transmits.
+      // The one height inside it is the one with an eighth of the interaction;
+      // § 6be.6 reads the same onset in what the pupil transmits.
+    });
+
+    it("and the displaced rim is the rays' own: a reference sphere built from its definition puts it there", () => {
+      // The exit layout lays a ray where it crosses a sphere centred on the chief
+      // ray's image point through the chief ray at the exit-pupil plane, less the
+      // chief ray's crossing, over the radius (§ 2i). Built here from that
+      // sentence and the plain tracer — no layout code — and divided by the axial
+      // rim's own value, it puts the rays aimed outward, inward and sideways where
+      // the laid pupil's rim is, along each ray's own bearing, to 1e-12 — the
+      // bisection's step. Its own bearing: the ray aimed sideways lands 0.9–2.1e-3
+      // off the sideways line, by the displacement, so the rim read straight
+      // sideways is a different ray, and its radius differs from this one's by
+      // half that squared. A ruler read on the axis and misapplied off it
+      // would scale all four rims alike; the sideways ones sit within 4.2e-4 of
+      // 1 while the other two part by 3–9e-3, so the displacement is the lens's.
+      // (The rays' DIRECTIONS part differently — 1.0e-2 at 430 nm, h = 0.25,
+      // against the sphere's 3.4e-3 — by the transverse aberration over R, which
+      // the sphere point leaves in the phase.)
+      const c = asCompiled(SYSTEM.prescription);
+      const imageRay = (h: number, nm: number, px: number, py: number) => {
+        const res = traceRay(c, aimRay(SYSTEM, pupils(SYSTEM, nm), h, { px, py }, nm, {}));
+        if (res.status !== "ok" || !res.ray) throw new Error("a rim ray was lost");
+        const r = toImageSpace(c, res.ray);
+        const n = Math.hypot(r.dir.x, r.dir.y, r.dir.z);
+        return { o: [r.origin.x, r.origin.y, r.origin.z], d: [r.dir.x / n, r.dir.y / n, r.dir.z / n] };
+      };
+      const atZ = (r: { o: number[]; d: number[] }, z: number) => {
+        const t = (z - r.o[2]!) / r.d[2]!;
+        return r.o.map((v, i) => v + t * r.d[i]!);
+      };
+      const sphere = (h: number, nm: number, px: number, py: number): readonly [number, number] => {
+        const chief = imageRay(h, nm, 0, 0);
+        const centre = atZ(chief, imagePlaneZ(c, SYSTEM));
+        const q = atZ(chief, pupils(SYSTEM, nm).exit.z);
+        const radius = Math.hypot(...centre.map((v, i) => v - q[i]!));
+        const cross = (r: { o: number[]; d: number[] }) => {
+          const w = r.o.map((v, i) => v - centre[i]!);
+          const b = w.reduce((acc, v, i) => acc + v * r.d[i]!, 0);
+          const cc = w.reduce((acc, v) => acc + v * v, 0) - radius * radius;
+          const t = -b - Math.sqrt(b * b - cc);
+          return r.o.map((v, i) => v + t * r.d[i]!);
+        };
+        const at = cross(chief);
+        const p = cross(imageRay(h, nm, px, py));
+        return [(p[0]! - at[0]!) / radius, (p[1]! - at[1]!) / radius];
+      };
+      const rimAt = (pupil: { amplitude(px: number, py: number): number }, dx: number, dy: number) => {
+        let lit = 0.9;
+        let dark = 1.1;
+        for (let k = 0; k < 40; k++) {
+          const mid = 0.5 * (lit + dark);
+          if (pupil.amplitude(mid * dx, mid * dy) > 0) lit = mid;
+          else dark = mid;
+        }
+        return lit;
+      };
+      for (const nm of [430, RED]) {
+        const axial = sphere(0, nm, 1, 0)[0];
+        for (const h of [0.25, 0.5]) {
+          const laid = tracedPupil(SYSTEM, h, nm, { layout: "exit" }).pupil;
+          for (const [px, py] of [[1, 0], [-1, 0], [0, 1]] as const) {
+            const [x, y] = sphere(h, nm, px, py).map((v) => v / axial) as [number, number];
+            const r = Math.hypot(x, y);
+            expect(Math.abs(rimAt(laid, x / r, y / r) - r)).toBeLessThan(1e-12);
+          }
+          expect(Math.abs(rimAt(laid, 0, 1) - 1)).toBeLessThan(4.5e-4);
+          expect(rimAt(laid, -1, 0) - rimAt(laid, 1, 0)).toBeGreaterThan(3e-3);
+        }
+      }
     });
   });
 
   describe("§ 6be.3 — and the field adds half as much again to § 6bb.6's spread", () => {
-    it("0.244113 mm over the square — 5.648 depths of focus at 430 against 3.7709 on axis", () => {
+    it("0.242900 mm over the square — 5.620 depths of focus at 430 against 3.7493 on axis", () => {
       // § 6bb.6's own measurement, reproduced by this file's estimator before it
-      // is taken anywhere new: within 1.8e-4 mm of its 0.209851, 0.047701 and
-      // 0.067900 on the axis. Resolved (§ 2q.3); point-sampled these read
-      // 0.21400556, 0.04709541 and 0.06736525, up to 3.8e-4 from § 6bb.6's.
-      expect(at(430, 0)).toBeCloseTo(0.20977356, 7);
-      expect(at(DESIGN, 0)).toBeCloseTo(0.04787834, 7);
-      expect(at(RED, 0)).toBeCloseTo(0.06802565, 7);
+      // is taken anywhere new: within 2.1e-4 mm of its 0.208698, 0.047478 and
+      // 0.067734 on the axis. On the exit layout (§ 2q.6); the aim layout read
+      // 0.20977356, 0.04787834 and 0.06802565, the point-sampled rim 0.21400556,
+      // 0.04709541 and 0.06736525, up to 3.8e-4 from § 6bb.6's.
+      expect(at(430, 0)).toBeCloseTo(0.20848995, 7);
+      expect(at(DESIGN, 0)).toBeCloseTo(0.04766585, 7);
+      expect(at(RED, 0)).toBeCloseTo(0.06786618, 7);
 
-      // Point-sampled 0.25022903 and 5.78924; 5.65380 resolved at 56 samples.
+      // Aim layout 0.24411313 and 5.647742 (5.65380 at 56 samples); point-sampled
+      // 0.25022903 and 5.78924.
       const values = FOCUS_LAMBDAS.flatMap((nm) => HEIGHTS.map((h) => at(nm, h)));
       const spread = Math.max(...values) - Math.min(...values);
-      expect(spread).toBeCloseTo(0.24411313, 7);
+      expect(spread).toBeCloseTo(0.24290018, 7);
       expect(DOF430).toBeCloseTo(4.322314e-2, 7);
-      expect(spread / DOF430).toBeCloseTo(5.647742, 4);
+      expect(spread / DOF430).toBeCloseTo(5.619680, 4);
 
       // The extremes are the blue ON AXIS and the design wavelength at the EDGE
       // — one corner from each axis, which is what a separable surface does.
@@ -512,14 +631,15 @@ describe("§ 6be — the third axis", () => {
       // half as much again on top of it rather than a correction to it.
       const colour = at(430, 0) - at(DESIGN, 0);
       const field = Math.abs(drop(DESIGN, 1.1));
-      // Point-sampled 0.16691015, 0.08331889 and 0.499184.
-      expect(colour).toBeCloseTo(0.16189522, 7);
-      expect(field).toBeCloseTo(0.08221791, 7);
+      // Aim layout 0.16189522, 0.08221791 and 0.507846; point-sampled 0.16691015,
+      // 0.08331889 and 0.499184.
+      expect(colour).toBeCloseTo(0.16082410, 7);
+      expect(field).toBeCloseTo(0.08207608, 7);
       expect(colour + field).toBeCloseTo(spread, 12);
-      expect(field / colour).toBeCloseTo(0.507846, 5);
-      // § 6bb.6 reads 3.7709 of them on the axis (3.8775 point-sampled); the
-      // square holds 5.648.
-      expect(spread / DOF430 / 3.7709).toBeCloseTo(1.497717, 4);
+      expect(field / colour).toBeCloseTo(0.510347, 5);
+      // § 6bb.6 reads 3.7493 of them on the axis (3.7709 on the aim layout,
+      // 3.8775 point-sampled); the square holds 5.620.
+      expect(spread / DOF430 / 3.7493).toBeCloseTo(1.498861, 4);
     });
   });
 
@@ -542,23 +662,24 @@ describe("§ 6be — the third axis", () => {
         const asLinear = departure(lin(0.8), lin(1.1));
         expect(asQuadratic).toBeLessThan(0.07);
         expect(asLinear).toBeGreaterThan(0.29);
-        // The quadratic reading is at least four times the more constant — 9.26×
-        // at 430 nm, 9.09× at the design wavelength and 4.76× at 656 (34.6×,
-        // 12.5× and 4.63× point-sampled).
+        // The quadratic reading is at least four times the more constant (9.26×
+        // at 430 nm, 9.09× at the design wavelength and 4.76× at 656 on the aim
+        // layout; 34.6×, 12.5× and 4.63× point-sampled).
         expect(asLinear / asQuadratic).toBeGreaterThan(4);
       }
 
       // One curve for every wavelength: the h² coefficient at the field edge.
-      // Resolved (§ 2q.3); point-sampled -0.06823823, -0.06885859, -0.06728941.
-      expect(drop(430, 1.1) / 1.21).toBeCloseTo(-0.06403801, 7);
-      expect(drop(DESIGN, 1.1) / 1.21).toBeCloseTo(-0.06794869, 7);
-      expect(drop(RED, 1.1) / 1.21).toBeCloseTo(-0.06649446, 7);
+      // On the exit layout (§ 2q.6); the aim layout read -0.06403801, -0.06794869
+      // and -0.06649446, the point-sampled rim -0.06823823, -0.06885859, -0.06728941.
+      expect(drop(430, 1.1) / 1.21).toBeCloseTo(-0.06250450, 7);
+      expect(drop(DESIGN, 1.1) / 1.21).toBeCloseTo(-0.06783147, 7);
+      expect(drop(RED, 1.1) / 1.21).toBeCloseTo(-0.06629564, 7);
       const coeffs = FOCUS_LAMBDAS.map((nm) => Math.abs(drop(nm, 1.1) / 1.21));
-      // One curve for all three to 6.1% (5.7% at 56 samples) — and that is
-      // § 6be.2's coupling, the blue's field term running 6% short of the
-      // design wavelength's. Point-sampled it read 2.3%, which § 6be called the
-      // floor; it was the staircase's.
-      expect(Math.max(...coeffs) / Math.min(...coeffs) - 1).toBeCloseTo(0.061068, 5);
+      // One curve for all three to 8.5% (6.1% on the aim layout, 5.7% there at
+      // 56 samples) — and that is § 6be.2's coupling, the blue's field term
+      // running 8% short of the design wavelength's. Point-sampled it read 2.3%,
+      // which § 6be called the floor; it was the staircase's.
+      expect(Math.max(...coeffs) / Math.min(...coeffs) - 1).toBeCloseTo(0.085225, 5);
     });
   });
 
@@ -575,24 +696,26 @@ describe("§ 6be — the third axis", () => {
         (h) => bestFocus(430, h, 0, 0.02, 0.06, true).mm,
       );
       for (const v of ideal) expect(Math.abs(v)).toBeLessThan(1e-6);
-      // Resolved (§ 2q.3); point-sampled -2.78226e-7 and -2.80341e-7.
-      expect(ideal[0]!).toBeCloseTo(-2.75470e-7, 11);
-      expect(ideal[2]!).toBeCloseTo(-2.79347e-7, 11);
-      // 1.41% across the heights, against 0.76% point-sampled and a bound of 1%
-      // set on that. Restated, not loosened: it reads 0.0140760 here and
-      // 0.0140763 at 56 samples, so it is the band-limited readout's own
-      // systematic and not noise — and as a distance it is 3.9e-9 mm, against
-      // the 0.13 mm the traced pupil moves the same focus by.
+      // On the exit layout's frame (§ 2q.6); the aim layout's read -2.75470e-7
+      // and -2.79347e-7, the point-sampled rim -2.78226e-7 and -2.80341e-7.
+      expect(ideal[0]!).toBeCloseTo(-2.73890e-7, 11);
+      expect(ideal[2]!).toBeCloseTo(-2.77925e-7, 11);
+      // 1.47% across the heights, against 0.76% point-sampled and a bound of 1%
+      // set on that. Restated, not loosened: it read 0.0140760 on the aim
+      // layout's frame and 0.0140763 there at 56 samples, so it is the
+      // band-limited readout's own systematic and not noise, and on the exit
+      // layout's ruler 0.0147326 — as a distance 4.04e-9 mm, against the 0.13 mm
+      // the traced pupil moves the same focus by.
       const spread = Math.max(...ideal.map(Math.abs)) / Math.min(...ideal.map(Math.abs)) - 1;
-      expect(spread).toBeCloseTo(0.014076, 5);
-      expect(Math.max(...ideal) - Math.min(...ideal)).toBeLessThan(4e-9);
+      expect(spread).toBeCloseTo(0.014733, 5);
+      expect(Math.max(...ideal) - Math.min(...ideal)).toBeLessThan(4.1e-9);
       // Against the 0.13–0.21 mm the traced pupil puts there.
       expect(Math.abs(at(430, 1.1))).toBeGreaterThan(0.13);
     });
   });
 
   describe("§ 6be.6 — the amplitude half: achromatic inside the clip, 0.2% chromatic past it", () => {
-    it("1.7e-7 across the band out to 2 mm, 0.16–0.23% past 2.25 mm, on every lattice", () => {
+    it("2.7e-7 across the band out to 2 mm, 0.16–0.23% past 2.25 mm, on every lattice", () => {
       const lambdas = [430, 480, 530, DESIGN, RED];
       const shadingAt = (ps: number, rs: readonly number[]) => {
         const profiles = lambdas.map((nm) => {
@@ -617,85 +740,106 @@ describe("§ 6be — the third axis", () => {
       const read = (row: readonly number[], r: number) => row[radii.indexOf(r)]!;
 
       for (const row of table) {
-        // Inside the clip: achromatic to 1.7e-7, the same on every lattice.
-        for (const r of [0, 1, 2]) expect(read(row, r)).toBeLessThan(1.7e-7);
+        // Inside the clip: achromatic to 2.7e-7 on every lattice (1.7e-7 on the
+        // aim layout; the exit layout's displaced rim is a colour, § 2q.6).
+        for (const r of [0, 1, 2]) expect(read(row, r)).toBeLessThan(2.8e-7);
         // The onset § 6be.2 reads in the pupil's rim, read here in what it
         // transmits: under 1e-6 at 2.00 mm, over 5e-4 at 2.25 mm.
         expect(read(row, 2)).toBeLessThan(1e-6);
         expect(read(row, 2.25)).toBeGreaterThan(5e-4);
         // Past it: 0.16% to 0.23% at every lattice — the clip's rim sits at a
-        // different pupil radius in every colour (0.9905 at 430 nm against
-        // 0.9874 at 530, at 2.25 mm), so this is the optics' and not a floor.
+        // different pupil radius in every colour (0.9856 at 430 nm against
+        // 0.9812 at the design wavelength, at 2.25 mm on the exit layout), so this
+        // is the optics' and not a floor.
         for (const r of [3, 4, 4.5]) {
           expect(read(row, r)).toBeGreaterThan(1.6e-3);
           expect(read(row, r)).toBeLessThan(2.3e-3);
         }
       }
-      expect(read(table[0]!, 2)).toBeCloseTo(1.68784e-7, 11);
-      expect(read(table[2]!, 2)).toBeCloseTo(1.68891e-7, 11);
+      // (1.68784e-7 and 1.68891e-7 on the aim layout.)
+      expect(read(table[0]!, 2)).toBeCloseTo(2.69100e-7, 11);
+      expect(read(table[2]!, 2)).toBeCloseTo(1.89468e-7, 11);
 
-      // And it does NOT fall as the lattice refines.
+      // And it does NOT fall as the lattice refines: on the exit layout it is
+      // one number on all three, to 1.2e-4 of itself. The counted edge read
+      // 1.98979e-3, 2.28113e-3 and 2.15649e-3 on the aim layout, a 14% spread
+      // that was the count's: the located edge alone, still on the aim layout,
+      // reads 2.1416e-3, 2.1414e-3 and 2.1413e-3, and the layout moves that 0.5%.
       const edge = table.map((row) => read(row, 4.5));
-      expect(edge[0]!).toBeCloseTo(1.98979e-3, 8);
-      expect(edge[1]!).toBeCloseTo(2.28113e-3, 8);
-      expect(edge[2]!).toBeCloseTo(2.15649e-3, 8);
-      expect(edge[0]! / edge[2]!).toBeCloseTo(0.922698, 5);
+      expect(edge[0]!).toBeCloseTo(2.131806e-3, 8);
+      expect(edge[1]!).toBeCloseTo(2.131874e-3, 8);
+      expect(edge[2]!).toBeCloseTo(2.131627e-3, 8);
+      expect(edge[0]! / edge[2]!).toBeCloseTo(1.000084, 5);
     });
   });
 
   describe("§ 6be.7 — patches reach the focus tilt INSIDE a frame, and nothing beyond it", () => {
-    it("0.392 of a depth of focus across one frame at the field edge", () => {
+    it("0.388 of a depth of focus across one frame at the field edge", () => {
       const frame = tileAtHeight(430, 1.1);
       const half = frame.objectHalfExtentMm;
-      expect(half).toBeCloseTo(0.0514975942, 10);
+      // 0.0514975942 on the aim layout's ruler (§ 6be.8)
+      expect(half).toBeCloseTo(0.0516721120, 10);
 
       // The three field points a 3-patch render's columns look through.
       const inner = bestFocus(430, 1.1 - half, 0.1314, 0.005, 0.03);
       const middle = bestFocus(430, 1.1, 0.1314, 0.005, 0.03);
       const outer = bestFocus(430, 1.1 + half, 0.1314, 0.005, 0.03);
       for (const r of [inner, middle, outer]) expect(r.interior).toBe(true);
-      // Resolved (§ 2q.3); point-sampled 0.14096351, 0.13149414, 0.12327933.
-      expect(inner.mm).toBeCloseTo(0.14052332, 7);
-      expect(middle.mm).toBeCloseTo(0.13228812, 7);
-      expect(outer.mm).toBeCloseTo(0.12356480, 7);
+      // On the exit layout (§ 2q.6); the aim layout read 0.14052332, 0.13228812
+      // and 0.12356480, the point-sampled rim 0.14096351, 0.13149414, 0.12327933.
+      expect(inner.mm).toBeCloseTo(0.14099827, 7);
+      expect(middle.mm).toBeCloseTo(0.13286180, 7);
+      expect(outer.mm).toBeCloseTo(0.12421732, 7);
 
-      // Point-sampled 0.01768418 and 0.409136.
+      // Aim layout 0.01695852 and 0.392348; point-sampled 0.01768418 and 0.409136.
       const tilt = inner.mm - outer.mm;
-      expect(tilt).toBeCloseTo(0.01695852, 7);
-      expect(tilt / DOF430).toBeCloseTo(0.392348, 5);
+      expect(tilt).toBeCloseTo(0.01678094, 7);
+      expect(tilt / DOF430).toBeCloseTo(0.388240, 5);
       // A frame's width is its lattice's (§ 6h.2), so the tilt across it is
-      // too: 0.458 of a depth of focus at 56 samples. Per frame width it is
-      // settled — 0.164654 here, 0.164571 at 56.
-      expect(tilt / (2 * half)).toBeCloseTo(0.164654, 5);
+      // too: 0.458 of a depth of focus at 56 samples on the aim layout. Per
+      // frame width it was settled there — 0.164654, 0.164571 at 56 — and on the
+      // exit layout it reads 0.162379.
+      expect(tilt / (2 * half)).toBeCloseTo(0.162379, 5);
 
       // So a patched frame is not isoplanatic in FOCUS either — and that part a
       // patched render carries, because each patch is imaged through its own
       // traced pupil. What it cannot carry is the rest: one frame is this wide
       // and the field is 2.2 mm across, so § 6be.3's spread is a MOSAIC
       // quantity and no patch count within one frame reaches it.
-      expect(2 * half).toBeCloseTo(0.10300, 4);
-      expect(tilt).toBeLessThan(0.25 * 0.244113);
+      expect(2 * half).toBeCloseTo(0.10334, 4);
+      expect(tilt).toBeLessThan(0.25 * 0.242900);
     });
   });
 
   describe("§ 6be.8 — patch p is a DIFFERENT field point in every channel", () => {
-    it("a frame's extent is ∝ λ exactly, so the red frame is 1.526× the blue one", () => {
-      const half = (nm: number) =>
+    it("a frame's extent is ∝ λ/(n′σ) exactly, so the red frame is 1.533× the blue one", () => {
+      const tileOf = (nm: number) =>
         objectFieldTile(SYSTEM, {
           size: FOCUS_SIZE,
           pupilSamples: FOCUS_PS,
+          layout: "exit",
           wavelengthNm: nm,
           centreMm: { x: 0, y: 0 },
-        }).halfExtentMm;
+        });
+      const half = (nm: number) => tileOf(nm).halfExtentMm;
 
-      expect(half(430)).toBeCloseTo(0.205365407019, 10);
-      expect(half(RED)).toBeCloseTo(0.313431788553, 10);
-      // § 6h.2's closed form: not merely correlated with λ, proportional to it.
+      // 0.205365407019 and 0.313431788553 on the aim layout's paraxial ruler.
+      expect(half(430)).toBeCloseTo(0.206148884276, 10);
+      expect(half(RED)).toBeCloseTo(0.315987328928, 10);
+      // § 6h.2's closed form on the exit layout's ruler (§ 2n): λ·pupilSamples
+      // over 4·n′·σ, σ the traced axial aperture sine — not merely correlated
+      // with λ/(n′σ), proportional to it.
+      const ruler = (nm: number) => {
+        const t = tileOf(nm);
+        return (t.halfExtentMm * Math.abs(t.scale.nImage) * t.scale.apertureSine!) / nm;
+      };
       for (const nm of [480, 530, DESIGN, RED]) {
-        expect(half(nm) / half(430) / (nm / 430)).toBeCloseTo(1, 12);
+        expect(ruler(nm) / ruler(430)).toBeCloseTo(1, 12);
       }
-      // Exactly the wavelength ratio, which is the whole of § 6h.2 here.
-      expect(half(RED) / half(430)).toBeCloseTo(RED / 430, 12);
+      // And ∝ λ only as far as σ is achromatic: 0.43% across the band, where the
+      // aim layout's paraxial ruler made it the wavelength ratio to 12 digits.
+      expect(half(RED) / half(430)).toBeCloseTo(1.532811, 6);
+      expect(half(RED) / half(430) / (RED / 430) - 1).toBeCloseTo(4.32189e-3, 8);
       expect(RED / 430).toBeCloseTo(1.526215, 6);
 
       // The consequence a caller reading `patchThroughput` across channels has
@@ -709,6 +853,7 @@ describe("§ 6be — the third axis", () => {
         const frame = objectFieldTile(SYSTEM, {
           size: FOCUS_SIZE,
           pupilSamples: FOCUS_PS,
+          layout: "exit",
           wavelengthNm: nm,
           centreMm: centre,
         });
@@ -724,12 +869,14 @@ function throughput(nm: number, radiusMm: number, ps: number): number {
   const frame = objectFieldTile(SYSTEM, {
     size: 128,
     pupilSamples: ps,
+    layout: "exit",
     wavelengthNm: nm,
     centreMm: { x: radiusMm, y: 0 },
   });
   return pupilThroughput(fieldPupilAt(SYSTEM, frame, 0.5, 0.5).pupil, {
     pupilSamples: ps,
     edgeSamples: EDGE,
+    edgeRule: "crossing",
     size: 128,
   });
 }
@@ -754,6 +901,7 @@ describe("§ 6be — the driver and the renderer agree by construction", () => {
         patches: 2,
         pupilSamples: PS,
         edgeSamples: EDGE,
+        edgeRule: "crossing",
         numericalAperture: plane.numericalAperture,
         wavelengthNm: sample.nm,
         refractiveIndex: nAt(sample.nm),
