@@ -420,13 +420,15 @@ describe("§ 6bc.4 — a mosaic tile off-axis is dimmer, and only if the weight 
     // and at pupil samples 24 the outline's own count is off by up to 0.5%. Real
     // aiming at pupil samples 128 meets the count. Register item 31;
     // the count reads 0.995237, 0.930842, 0.882580 here and 1.001672, 1.004445,
-    // 1.007761 on the field-sized lens.
+    // 1.007761 on the field-sized lens. § 2q.5's rim densities and throughput fit
+    // moved the sums by up to 7e-6 (0.999550, 0.942734, 0.889845; 0.999379 and
+    // 1.004048 fielded, before).
     const axis = read(SYSTEM, 0);
     expect(axis.samples).toBe(441);
-    expect(read(SYSTEM, 2.25).sum / axis.sum).toBeCloseTo(0.999550, 6);
-    expect(read(SYSTEM, 4.5).sum / axis.sum).toBeCloseTo(0.942734, 6);
+    expect(read(SYSTEM, 2.25).sum / axis.sum).toBeCloseTo(0.999556, 6);
+    expect(read(SYSTEM, 4.5).sum / axis.sum).toBeCloseTo(0.942738, 6);
     const far = read(SYSTEM, 6);
-    expect(far.sum / axis.sum).toBeCloseTo(0.889845, 6);
+    expect(far.sum / axis.sum).toBeCloseTo(0.889852, 6);
     // A hard clip and not a Fresnel loss: the transmitting count itself falls.
     expect(far.samples).toBe(388);
 
@@ -439,8 +441,8 @@ describe("§ 6bc.4 — a mosaic tile off-axis is dimmer, and only if the weight 
     for (const off of fielded) expect(off.samples).toBe(438);
     const ratios = fielded.map((off) => off.sum / fieldedAxis.sum);
     expect(ratios[0]!).toBeCloseTo(0.994776, 6);
-    expect(ratios[1]!).toBeCloseTo(0.999379, 6);
-    expect(ratios[2]!).toBeCloseTo(1.004048, 6);
+    expect(ratios[1]!).toBeCloseTo(0.999378, 6);
+    expect(ratios[2]!).toBeCloseTo(1.004046, 6);
   });
 
   it("quoting each tile in its own units renders the clip away exactly", () => {
@@ -461,7 +463,7 @@ describe("§ 6bc.4 — a mosaic tile off-axis is dimmer, and only if the weight 
           .intensity,
       ),
     );
-    expect(carried[1]! / carried[0]!).toBeCloseTo(0.889845, 6);
+    expect(carried[1]! / carried[0]!).toBeCloseTo(0.889852, 6);
 
     const perTile = [axisPupil, farPupil].map((pupil) =>
       incoherentImage(object, pupil, {

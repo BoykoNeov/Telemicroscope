@@ -257,7 +257,11 @@ describe("§ 6al.1 — the clear field renders, and its brightness is Fresnel's"
     // A clear field is FLAT to the last bit — one patch, one pupil, one constant
     // object, so any structure at all would be the transform's own.
     expect(max).toBe(min);
-    expect(min).toBeCloseTo(0.9174473004700044, 15);
+    // 0.9174473004700044 before § 2q.5. The throughput now rides in the density's
+    // fit, and the level reads the Fresnel loss's own angle dependence across the
+    // cone: ⟨T·cos θ⟩ with T traced at each source direction is 0.91744726802,
+    // met to 9.6e-10, where the six-term throughput fit read 3.5e-8 above it.
+    expect(min).toBeCloseTo(0.917447268900712, 15);
     // Since § 2n a field component carries its own power, cos θ, so a cone is
     // darker than normal incidence by its own obliquity: (1 − R)²·⟨cos θ⟩ over the
     // source, θ off its optical sine ρ·ν. −1.5435e−6 here, predicted before the
@@ -393,7 +397,8 @@ describe("§ 6al.4 — and the three-order sum is Hopkins' closed form, to the a
     expect(centre.rmsWaves).toBeCloseTo(0.017869938342837545, 12);
     // 0.9995117746725329 on the aim layout: the same wavefront laid where its
     // rays went (§ 2n), and each component carrying its own cos θ.
-    expect(aberrated / weakObjectTransferDisk(S, nu)).toBeCloseTo(0.9995080403867337, 12);
+    // 0.9995080403867337 before § 2q.5's throughput fit.
+    expect(aberrated / weakObjectTransferDisk(S, nu)).toBeCloseTo(0.9995080478687958, 12);
 
     // And the rendered picture is that, times the finite-modulation correction
     // the weak-object limit drops: `gratingImage`'s dc carries m²/2 of sideband
@@ -435,7 +440,8 @@ describe("§ 6al.5 — the cutoff lands on Abbe's period, in millimetres on the 
     const atCutoff = renderGrating(TELECENTRIC, frame, 12).harmonic;
     const above = renderGrating(TELECENTRIC, frame, 13).harmonic;
     // 0.002590429654361757 on the aim layout (§ 2n: the pupil laid where its rays went).
-    expect(below.contrast).toBeCloseTo(0.0025903939746100882, 12);
+    // 0.0025903939746100882 before § 2q.5's throughput fit.
+    expect(below.contrast).toBeCloseTo(0.0025903939937148624, 12);
     expect(atCutoff.contrast).toBeLessThan(1e-14);
     expect(above.contrast).toBeLessThan(1e-14);
     // Not a small number against a threshold: eleven orders below the frequency
@@ -552,11 +558,12 @@ describe("§ 6al.6 — the sensor moves and the picture does not rescale", () =>
     const blurredImage = renderGrating(defocused, blurred, 8);
 
     expect(sharpImage.rendered.pixelScaleMm).toBe(blurredImage.rendered.pixelScaleMm);
-    // 0.01726909396386918 on the aim layout (§ 2n).
-    expect(sharpImage.harmonic.contrast).toBeCloseTo(0.017268336368453586, 12);
+    // 0.01726909396386918 on the aim layout (§ 2n); 0.017268336368453586 before
+    // § 2q.5's throughput fit, and 0.012177301191336263 defocused.
+    expect(sharpImage.harmonic.contrast).toBeCloseTo(0.017268336761264186, 12);
     // 0.012188958439591573 on the aim layout: a millimetre of defocus is the
     // wavefront § 2n lays where its rays went, 9.6e−4 lower.
-    expect(blurredImage.harmonic.contrast).toBeCloseTo(0.012177301191336263, 12);
+    expect(blurredImage.harmonic.contrast).toBeCloseTo(0.012177301590710055, 12);
     expect(blurredImage.harmonic.contrast).toBeLessThan(sharpImage.harmonic.contrast);
     // Still an image the engine will certify: 0.076 waves RMS is inside the
     // regime the coherent sum describes, so this is a defocused picture and not
@@ -596,10 +603,11 @@ describe("§ 6al.7 — image-space telecentric is not object-space telecentric",
     const frame = frameOf(TELECENTRIC);
     const one = renderGrating(TELECENTRIC, frame, 4, { map: "traced", patches: 1 });
     const four = renderGrating(TELECENTRIC, frame, 4, { map: "traced", patches: 2 });
-    // 0.03972344923993551 on the aim layout (§ 2n).
-    expect(one.harmonic.contrast).toBeCloseTo(0.039722671976837265, 12);
-    // 0.03771756163402071 on the aim layout (§ 2n).
-    expect(four.harmonic.contrast).toBeCloseTo(0.037717283519146674, 12);
+    // 0.03972344923993551 on the aim layout (§ 2n); 0.039722671976837265 before
+    // § 2q.5's throughput fit.
+    expect(one.harmonic.contrast).toBeCloseTo(0.03972267265713407, 12);
+    // 0.03771756163402071 on the aim layout (§ 2n); 0.037717283519146674 before § 2q.5.
+    expect(four.harmonic.contrast).toBeCloseTo(0.03771728397880895, 12);
     expect(one.harmonic.contrast / four.harmonic.contrast - 1).toBeCloseTo(0.0531, 3);
     expect(four.rendered.fidelity.verdict).toBe("valid");
   });
@@ -626,7 +634,9 @@ describe("§ 6al.8 — the picture carries a frequency a linear imager could not
     // which folds back onto bin 12 and would be an alias reported as a beat.
     const expected = [
       // On the exit layout since § 2n; 0.004995809761011927 first on the aim layout.
-      0.0049957745846202625, 0.004965496695273605, 0.0034406562833538697, 6.542790257432463e-5,
+      // Re-recorded at § 2q.5's throughput fit (0.0049957745846202625,
+      // 0.004965496695273605, 0.0034406562833538697, 6.542790257432463e-5 before).
+      0.00499577462214419, 0.0049654967830837695, 0.003440656379762495, 6.542789739331582e-5,
     ];
     [2, 4, 6, 8].forEach((cycles, i) => {
       const { rendered, harmonic } = renderGrating(TELECENTRIC, frame, cycles);
@@ -659,13 +669,14 @@ describe("§ 6al.8 — the picture carries a frequency a linear imager could not
     const six = renderGrating(TELECENTRIC, frame, 6);
     const seven = renderGrating(TELECENTRIC, frame, 7);
     expect(imageHarmonic(six.rendered.intensity, frame.size, 12, 0).contrast).toBeCloseTo(
-      // 1.0350664975467584e−4 on the aim layout (§ 2n).
-      1.0350729625348828e-4,
+      // 1.0350664975467584e−4 on the aim layout (§ 2n); 1.0350729625348828e-4
+      // before § 2q.5's throughput fit.
+      1.0350730113101659e-4,
       12,
     );
     expect(imageHarmonic(seven.rendered.intensity, frame.size, 14, 0).contrast).toBeCloseTo(
-      // 4.159726761923105e−5 on the aim layout (§ 2n).
-      4.1597711356948256e-5,
+      // 4.159726761923105e−5 on the aim layout (§ 2n); 4.1597711356948256e-5 before § 2q.5.
+      4.159771197743961e-5,
       12,
     );
     // Eleven orders above the same bin's reading when the OBJECT is what puts a
@@ -696,8 +707,12 @@ describe("§ 6al.8 — the picture carries a frequency a linear imager could not
     // a 32 grid, and the render and the closed form — which agree to 1e−10 at
     // every other frequency in this file — differed by 2.0000000000 there.
     //
-    // Now 1 to 7e−13, which is the same agreement the rest of the file reports,
-    // and the sweep above carries 8 cycles because of it. § 6am owns the general
+    // Now 1 to the rounding of a harmonic a millionth of the image: the bin's
+    // amplitude is 1.04e−6, and the reading was −4.2e−11 before § 2q.5 and is
+    // +5.1e−11 after — one floor, either side of zero (a first record of 7e−13 was
+    // not reproduced). So this guard asks the 1e−10 the rest of the file reports,
+    // which a doubling misses by ten orders. The sweep above carries 8 cycles
+    // because of it. § 6am owns the general
     // claim, the arithmetic behind it and the correction to what § 6al.8 said
     // about which callers could reach the bin — h·cycles is guarded everywhere,
     // and this test was the one reader that actually got there.
@@ -708,6 +723,6 @@ describe("§ 6al.8 — the picture carries a frequency a linear imager could not
     const closed = gratingImage(centre.pupil, SOURCE, nuOf(8), MOD);
     const ratio =
       nyquist.amplitude / harmonic.amplitude / (closed.secondHarmonic / closed.fundamental);
-    expect(ratio).toBeCloseTo(1, 10);
+    expect(Math.abs(ratio - 1)).toBeLessThan(1e-10);
   });
 });

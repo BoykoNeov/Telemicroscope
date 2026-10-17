@@ -644,7 +644,8 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     reading — the 4×'s on-axis frame on exit spanned 1.29e-4 counted against
     2.43e-6 grid-free — and `EdgeRule` `"crossing"` bisects the outline on strips
     across it, needing only the inside test: 2.478e-6, an ellipse moved and turned
-    keeps πab to 5e-8. `wave/psf`'s `pupilSampling` still counts; the same rule
+    keeps πab to 5e-8. (The 2.43e-6 was the density's rim nodes, not the light —
+    9.5e-9 since [§ 2q.5](VALIDATION.md#-2q5--the-ring-that-was-not-there), located 4.8e-9.) `wave/psf`'s `pupilSampling` still counts; the same rule
     would carry over to it. Not measured on a
     vignetted pupil, whose mask is a second outline. Three readings met it at
     [§ 2m](VALIDATION.md#step-2m--every-chain-imaging-from-infinity-on-the-exit-layout) — § 8a.7's and § 8b.2's secondary, § 8c.6's resampled
@@ -666,7 +667,11 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     [§ 2m](VALIDATION.md#step-2m--every-chain-imaging-from-infinity-on-the-exit-layout). On the exit layout § 1.8.14's ν = 0.5 run stops on `step` at
     0.081 contrast, and restarted it accepts 9 steps whose opening trial crosses
     twelve waves of defocus to a lobe reading 0.117 — a fixed point there to the
-    bit. On the aim layout the same restart accepted none. The merit is smooth
+    bit. On the aim layout the same restart accepted none. Since § 2q.5 moved the
+    exit pupil's throughput fit in its last places the chain is longer: the first
+    restart crosses to 209 waves of defocus at 0.0999, the next to 78 waves at
+    0.1364, and it is still only after three more restarts — which lobe a long
+    trial reaches is the merit's last places, the item's point. The merit is smooth
     (swept from 1e-10 to 1e-3 of the curvatures, noise 1e-11); contrast against
     defocus has lobes all the way out, and nothing bounds a fresh run's opening
     step against their spacing. *What would pin it:* whether the opening trust
@@ -781,6 +786,25 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     readings over a run of lattices, 40–64, converging smoothly; or item 32's
     grid-free referee applied to the 2×. A reading that keeps jumping between
     adjacent lattices refutes the frame as the lever.
+35. **The oil 100×'s exit-layout light is short, and off axis two residues
+    add.** Found at [§ 2q.5](VALIDATION.md#-2q5--the-ring-that-was-not-there), against the light read off the launches
+    (∫p·T·|∂c/∂a|). On axis −1.58e-4: the 21-node density lattice on the oil's
+    cubic map, at sixth order (−1.21e-3 at fourth; −1.6e-5 at 61 nodes, fourth).
+    Off axis the √-fit slips from its own nodes by 6e-5 at 10 µm and 1.6e-4 at
+    20 µm, and from 15 µm the 32-ray rim clips 3.5e-4 and then 6.4e-4 of the aim
+    disc's image — the light at 20 µm reads −5.0e-4. The DIN 4× carries none of
+    these (7e-8 from 0 to 2 mm). *What would pin it:* the same identity with the
+    lattice refined and the rim at 720 rays (§ 2l.2's construction), separating
+    the three; a fit that keeps the nodes past exit radius 1 is the candidate for
+    the second.
+36. **§ 2j.3's ray histogram reads the oil's half-radius light 1.0–1.3e-3 high.**
+    Found at [§ 2q.5](VALIDATION.md#-2q5--the-ring-that-was-not-there): off the launches the light inside half the exit
+    radius is 0.20521 (emitter) and 0.29608 (a field, the point's construction);
+    `geometricPsf` of a 20 mm defocus reads 0.20625 and 0.29741. § 2j.3 had put
+    4e-4 of it on the 41-pixel radius's edge, and the two branches agreed because
+    the wave branch was 1.4e-3 high as well. *What would pin it:* the histogram's
+    fraction against the launches' as the pixel grid and the defocus change — an
+    edge term falls with the radius in pixels, a bias in the ray weights does not.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;
@@ -1282,4 +1306,8 @@ radial-map nodes · § 6ba differential bleaching.
     single plane takes it too, so § 6bb.2's seam can be read on one rim.
     Restated on it so far: § 6bd's patched field, § 6bb's spectral volume,
     § 6be's third axis (item 33 opened) and the focus chain, § 6bf–§ 6bg (item 34
-    opened); next the layout flip itself, then the mosaic chain, § 6bh on.
+    opened); next the layout flip itself, then the mosaic chain, § 6bh on. The
+    flip's trial found the exit layout's light wobbling 1e-5 with field: the
+    density's rim nodes, whose outer ring the glass does not reach — fixed at
+    [§ 2q.5](VALIDATION.md#-2q5--the-ring-that-was-not-there) with the throughput folded into the density's fit (items
+    35 and 36 opened). Every exit chain's readings were restated there.

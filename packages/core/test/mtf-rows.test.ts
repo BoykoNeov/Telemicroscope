@@ -366,20 +366,35 @@ describe("§ 1.8.14 — what a contrast merit spends its freedom on", () => {
     ).toBeLessThan(1e-9);
     // …and the ν = 0.5 answer is where § 2m found the merit's other face. On the
     // aim layout the restart accepted no step at all. On the exit layout it
-    // does not stay: its opening trial is long enough to cross to a lobe twelve
-    // waves of defocus further out — 14.2 waves in all, reading 0.117 against
-    // the 0.081 it left. Contrast against defocus has lobes all the way out, and
-    // "converged" is a statement about the lobe a run is on, not the merit.
+    // does not stay: its opening trial is long enough to cross to a lobe far out
+    // — 209 waves of defocus, reading 0.0999 against the 0.0814 it left — and the
+    // next restart crosses again, to 78 waves and 0.1364. Contrast against
+    // defocus has lobes all the way out, and "converged" is a statement about the
+    // lobe a run is on, not the merit. (Before § 2q.5 moved the exit pupil's
+    // throughput fit the first restart landed at 14.2 waves reading 0.117, and the
+    // second was already still: which lobe a long trial reaches is the merit's
+    // last places.)
     const again50 = optimizeSystem(at(alone50.x), VARS, [mtfOp(0.5)], { maxIterations: 200 });
     expect(again50.accepted).toBeGreaterThan(0);
     expect(Math.abs(coefficient(fitAt(again50.x), 4))).toBeGreaterThan(10);
-    expect(contrastAt(again50.x, 0.5)).toBeGreaterThan(1.4 * contrastAt(alone50.x, 0.5));
-    // …where it IS a fixed point, in the strong sense: restarted again it
-    // accepts no step and does not move by a bit.
-    const twice50 = optimizeSystem(at(again50.x), VARS, [mtfOp(0.5)], { maxIterations: 200 });
-    expect(twice50.accepted).toBe(0);
-    expect(twice50.x[0]).toBe(again50.x[0]);
-    expect(twice50.x[1]).toBe(again50.x[1]);
+    expect(contrastAt(again50.x, 0.5)).toBeGreaterThan(1.2 * contrastAt(alone50.x, 0.5));
+    // …and restarted until a restart accepts nothing — three more here — it IS a
+    // fixed point, in the strong sense: it does not move by a bit.
+    let last = again50;
+    let restarts = 0;
+    for (;;) {
+      const next = optimizeSystem(at(last.x), VARS, [mtfOp(0.5)], { maxIterations: 200 });
+      restarts++;
+      if (next.accepted === 0) {
+        expect(next.x[0]).toBe(last.x[0]);
+        expect(next.x[1]).toBe(last.x[1]);
+        break;
+      }
+      last = next;
+      expect(restarts).toBeLessThan(3);
+    }
+    expect(restarts).toBe(3);
+    expect(contrastAt(last.x, 0.5)).toBeGreaterThan(1.6 * contrastAt(alone50.x, 0.5));
 
     // …while a wavefront merit started at that same point walks to the same q*
     // it reached from the seed, and drops the error by 58%.

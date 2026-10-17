@@ -174,11 +174,12 @@ describe("§ 2q.2 — a swept peak is read off the image, not off its brightest 
     const at = (peak: "pixel" | "band-limited", step: number) =>
       renderedBestFocus(FOUR, 430, 0.825, { ...sweep("exit", peak, step), aboutMm: 0.169 }).plateauDepths;
     const band = STEPS.map((s) => at("band-limited", s));
-    expect(band[1]).toBeCloseTo(0.7323, 4);
+    // 0.7323 before § 2q.5: the rim nodes' densities moved the exit pupil's light.
+    expect(band[1]).toBeCloseTo(0.7322, 4);
     expect(spread(band)).toBeLessThan(0.002);
     for (const p of band) expect(p).toBeLessThan(1);
     // The same sweep read off the brightest pixel: the corner at the vertex.
-    expect(at("pixel", 0.005)).toBeCloseTo(1.1869, 4);
+    expect(at("pixel", 0.005)).toBeCloseTo(1.1875, 4);
   });
 
   it("§ 6bf.5's ragged exception was the same corner: read off the image it is regular", () => {

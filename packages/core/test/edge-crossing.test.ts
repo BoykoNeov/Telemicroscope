@@ -27,6 +27,9 @@ import { exactPupilEnergy } from "./support/exitEnergy";
  * with the outline. **Refuted by** a near-circular ellipse whose area, moved by
  * sub-cell offsets and turned, still spreads by more than 1e-7 of πab, or a real
  * frame on the exit layout whose span stays more than 3% from the grid-free one.
+ * *[§ 2q.5: the 2.43e-6 was the density lattice's rim nodes, not the light —
+ * 9.5e-9 since, and the located span sits 4.7e-9 from it, so the frame's rung
+ * now bounds that gap absolutely.]*
  *
  * External numbers: an ellipse's area πab; a disc cut by a chord, πr² less the
  * circular segment r²·acos(d/r) − d·√(r² − d²); a disc's area π; the best focus
@@ -235,10 +238,12 @@ describe("§ 2q.4 — the edge is located, not counted", () => {
 
   it("on the exit layout the 4×'s on-axis frame reads the light's own span, not the grid's", () => {
     // The reading that needed it. Sixteen patch pupils across the on-axis frame
-    // (24 samples, 550 nm); their light's span grid-free is 2.43e-6. Counted,
-    // 1.29e-4; located, 2.478e-6 at 8 sub-samples and 2.481e-6 at 32 — 2% from
-    // the grid-free figure on both, the interior lattice's own share, and no
-    // longer moving with the sub-grid. On the aim layout all three read 1.97e-8.
+    // (24 samples, 550 nm). Counted, 1.31e-4 of the light; located, 4.76e-9 at 8
+    // sub-samples and 5.44e-9 at 32, against 9.49e-9 grid-free — 4.7e-9 apart,
+    // the interior lattice's own share, and no longer moving with the sub-grid.
+    // On the aim layout all three read 1.97e-8. Before § 2q.5 the grid-free span
+    // was 2.43e-6 and the located 2.48e-6: the rim nodes' densities, whose
+    // fallback changed with field, not the light.
     const system = finiteConjugateMicroscope({
       objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
     }).system;
@@ -266,10 +271,10 @@ describe("§ 2q.4 — the edge is located, not counted", () => {
     const exact = [...heights.values()].map((h) => exactPupilEnergy(system, h, 550, "exit", { radial: 48, angular: 256 }));
     const span = (xs: number[]) => Math.max(...xs) / Math.min(...xs) - 1;
     const truth = span(exact);
-    expect(truth).toBeCloseTo(2.428e-6, 8);
-    expect(Math.abs(span(located8) / truth - 1)).toBeLessThan(0.03);
-    expect(Math.abs(span(located32) / truth - 1)).toBeLessThan(0.03);
-    expect(Math.abs(span(located8) / span(located32) - 1)).toBeLessThan(0.01);
+    expect(truth).toBeCloseTo(9.494e-9, 12);
+    expect(Math.abs(span(located8) - truth)).toBeLessThan(6e-9);
+    expect(Math.abs(span(located32) - truth)).toBeLessThan(6e-9);
+    expect(Math.abs(span(located8) - span(located32))).toBeLessThan(1e-9);
     expect(span(counted) / truth).toBeGreaterThan(25);
   });
 });

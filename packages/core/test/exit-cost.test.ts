@@ -162,7 +162,9 @@ describe("§ 2k.2 — and every fit and sampler built on it, on traced pupils", 
     // the band where the DIN 10×'s aim is mirrored, so the exit layout now lays
     // the pupil the other way round — and this lattice is symmetric in x, so both
     // sums are the same numbers added in another order, and each moved in its
-    // last bit (the phase 1588.677585164183 before).
+    // last bit (the phase 1588.677585164183 before). The amplitude re-recorded at
+    // § 2q.5 (744.571401627401 before): the field's throughput now rides in the
+    // density's fit, not a six-term one of its own. The phase did not move.
     const map = maps[0][1];
     const p = laidPupil(dry10(), map, { layout: "exit", source: "field" }).pupil;
     let a = 0;
@@ -181,5 +183,5 @@ describe("§ 2k.2 — and every fit and sampler built on it, on traced pupils", 
   });
 });
 
-const EXIT_AMPLITUDE_SUM = 744.571401627401;
+const EXIT_AMPLITUDE_SUM = 744.5654280839933;
 const EXIT_PHASE_SUM = 1588.6775851641826;

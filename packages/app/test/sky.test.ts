@@ -239,13 +239,18 @@ describe("C7.5 — the measured limb is the authored law, softened only at the l
   });
 
   it("light appears outside the limb, where the source has none — that is the PSF", () => {
+    // The kernel spans a few Airy radii, so the light it carries past the limb
+    // ends: 6.9e−3, 3.9e−4 and 4.2e−6 of the centre at s = 1.016, 1.047 and
+    // 1.078, and from 1.109 out the profile is f64 rounding either side of zero
+    // (±4e−17). Asking for light there passed on the sign of the rounding until
+    // § 2q.5 moved the pupil's rim densities.
     const rendered = run();
     const outside = rendered.profile.filter((p) => p.s > 1.02 && p.s < 1.2);
-    expect(outside.length).toBeGreaterThan(0);
-    for (const point of outside) {
-      expect(point.law).toBe(0);
-      expect(point.measured).toBeGreaterThan(0);
-    }
+    const reached = outside.filter((p) => p.s < 1.09);
+    expect(reached.length).toBeGreaterThan(1);
+    for (const point of outside) expect(point.law).toBe(0);
+    for (const point of reached) expect(point.measured).toBeGreaterThan(1e-6);
+    for (const point of outside.filter((p) => p.s > 1.1)) expect(Math.abs(point.measured)).toBeLessThan(1e-15);
   });
 
   it("u = 0 authors a flat disc, and the measurement is flat with it", () => {

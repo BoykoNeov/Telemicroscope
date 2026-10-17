@@ -521,7 +521,9 @@ describe("§ 6i.5 — a traced objective, and why beads are the first specimen",
     };
     const axis = split(0.5, 0.5);
     const corner = split(1, 1);
-    expect(corner.full / axis.full - 1).toBeCloseTo(3.2787e-4, 7);
+    // 3.2787e-4 and 1.0375e-2 before § 2q.5's rim densities; the support's split
+    // did not move.
+    expect(corner.full / axis.full - 1).toBeCloseTo(3.2938e-4, 7);
     expect(corner.supportOnly / axis.supportOnly - 1).toBeCloseTo(-2.5094e-3, 7);
     expect(Math.abs(frame.objectHalfExtentMm * 1000 - 47.3121)).toBeLessThan(0.01);
 
@@ -530,7 +532,7 @@ describe("§ 6i.5 — a traced objective, and why beads are the first specimen",
     const telecentricPeakAt = (u: number, v: number): number =>
       peakOf(fieldPupilAt(telecentric, telecentricFrame, u, v).pupil);
     const telecentricRatio = telecentricPeakAt(1, 1) / telecentricPeakAt(0.5, 0.5);
-    expect(telecentricRatio - 1).toBeCloseTo(1.0375e-2, 6);
+    expect(telecentricRatio - 1).toBeCloseTo(1.03804e-2, 6);
   });
 
   it("a bead field renders through the traced pupils, and holds the light they passed", () => {

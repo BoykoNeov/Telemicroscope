@@ -2945,8 +2945,14 @@ describe("DLS § 1.8.8 — off axis, where the operand's direction becomes a cla
       expect(mtfAt(m, sections.nu[i]!, image.pupilSamples)).toBe(sections.tangential[i]!);
       if (field === 0) {
         // Rotationally symmetric, which is exactly why this rung had to be
-        // written at a field and not on the axis.
-        expect(sections.tangential[i]).toBe(sections.sagittal[i]!);
+        // written at a field and not on the axis. To the last bits, not the bit:
+        // the traced exit pupil is not mirror-exact (on a spherical mirror 172 of
+        // the density's 317 nodes differ from their mirror image in the last
+        // place, before § 2q.5 and after), and this read agreed bitwise by
+        // chance until § 2q.5 moved the rim densities.
+        expect(Math.abs(sections.tangential[i]! - sections.sagittal[i]!)).toBeLessThanOrEqual(
+          2 * Number.EPSILON * Math.abs(sections.sagittal[i]!),
+        );
       }
     }
     // And they split, in the direction an off-axis mirror's coma and

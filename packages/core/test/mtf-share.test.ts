@@ -192,20 +192,22 @@ describe("§ 1.8.15 — N frequencies, one trace", () => {
     // exactly. Asserted here as the counterfactual those numbers came from, so
     // the rung fails if the sharing is ever removed rather than merely slowed.
     // The counts are the exit layout's since § 2m — this lens images from
-    // infinity — whose merit the optimiser walks in 145 and 250 evaluations
+    // infinity — whose merit the optimiser walks in 130 and 290 evaluations
     // where the aim layout's took 100 and 665 (2.014 and 4.016 per evaluation).
-    expect(2 * (two.r.evaluations + 1)).toBe(292);
-    expect(4 * (four.r.evaluations + 1)).toBe(1004);
-    expect(two.pupil).toBe(146);
-    expect(four.pupil).toBe(251);
+    // 145 and 250 before § 2q.5 moved the exit pupil's rim densities and its
+    // throughput fit: a merit changed in its last places takes other steps.
+    expect(2 * (two.r.evaluations + 1)).toBe(262);
+    expect(4 * (four.r.evaluations + 1)).toBe(1164);
+    expect(two.pupil).toBe(131);
+    expect(four.pupil).toBe(291);
   });
 
   it("one frequency is unchanged — nothing was bought from the single-operand case", () => {
     // The saving is between operands, so a run with one of them must cost what
-    // it always did. § 1.8.14's own digits on the exit layout (§ 2m): 115
-    // evaluations (135 on the aim layout), KKT exactly 1.
-    expect(one.r.evaluations).toBe(115);
-    expect(one.pupil).toBe(116);
+    // it always did. § 1.8.14's own digits on the exit layout: 150 evaluations
+    // since § 2q.5 (115 at § 2m, 135 on the aim layout), KKT exactly 1.
+    expect(one.r.evaluations).toBe(150);
+    expect(one.pupil).toBe(151);
     expect(one.r.gradient).toBe(1);
     expect(one.r.reason).toBe("step");
   });
@@ -240,8 +242,11 @@ describe("§ 1.8.15 — and the answer does not move, to the bit", () => {
     // steps where the aim layout's was 100 and 6 — with the sharing already in
     // place, so since then the pre-sharing comparison is the longhand rung
     // above, which recomputes the residuals without the slot at the answer.
-    expect(two.evaluations).toBe(145);
-    expect(two.accepted).toBe(10);
+    // Re-recorded at § 2q.5 — 130 evaluations and 9 steps; the four doubles were
+    // 1.7319613398853802e-3, 3.8036407729687854e-1, 2.2148378332405927e-3 and
+    // 2.137254327557585e-4.
+    expect(two.evaluations).toBe(130);
+    expect(two.accepted).toBe(9);
     expect(two.reason).toBe("step");
     // The four recorded readings are stated as RELATIVE distances, which is
     // what the claim actually is: this design is a fixed point of a chain of
@@ -253,10 +258,10 @@ describe("§ 1.8.15 — and the answer does not move, to the bit", () => {
     // anything the sharing could break: a stale or unshared slot moves these by
     // percents, not by ulps, and the step counts above catch it first.
     const reproduces = (actual: number, recorded: number) => Math.abs(actual / recorded - 1);
-    expect(reproduces(two.gradient, 1.7319613398853802e-3)).toBeLessThan(1e-12);
-    expect(reproduces(two.merit, 3.8036407729687854e-1)).toBeLessThan(1e-12);
-    expect(reproduces(two.x[0]!, 2.2148378332405927e-3)).toBeLessThan(1e-12);
-    expect(reproduces(two.x[1]!, 2.137254327557585e-4)).toBeLessThan(1e-12);
+    expect(reproduces(two.gradient, 1.7316000527672968e-3)).toBeLessThan(1e-12);
+    expect(reproduces(two.merit, 3.803640774067911e-1)).toBeLessThan(1e-12);
+    expect(reproduces(two.x[0]!, 2.214837833335983e-3)).toBeLessThan(1e-12);
+    expect(reproduces(two.x[1]!, 2.1372543282721995e-4)).toBeLessThan(1e-12);
   });
 });
 

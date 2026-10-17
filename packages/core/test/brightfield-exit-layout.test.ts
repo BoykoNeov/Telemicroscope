@@ -203,13 +203,15 @@ describe("§ 2n.1 — a finite pupil's units are absolute", () => {
 
   it("…and the density is p·|∂c/∂e| node for node, to the lattice's differencing", () => {
     // Measured against the same quantity differenced at 1e-5 off fresh traces —
-    // the launch's direction cosines and the exit coordinate. 1.0e-6 on the rim
-    // DIN on and off axis; 1.7e-3 on the oil 100×, whose cubic exit map is the
-    // one § 2j.1 found the lattice's area reading coarsest on.
+    // the launch's direction cosines and the exit coordinate. 1.3e-8 and 1.5e-8 on
+    // the rim DIN on and off axis; 2.2e-4 on the oil 100×, whose cubic exit map is
+    // the one § 2j.1 found the lattice's area reading coarsest on. At fourth order,
+    // before § 2q.5, 1.0e-6 and 1.7e-3 — and the rim nodes this skips were
+    // 4.5e-4 dark on the shipped DIN, which `exit-density-rim.test.ts` reads.
     const cases: [OpticalSystem, number, number][] = [
-      [rimDin(), 0, 2e-6],
-      [rimDin(), 1, 2e-6],
-      [oil(), 0, 2e-3],
+      [rimDin(), 0, 3e-8],
+      [rimDin(), 1, 3e-8],
+      [oil(), 0, 3e-4],
     ];
     for (const [s, h, bound] of cases) {
       const sigma = exitApertureSine(s, L);

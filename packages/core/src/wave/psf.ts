@@ -356,7 +356,8 @@ export interface Psf {
  * Phase comes from the Zernike fit — that is the resampling step. Amplitude
  * comes from a low-order fit of √throughput, so Fresnel apodization survives
  * (it is smooth and genuinely low-order); a system with uniform throughput
- * fits to a constant and nothing is invented.
+ * fits to a constant and nothing is invented. On the exit layout the density's
+ * own fit carries the throughput instead (§ 2q.5).
  */
 export function pupilFunctionFromOpd(
   map: OpdMap,
@@ -391,6 +392,11 @@ export function pupilFunctionFromOpd(
      * coordinate, which is right on the aim layout.
      */
     apodization?: (px: number, py: number) => number;
+    /**
+     * The apodization already carries the throughput (`ExitDensity.transmitted`,
+     * § 2q.5), so the √throughput fit is not built and not multiplied in.
+     */
+    apodizationCarriesThroughput?: boolean;
   } = {},
 ): PupilFunction {
   const obstruction = options.obstruction ?? 0;
@@ -407,8 +413,9 @@ export function pupilFunctionFromOpd(
     if (s.throughput < lo) lo = s.throughput;
     if (s.throughput > hi) hi = s.throughput;
   }
-  const uniform = !(hi - lo > 1e-12);
-  const constantAmplitude = Math.sqrt(map.samples.length > 0 ? hi : 1);
+  const carried = options.apodizationCarriesThroughput === true;
+  const uniform = carried || !(hi - lo > 1e-12);
+  const constantAmplitude = carried ? 1 : Math.sqrt(map.samples.length > 0 ? hi : 1);
 
   const amplitudeFit = uniform
     ? null
@@ -1076,7 +1083,8 @@ export function exitCoordinatePupil(
     ...(vignette === undefined ? {} : { vignette }),
     support,
     ...(aimAt === undefined ? {} : { aimAt }),
-    apodization: density.amplitude,
+    apodization: density.transmitted,
+    apodizationCarriesThroughput: true,
   });
   return {
     pupil,

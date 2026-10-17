@@ -35,7 +35,7 @@ export type PupilSource = "emitter" | "field";
 /** The density lattice's resolution across the pupil diameter. Odd, so the chief ray is a node. */
 export const DENSITY_GRID = 21;
 
-/** Rings of nodes past the stop's rim, so every in-disc node has both its ±2 neighbours. */
+/** Rings of nodes past the stop's rim, where the continued chain still reaches them. */
 const RINGS = 2;
 
 /**
@@ -75,15 +75,26 @@ const RINGS = 2;
  * On a lattice of `DENSITY_GRID` across the diameter, traced through the chain
  * with EVERY rim removed — the map's analytic continuation, so a vignetting
  * aperture cannot change the density, and a clipped system and its open twin
- * share one — out to `RINGS` nodes past the stop's rim, so every in-disc node
- * has its ±1 and ±2 neighbours. Central differences at h and 2h, Richardson-
- * combined to fourth order: at second order alone the oil objective's
- * cubic map reads its area 2% wrong at the centre (§ 2j.1 measures the rest).
+ * share one — out to `RINGS` nodes past the stop's rim. Each derivative is
+ * sixth order, on the seven consecutive nodes along its axis nearest to centred
+ * that all traced: at second order alone the oil objective's cubic map reads its
+ * area 2% wrong at the centre (§ 2j.1 measures the rest), and at fourth, centred
+ * at h and 2h, 1.2e-3 of its light.
+ *
+ * The rings are not always there (§ 2q.5). Removing the rims continues the map,
+ * not the glass: on the DIN 4× a ray aimed past 1.168 of the stop misses the
+ * first lens's back surface outright, so the ring at 1.2 is never traced. A
+ * centred stencil then fell back to second order on the twelve rim nodes, each
+ * 4.5e-4 dark, and which nodes lost their ring changed with field — the 1e-5
+ * wobble the exit layout's light carried from 0 to 2 mm. The window slides
+ * inward instead, onto nodes the disc always has.
+ *
  * Where the map is already traced on this lattice and lost nothing, the in-disc
  * nodes are its own samples and only the rings are new traces.
  *
- * √(|P|²) is then fitted over the nodes' exit coordinates — the transform asks
- * for it at grid points, not at nodes.
+ * √(|P|²·T), with T each node's traced throughput, is then fitted over the
+ * nodes' exit coordinates — the transform asks for it at grid points, not at
+ * nodes — and √(|P|²) alone when a rung asks for the source's light.
  *
  * ## The units
  *
@@ -124,8 +135,19 @@ const RINGS = 2;
  * it (§ 6f.12).
  */
 export interface ExitDensity {
-  /** √(|P|²) at a normalized exit coordinate — the transform's amplitude factor. */
+  /**
+   * √(|P|²) at a normalized exit coordinate: the source's light alone, as § 2j's
+   * closed forms state it. Fitted on first use.
+   */
   readonly amplitude: (ex: number, ey: number) => number;
+  /**
+   * √(|P|²·T), T the traced throughput at each node — the transform's amplitude
+   * factor (§ 2q.5). One fit carries both, so the pupil asks one series where it
+   * asked two, and the throughput is read at the density's 45 terms rather than
+   * the six § 2j inherited from the aim layout, which at the oil 100×'s rim read
+   * it 1.6e-4 high on axis and 5.5e-4 at 10 µm.
+   */
+  readonly transmitted: (ex: number, ey: number) => number;
   /**
    * Source power per unit aim area for a ray aimed at (px, py) and launched along
    * `dir`, normalized at the chief ray — and, at a finite conjugate, times the same
@@ -134,13 +156,14 @@ export interface ExitDensity {
    * where it lands and needs no Jacobian.
    */
   readonly sourceWeight: (px: number, py: number, dir: Vec3) => number;
-  /** The in-disc lattice nodes, for the rungs: aim, normalized exit coordinate, |P|². */
+  /** The in-disc lattice nodes, for the rungs: aim, normalized exit coordinate, |P|², throughput. */
   readonly nodes: readonly {
     readonly px: number;
     readonly py: number;
     readonly ex: number;
     readonly ey: number;
     readonly density: number;
+    readonly throughput: number;
   }[];
 }
 
@@ -159,38 +182,68 @@ function open(c: CompiledSystem): CompiledSystem {
   return u;
 }
 
-/** Fourth-order central derivative along one lattice axis, falling back as neighbours run out. */
+/**
+ * Weights of the derivative at 0 through nodes at consecutive integer offsets:
+ * the interpolating polynomial's slope, Σ_k w_k·o_k^m = [m = 1] for m below the
+ * node count. Keyed by the window's first offset and length.
+ */
+const WEIGHTS = new Map<string, readonly number[]>();
+function stencil(lo: number, count: number): readonly number[] {
+  const key = `${lo}:${count}`;
+  let w = WEIGHTS.get(key);
+  if (!w) {
+    const o = Array.from({ length: count }, (_, k) => lo + k);
+    // L_k'(0) = Σ_{m≠k} 1/(o_k − o_m) · Π_{j≠k,m} (0 − o_j)/(o_k − o_j).
+    w = o.map((ok, k) => {
+      let sum = 0;
+      for (let m = 0; m < count; m++) {
+        if (m === k) continue;
+        let p = 1 / (ok - o[m]!);
+        for (let j = 0; j < count; j++) {
+          if (j !== k && j !== m) p *= -o[j]! / (ok - o[j]!);
+        }
+        sum += p;
+      }
+      return sum;
+    });
+    WEIGHTS.set(key, w);
+  }
+  return w;
+}
+
+/**
+ * Derivative along one lattice axis: sixth order on the seven consecutive nodes
+ * nearest to centred that all exist, falling to five, three and two as
+ * neighbours run out (§ 2q.5).
+ */
 function derivative(
   at: (k: number) => readonly [number, number] | null,
   h: number,
 ): readonly [number, number] | null {
-  const p1 = at(1);
-  const m1 = at(-1);
-  const p2 = at(2);
-  const m2 = at(-2);
-  const c0 = at(0);
-  if (p1 && m1) {
-    const d1x = (p1[0] - m1[0]) / (2 * h);
-    const d1y = (p1[1] - m1[1]) / (2 * h);
-    if (p2 && m2) {
-      const d2x = (p2[0] - m2[0]) / (4 * h);
-      const d2y = (p2[1] - m2[1]) / (4 * h);
-      return [(4 * d1x - d2x) / 3, (4 * d1y - d2y) / 3];
+  for (const count of [7, 5, 3, 2]) {
+    const half = Math.floor((count - 1) / 2);
+    // Windows by their distance from centred; a tie cannot arise, since two
+    // windows equally far either side both existing means the centred one does.
+    for (let shift = 0; shift <= half + (count % 2 === 0 ? 1 : 0); shift++) {
+      for (const lo of shift === 0 ? [-half] : [-half - shift, -half + shift]) {
+        if (lo > 0 || lo + count - 1 < 0) continue;
+        const values: (readonly [number, number])[] = [];
+        for (let k = 0; k < count; k++) {
+          const v = at(lo + k);
+          if (!v) break;
+          values.push(v);
+        }
+        if (values.length < count) continue;
+        const w = stencil(lo, count);
+        let x = 0;
+        let y = 0;
+        for (let k = 0; k < count; k++) {
+          x += w[k]! * values[k]![0];
+          y += w[k]! * values[k]![1];
+        }
+        return [x / h, y / h];
+      }
     }
-    return [d1x, d1y];
-  }
-  if (!c0) return null;
-  // One-sided, second order where two neighbours on one side exist.
-  for (const s of [1, -1]) {
-    const a1 = at(s);
-    const a2 = at(2 * s);
-    if (a1 && a2) {
-      return [
-        (s * (-3 * c0[0] + 4 * a1[0] - a2[0])) / (2 * h),
-        (s * (-3 * c0[1] + 4 * a1[1] - a2[1])) / (2 * h),
-      ];
-    }
-    if (a1) return [(s * (a1[0] - c0[0])) / h, (s * (a1[1] - c0[1])) / h];
   }
   return null;
 }
@@ -220,7 +273,7 @@ export function exitDensity(
   const idx = (i: number, j: number) => (i + span) * side + (j + span);
 
   // The map's own traces, where it is this lattice and lost nothing.
-  const own = new Map<number, readonly [number, number]>();
+  const own = new Map<number, { readonly exit: readonly [number, number]; readonly throughput: number }>();
   if (map.lost === 0) {
     const grid = pupilGrid(n);
     if (
@@ -228,7 +281,10 @@ export function exitDensity(
       grid.every((g, k) => g.px === map.samples[k]!.px && g.py === map.samples[k]!.py)
     ) {
       for (const s of map.samples) {
-        own.set(idx(Math.round(s.px / h), Math.round(s.py / h)), [s.exitX / apertureSine, s.exitY / apertureSine]);
+        own.set(idx(Math.round(s.px / h), Math.round(s.py / h)), {
+          exit: [s.exitX / apertureSine, s.exitY / apertureSine],
+          throughput: s.throughput,
+        });
       }
     }
   }
@@ -238,6 +294,7 @@ export function exitDensity(
   const cosinesAt: (readonly [number, number] | null)[] = new Array(side * side).fill(null);
   const targetAt: (readonly [number, number] | null)[] = new Array(side * side).fill(null);
   const dirZ = new Float64Array(side * side).fill(NaN);
+  const throughputAt = new Float64Array(side * side).fill(NaN);
   for (let i = -span; i <= span; i++) {
     for (let j = -span; j <= span; j++) {
       const px = i * h;
@@ -259,13 +316,15 @@ export function exitDensity(
       }
       const mine = own.get(k);
       if (mine) {
-        exitAt[k] = mine;
+        exitAt[k] = mine.exit;
+        throughputAt[k] = mine.throughput;
         continue;
       }
       const res = traceRay(chain, ray);
       if (res.status !== "ok" || !res.ray) continue;
       const e = exitCoordinate(map, toImageSpace(c, res.ray));
       if (e !== null) exitAt[k] = [e[0] / apertureSine, e[1] / apertureSine];
+      throughputAt[k] = res.throughput;
     }
   }
 
@@ -315,7 +374,7 @@ export function exitDensity(
     const dz0 = dirZ[idx(0, 0)]!;
     absolute = (source === "emitter" ? 1 / dz0 : dz0) * (n0 / nu) ** 2 * jc;
   }
-  const nodes: { px: number; py: number; ex: number; ey: number; density: number }[] = [];
+  const nodes: { px: number; py: number; ex: number; ey: number; density: number; throughput: number }[] = [];
   for (let i = -half; i <= half; i++) {
     for (let j = -half; j <= half; j++) {
       const px = i * h;
@@ -329,17 +388,15 @@ export function exitDensity(
       // cell on both sides of the lens (§ 2n): its |P|² is that component's own
       // power, the source term at its launch direction, with no change of variables.
       const density = transmitted ? dirZ[idx(i, j)]! : ((s / chief) * absolute) / je;
-      nodes.push({ px, py, ex: e[0], ey: e[1], density });
+      nodes.push({ px, py, ex: e[0], ey: e[1], density, throughput: throughputAt[idx(i, j)]! });
     }
   }
 
   const terms = [MAX_ZERNIKE_TERMS, 28, 15, 10, 6, 3].find((t) => nodes.length >= 2 * t) ?? 1;
-  const fit = wavefrontSampler(
-    fitZernike(
-      nodes.map((q) => ({ px: q.ex, py: q.ey, waves: Math.sqrt(q.density) })),
-      terms,
-    ),
-  );
+  const fitOf = (light: (q: (typeof nodes)[number]) => number) =>
+    wavefrontSampler(fitZernike(nodes.map((q) => ({ px: q.ex, py: q.ey, waves: Math.sqrt(light(q)) })), terms));
+  const light = fitOf((q) => q.density * q.throughput);
+  let bare: ((ex: number, ey: number) => number) | null = null;
 
   // The ray branch's weight. Under real aiming the solved target's Jacobian is
   // smooth and near-constant — the pupil's own aberration — and is fitted over
@@ -362,7 +419,8 @@ export function exitDensity(
   return {
     // A fit can dip below zero in a corner it was never constrained in; an
     // irradiance cannot.
-    amplitude: (ex, ey) => Math.max(0, fit(ex, ey)),
+    amplitude: (ex, ey) => Math.max(0, (bare ??= fitOf((q) => q.density))(ex, ey)),
+    transmitted: (ex, ey) => Math.max(0, light(ex, ey)),
     sourceWeight: (px, py, dir) => {
       const dz = Math.abs(dir.z) / length(dir);
       const s = (dz / chiefDz) ** cosPower;

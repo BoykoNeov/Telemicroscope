@@ -38,7 +38,7 @@ whole ladder.
 | [2n](#step-2n--brightfield-on-the-exit-layout-a-direction-at-its-optical-sine) | Brightfield flips by its frame: a direction at its optical sine, a field component at its own cos θ; a clear field is Fresnel's to 1e-7 | `brightfield-exit-layout` |
 | [2o](#step-2o--the-exit-layouts-orientation-the-geometrys-not-the-aims) | Past infinity the aim mirrors a telecentric pupil (531–587 nm, DIN 4×) and the exit layout copied it; signed by convergence, its centroid is the rays' | `exit-orientation` |
 | [2p](#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone) | Single-plane fluorescence flips by its frame: a plane's light is the emitter's collected cone, 2/(1 + cos u) of the paraxial share, to 3e-4 | `throughput-units` |
-| [2q](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout) | Cached sibling rim; pixel hand-over; staircase rim; counted edge. Keyed; peak interpolated; rim resolved; edge located | `aperture-sine-key`, `band-limited-peak`, `edge-resolved-kernel`, `edge-crossing` |
+| [2q](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout) | Stale rim cache; pixel peak; staircase rim; counted edge; ringless rim. Keyed; interpolated; resolved; located; stencil slides | `aperture-sine-key`, `band-limited-peak`, `edge-resolved-kernel`, `edge-crossing`, `exit-density-rim` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -123,7 +123,7 @@ whole ladder.
 | [6ba](#step-6ba--the-spectral-emitter-density) | ONE band collapses to ONE kernel and TWO need TWO — a MONOCHROME failure, not colour's; colour needs the planes apart even for one label, and that halo is AXIAL COLOUR, not diffraction | `emitter-spectrum` |
 | [6bb](#step-6bb--the-spectral-volume) | Depth times colour: the perspective is NOT ordered by wavelength — the GREEN channel is telecentric where the blue and red are not — and the channels focus 3.77 depths of focus apart, which is not the paraxial shift | `spectral-volume` |
 | [6bc](#step-6bc--the-units-a-formed-image-is-quoted-in) | Two renderers disagreed about brightness: normalizing a kernel is a choice of UNITS, exact while ONE pupil forms the frame and a measurement error the moment several do — colour 0.740%, field 10.7%, depth exactly 0 | `throughput-units` |
-| [6bd](#step-6bd--the-field-and-the-depth-on-one-callback) | The field and the depth on one callback, § 6bc having settled the units — and § 6bc read the field profile where it is FLAT: an on-axis frame varies 1.9e-8 across itself, one at 4.5 mm 6.73e-3, and the one-pupil error has ONE sign (§ 2q.3) | `field-volume` |
+| [6bd](#step-6bd--the-field-and-the-depth-on-one-callback) | The field and the depth on one callback, § 6bc having settled the units — and § 6bc read the field profile where it is flat: 1.9e-8 across an on-axis frame, 6.73e-3 at 4.5 mm; the one-pupil error has one sign (§ 2q.3) | `field-volume` |
 | [6be](#step-6be--the-third-axis) | The third axis — best focus is a colour curve plus a field curve, coupled ≤ 0.14 of a depth of focus past a pupil clip; the field term is EVEN, so § 6bb.6's on-axis 3.77 depths of focus is 5.65 over the square | `spectral-field-volume` |
 | [6bf](#step-6bf--the-focus-surface-offered) | The focus surface, offered — and a COEFFICIENT is not the field curve: § 6be's h² holds for the ladder's own 4× at its own wavelength alone, the edge coefficient goes as f^-0.59 across three objectives, and a plateau is refused at a threshold | `focus-surface` |
 | [6bg](#step-6bg--the-correction-applied) | The correction applied — a stage per channel and per tile: 5.90× the peak on the axis, 35.5% more at the edge, and `inFocusFraction` INVERTS, reading zero on the sharpest render | `focus-correction` |
@@ -4072,7 +4072,7 @@ drawn two ways when the same light is aimed two ways.
 |---|---|---|
 | **§ 2j.1 — a paraboloid, Richards and Wolf** | f/0.67, rim θ′ = 41°: 1/(cos⁴(θ′/2)·cos θ′), 1.72 at the rim, to 1.5e-5 at the lattice and 1.5e-4 through the fit | ✅ |
 | **§ 2j.2 — an ellipsoid, focus to focus** | a = 100, ε = ½: (r₂/r₁)²/cos β to 6.1e-5 for the emitter (rim 0.837) and ×cos²α for the field (rim 0.511) | ✅ |
-| **§ 2j.3 — the two branches** | oil 100×: light inside half the exit radius, Jacobian 0.20665 vs rays 0.20625 (emitter), 0.29809 vs 0.29741 (field) | ✅ |
+| **§ 2j.3 — the two branches** | oil 100×: light inside half the exit radius, Jacobian 0.20665 vs rays 0.20625 (emitter), 0.29809 vs 0.29741 (field) — *agreeing by cancelling: off the launches 0.20521, the Jacobian 0.20522 since [§ 2q.5](#-2q5--the-ring-that-was-not-there) and the rays 1.0e-3 high* | ✅ |
 | **§ 2j.4 — the light's, not the aim's** | a singlet, stop 20 mm behind, 5°: real and paraxial aims land 1.3e-2 apart, the irradiance is 4.8% lopsided, and they draw it alike to 3.6e-5 | ✅ |
 | **§ 2f, on the exit layout** | the vesica −7.6e-5 → 8.5e-6 at 128 → 256, inside the aim layout's own bounds; the open mirror's energy is the aim layout's to 5.4e-5 | ✅ |
 | ...NEGATIVE CONTROL: § 2i's uniform irradiance | 5.4e-4, then 6.3e-4 | ✅ |
@@ -4449,7 +4449,7 @@ p·|∂c/∂e| past the density lattice's differencing.
 | **§ 2n.1 — a field component's power is its own cos θ** | at every density node, to 4 ulp, on the DIN 4×, the rim DIN, the oil 100× and § 6al's singlet; exactly 1 at the axis | ✅ |
 | ...an emitter's \|P(0)\|² is 1 on every lens | 2.2e-6 (DIN), 3.7e-5 (oil), 4.6e-8 (singlet); 6.6e-8 and 2.7e-6 with the density lattice refined 21 → 41 — the singlet's does not move, a second-order pupil aberration of the chief ray against the paraxial ν | ✅ |
 | ...§ 2j's source term is p·\|∂c/∂a\| | \|∂(L,M)/∂a\|/d_z⁴ one constant to 1e-7, differenced off the launch directions — the dz³/dz⁵ derivation measured rather than trusted | ✅ |
-| ...and the density is p·\|∂c/∂e\| node for node | 1.0e-6 on the rim DIN on and off axis; 1.7e-3 on the oil, the lattice's area reading on its cubic map (§ 2j.1) | ✅ |
+| ...and the density is p·\|∂c/∂e\| node for node | 1.0e-6 on the rim DIN on and off axis; 1.7e-3 on the oil, the lattice's area reading on its cubic map (§ 2j.1) — *rim nodes skipped, which were 4.5e-4 dark; 1.5e-8 and 2.2e-4 at sixth order, rim included ([§ 2q.5](#-2q5--the-ring-that-was-not-there))* | ✅ |
 | **§ 2n.2 — the canonical offset is the traced one to second order** | −n·L_c/ν against the axis-parallel ray's exit coordinate: oil 1.7e-7 at 0.1 µm, growing as h² (×16 for ×4); rim DIN 1.2e-7 at 10 µm. 1.759× the aim coordinate at first order. Telecentric: the f64 zero on both layouts | ✅ |
 | **§ 2n.3 — § 6ag.3, inverted** | the aberration-free traced cone converges on the SINE ratio NA_c/ν as NA³ — 5.17e-3, 6.39e-4, 5.10e-6, 5.10e-9 — and the tangent ratio floors at tan u_max/ν − 1 = 1.16e-2 | ✅ |
 | **§ 2n.4 — the clear field is Fresnel's** | lit straight through, (1 − R)² to 1.4e-7; by an S = 0.5 cone, (1 − R)²·⟨cos θ⟩ — measured −1.5435e-6 against the closed form's −1.6e-6, to 3e-7 | ✅ |
@@ -4461,7 +4461,7 @@ p·|∂c/∂e| past the density lattice's differencing.
 | Chain | Reading | Cause | Restated as |
 |---|---|---|---|
 | exit density | § 2j.2 the ellipsoid's field: (r₂/r₁)²/cos β·cos²α, 0.511 at the rim | a field component carries no Jacobian | cos α at every node to 2.2e-16, 4.2e-8 through the fit, 0.781 at the rim; the emitter's closed form unchanged |
-| | § 2j.3 the oil's field, wave branch against ray branch, 0.29809 against 0.29741 | the wave branch is per component, the ray branch still the point's | 0.30053 against 0.29741, 3.12e-3 apart: the oil's offence read two ways, recorded; the emitter still 4e-4 |
+| | § 2j.3 the oil's field, wave branch against ray branch, 0.29809 against 0.29741 | the wave branch is per component, the ray branch still the point's | 0.30053 against 0.29741, 3.12e-3 apart: the oil's offence read two ways, recorded; the emitter still 4e-4 — *1.32e-3 since [§ 2q.5](#-2q5--the-ring-that-was-not-there): the six-term throughput fit read the wave branch 1.9e-3 high* |
 | exit cost | § 2k.2 the laid exit pupil's amplitude sum, 728.2925078450103 | the DIN 10×'s field pupil is now cos θ per component | 744.5714016274019, bitwise; the phase sum did not move |
 | telecentric scene | § 6al.1 pixel 0.0038891 → 0.0038821; § 6al.2 warp 3.833e-6 → 3.812e-6 mm, 1.305e-4 → 1.300e-4 px; § 6al.7 h 0.23502 → 0.23460 | the ruler: the traced cone's sine, 1.82e-3 finer than the paraxial slope | recorded values |
 | | § 6al.1 clear field (1 − R)² to 2.7e-8 | a field component's own cos θ | (1 − R)²·⟨cos θ⟩, −1.5435e-6, to 3e-7 |
@@ -4625,8 +4625,8 @@ objective's sine-condition residual (~3e-4 on the DIN 4×).
 
 ## Step 2q — the volume and focus-surface chain on the exit layout
 
-Source: engine fix — `exitApertureSine`'s cache key (`pupil/opd.ts`) names every field of the system the reading depends on; engine change — `bandLimitedPeak` (`math/band-limited-peak.ts`), opt-in to a focus sweep as `FocusSweepOptions.peak`; engine change — `incoherentPsf`'s `edgeSamples` (`imaging/fluorescence.ts`), opt-in, carried by `renderVolume`, `renderFieldVolume`, the spectral volume, `FocusSweepOptions`, `renderFluorescence` and `formEmitterPlane`; engine change — `EdgeRule` `"crossing"` (`imaging/fluorescence.ts`), opt-in beside `edgeSamples` and carried with it
-· Tests: § 2q.1 in `packages/core/test/aperture-sine-key.test.ts`; § 2q.2 in `band-limited-peak.test.ts`; § 2q.3 in `edge-resolved-kernel.test.ts`; § 2q.4 in `edge-crossing.test.ts`; § 6r.7 restated in `brightfield-spectrum.test.ts`
+Source: engine fix — `exitApertureSine`'s cache key (`pupil/opd.ts`) names every field of the system the reading depends on; engine change — `bandLimitedPeak` (`math/band-limited-peak.ts`), opt-in to a focus sweep as `FocusSweepOptions.peak`; engine change — `incoherentPsf`'s `edgeSamples` (`imaging/fluorescence.ts`), opt-in, carried by `renderVolume`, `renderFieldVolume`, the spectral volume, `FocusSweepOptions`, `renderFluorescence` and `formEmitterPlane`; engine change — `EdgeRule` `"crossing"` (`imaging/fluorescence.ts`), opt-in beside `edgeSamples` and carried with it; engine fix — `exitDensity`'s derivative slides inward at sixth order, and the exit layout's throughput rides in the density's fit (`ExitDensity.transmitted`, `pupilFunctionFromOpd`'s `apodizationCarriesThroughput`)
+· Tests: § 2q.1 in `packages/core/test/aperture-sine-key.test.ts`; § 2q.2 in `band-limited-peak.test.ts`; § 2q.3 in `edge-resolved-kernel.test.ts`; § 2q.4 in `edge-crossing.test.ts`; § 2q.5 in `exit-density-rim.test.ts`; § 6r.7 restated in `brightfield-spectrum.test.ts`
 
 Register item 24's last fluorescence chain, step 2 of the user's split: the
 volume and focus-surface pictures (§ 6k, § 6l's app panels, § 6az, § 6bb,
@@ -4657,7 +4657,10 @@ on a cloned prescription, which no earlier read can have touched.
 | | the single plane takes it too: off, bitwise; on, § 6bb.2's slab seam closes to 1e-14 at 430, 546 and 680 nm, and a 4-patch plane's flux to 1e-13 | ✅ |
 | **§ 2q.4 — the edge is located, not counted** | default bitwise § 2q.3; an ellipse 1.003:1, moved and turned, keeps πab to 5e-8 on 24–64 samples where the count misses by 1.9–5.0e-4 | ✅ |
 | | a disc cut by a chord keeps the segment's closed form to 5e-6 (count: over 1e-3); π to 1e-8 on § 2q.3's ten lattices; −w40 converging; § 6bb.12's flux to 1e-13 on both layouts | ✅ |
-| | the 4×'s on-axis frame on exit: span 2.478e-6 at 8 sub-samples, 2.481e-6 at 32, grid-free 2.428e-6; counted 1.29e-4 | ✅ |
+| | the 4×'s on-axis frame on exit: span 2.478e-6 at 8 sub-samples, 2.481e-6 at 32, grid-free 2.428e-6; counted 1.29e-4 — *the density's rim nodes ([§ 2q.5](#-2q5--the-ring-that-was-not-there)): 4.8e-9 and 5.4e-9 against 9.5e-9 since* | ✅ |
+| **§ 2q.5 — the density's derivative slides inward where the continued chain ends** | the DIN 4×'s continued chain misses the singlet's back surface from aim radius 1.168, so the ring at 1.2 is never traced; every node, rim included, is p·\|∂c/∂e\| to 3.5e-6 (rim 4.5e-4 at fourth order), the oil's to 2.2e-4 (1.66e-3) | ✅ |
+| | the exit layout's light is the launches', ∫p·T·\|∂c/∂a\|: the DIN within 7e-8 at 0–2 mm, density and laid pupil alike (the wobble reached 1.9e-5); the oil on axis −1.58e-4, its throughput carried to 1.4e-6 (six terms: +1.66e-4) | ✅ |
+| | § 2j.3 off the launches: the oil's light inside half its exit radius is 0.20521 (emitter) and 0.29867 (field); the transform reads them to 1.4e-5 and 5.8e-5, where it read 1.4e-3 and 1.9e-3 high | ✅ |
 
 § 6az.5's NaN was the lever — the DIN 4× with its stop on the front surface —
 reading the default objective's rim after § 6az.2 had read it, so its two
@@ -4869,15 +4872,124 @@ moves in this commit. It costs 2.3–2.5× the count's pupil evaluations.
 - **The volume and focus-surface flip itself**, now on the located edge. Of
   the 191 trial movers, the ones that compare pupils are the count's; the focus
   positions, frame extents and the clip's onset are the layout's.
-- **The exit layout's light is not concave in field before the clip.** Its
+- ~~**The exit layout's light is not concave in field before the clip.** Its
   second differences over 1.0–1.75 mm of image radius are +1.14e-5, −9.7e-6 and
   +5.3e-6 of the axial light grid-free, and +1.2e-5, −9.8e-6 and +5.5e-6 located —
   the same profile, so § 6bd.4's concavity is the pupil model's to answer, not
-  the grid's; whether it is the light or the traced irradiance fit is untested.
+  the grid's; whether it is the light or the traced irradiance fit is untested.~~
+  Neither: the density lattice's rim nodes ([§ 2q.5](#-2q5--the-ring-that-was-not-there)).
+  The exit layout's light now meets the launches' to 7e-8 from 0 to 2 mm, and
+  theirs falls smoothly, −3.75e-6 at 2 mm — the glass's own oblique loss.
 - **A clip's corner** — two outlines meeting inside a cell — kinks a strip's
   open length where no side does, and leaves up to 2.1e-6 of the area.
 - **`wave/psf`'s `pupilSampling` still counts** — register item 25's own site,
   read by § 5v.1, § 8a.7, § 8b.2 and § 8c.6 grid-free or at 16 sub-samples.
+
+### § 2q.5 — the ring that was not there
+
+The flip was held for § 2q.4's second leftover: on the DIN 4×/0.10 the exit
+layout's light, carried back onto the aim disc with no grid (§ 2l), wobbled by
+1.3e-5 of itself between 0 and 2 mm of image radius, where the aim layout's
+falls smoothly. **First hypothesis:** the density's √-fit, 45 Zernike terms
+over the 21-node lattice, which off axis drops the nodes that land past exit
+radius 1. **Refuted** — scaling the fit's disc to keep them removed a third of
+the wobble at most, and more terms moved nothing.
+
+The referee is the light the launches carry. |P|² is power per canonical area
+times |∂c/∂e| (§ 2n), so carried onto the aim disc the exit Jacobian cancels:
+∫|P|²dA_exit = ∫p(θ)·T·|∂c/∂a|dA_aim, which needs no exit coordinate, no
+lattice and no fit, and holds for any lens (`emitterLaunchEnergy`). Split
+against it piece by piece, the fit at its own nodes carried 1e-9, the
+throughput 1e-7 and the clip nothing; the node densities carried all of it, and
+twelve rim nodes carried those, each 4.5e-4 dark. `exitDensity` traces two rings
+past the stop through the chain with every rim removed, so a centred stencil
+finds its ±2 neighbours. The rims go; the glass stays: a ray aimed past 1.168
+of the stop misses the singlet's back surface outright, the ring at 1.2 is never
+traced, and those nodes fell back to second order. Which nodes lost a ring
+changed with field — the wobble. A finer lattice cannot converge it, because its
+rings fall off too: at 41 nodes nine derivatives fall back at 1.5 mm, which is
+why the 31- and 41-node lattices disagreed far from the centre. Under it sat
++6e-6, the fourth-order rule's own truncation at h = 0.1, falling as h⁴.
+
+**Second hypothesis:** a derivative on the seven consecutive nodes nearest to
+centred that all exist, at sixth order, with the window sliding inward onto
+nodes the disc always has, removes both at no extra trace. **Refuted by** the
+DIN's light departing from the launches' by more than 1e-7 anywhere from 0 to
+2 mm, or a node, rim included, departing from p·|∂c/∂e| by more than 5e-6.
+
+| Derivative (lattice) | DIN 4×, 0–2 mm | oil 100× on axis, density | per pupil |
+|---|---|---|---|
+| fourth order, centred (21) — before | −5.6e-6 to −1.9e-5 | −1.21e-3 | 1 |
+| fourth order, centred (41) | +5.4e-7 to −1.1e-6 | | 2.3× |
+| fourth order, centred (61) | −1.8e-8 to +2.2e-7 | −1.6e-5 | 4.4× |
+| fourth order, sliding (21) | +5.2e-6 to +6.0e-6 | −1.21e-3 | 1 |
+| **sixth order, sliding (21)** | **−2e-9 to −7.3e-8** | **−1.58e-4** | **1** |
+
+The oil's lattice loses no ring, so sliding alone does not touch it; the order
+does. Its −1.6e-4 is the 21-node lattice on a cubic map, 1.6e-5 at 61.
+
+**The throughput rides in the density's fit.** `pupilFunctionFromOpd` fitted
+√throughput at six terms on both layouts, and on the exit layout that is the
+second factor of the light it counts: at the oil's rim it read the light
+1.66e-4 high on axis and 5.5e-4 at 10 µm. Twenty-eight terms close most of it
+and make every exit-layout lookup 1.5–2× slower, because the pupil asks one more
+series per point; `ExitDensity.transmitted` fits √(|P|²·T) once instead, at the
+density's 45 terms, exact at its nodes to 5e-15, and the pupil asks one series
+where it asked two — the same speed as before. The user chose the fold. The
+aim layout keeps its six terms. On § 6al's telecentric singlet the clear field
+used to meet (1 − R)²·⟨cos θ⟩, Fresnel at normal incidence, to 3e-11; the folded
+fit reads Fresnel's own angle dependence across the condenser's cone, and meets
+⟨T·cos θ⟩ with T traced at each source direction to 9.6e-10, where the six-term
+fit sat 3.5e-8 above it.
+
+The external numbers are the change of variables, on the DIN at five field
+points and on the oil on axis; the density's closed form p·|∂c/∂e| at every node,
+differenced off fresh traces; and § 2j.3's question asked of the launches. On the
+axis everything is a function of the aim radius, so the oil's light inside half
+its exit radius is a 1-D integral: 0.20521 for an emitter and 0.29867 for a
+transmitted field's components. The transform's pupil reads 0.20522 and 0.29873
+— and read 0.20665 and 0.30053 before. § 2j.3's ray histogram reads the emitter
+at 0.20625, 1.0e-3 high, and its two branches agreed to 4e-4 by cancelling; the
+field's two constructions are 2.59e-3 apart off the launches, the oil's
+sine-condition offence, which the histogram reads as 1.32e-3. No trace is added:
+the window slides over nodes already traced, and the weights are cached per window.
+
+### What moved, and why
+
+Fifty readings in twelve files, each run with the derivative alone and with
+both changes: 7 moved with the derivative, 22 with the throughput fit, 21 with
+both. Every one is on the exit layout or downstream of it.
+
+| Chain | Reading | Cause | Restated as |
+|---|---|---|---|
+| volume | § 2q.4's on-axis frame: grid-free span 2.43e-6, located 2.48e-6 within 3% | both | 9.49e-9 grid-free, 4.76e-9 and 5.44e-9 located: bounded absolutely, 6e-9 (the 3% was 7e-8) |
+| volume | § 2q.2's refused sample 0.7323 depths, pixel 1.1869 | both | 0.7322, 1.1875 |
+| fluorescence | § 6i.5's corner over axis 3.2787e-4, telecentric 1.0375e-2 | both | 3.2938e-4, 1.03804e-2 |
+| fluorescence | § 6bc.4's tile throughputs, six readings, by up to 7e-6 | both | re-recorded |
+| colour | § 6ba.9's channel registration 1.51246 µm | both | 1.51252 |
+| exit density | § 2j.3's field branches 3.12e-3 apart; emitter 4e-4 | throughput fit | 1.32e-3; emitter 1.03e-3 — the histogram's bias, the wave branch right to 1.4e-5 |
+| exit density | § 2n.1's node check, 1.0e-6 (rim DIN) and 1.7e-3 (oil) | derivative | 1.5e-8 and 2.2e-4, bounds tightened to 3e-8 and 3e-4 |
+| cost | § 2k's laid-pupil amplitude sum, bitwise | throughput fit | 744.5654280839933; the phase unmoved |
+| brightfield | § 6al.1–§ 6al.8, fourteen recorded readings, 5e-12 to 3.4e-8 | throughput fit | re-recorded; the clear field as above |
+| brightfield | § 6am's Nyquist guard, 1 to 5e-11 | throughput fit | the floor of a 1.04e-6 harmonic: −4.2e-11 before, +5.1e-11 after; asks 1e-10 as the file's other frequencies do |
+| optimiser | § 1.8.15's counts — 145 and 250 evaluations, 115 alone — and four recorded doubles | both | 130, 290 and 150; doubles re-recorded |
+| optimiser | § 1.8.14's ν = 0.5 restart: 14.2 waves at 0.117, still after one restart | throughput fit | 209 waves at 0.0999, then 78 at 0.1364; still after three more restarts, to the bit (register item 27) |
+| optimiser | § 1.8.8's on-axis sections equal, bitwise | derivative | to 2 ulp — the traced pupil is not mirror-exact (172 of a mirror's 317 nodes, before and after) |
+| sky | C7.5's light past the limb, at s = 1.02–1.2 | derivative | positive where the kernel reaches (to 1.08); past 1.1 rounding, ±4e-17, which had passed on its sign |
+
+### What it leaves
+
+- **The volume and focus-surface flip itself** — the rest of this step, on the
+  corrected density.
+- **The oil 100×'s exit-layout light is short by 1.6e-4 on axis** — the 21-node
+  lattice on its cubic map — and off axis two older residues show: the √-fit
+  slips by 6e-5 to 1.6e-4 of the light at 10–20 µm, and at 15–20 µm the 32-ray
+  rim clips 3–6e-4 of the aim disc's image (register item 35).
+- **§ 2j.3's ray histogram reads 1.0–1.3e-3 high** on the oil's half-radius
+  light, for both sources — more than § 2i.4's pixel edge, untraced (register
+  item 36).
+- **The aim layout's throughput is still fitted at six terms.** No aim-layout
+  reading moved, and none was measured against the launches on the oil.
 
 ## Step 3a — the standard observer and thermal sources
 

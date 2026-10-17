@@ -815,7 +815,8 @@ describe("§ 6ba — the spectral emitter density", () => {
     // On the axis there is no lateral colour, and the estimator says so.
     expect(displacement(0).px).toBeLessThan(1e-3);
     const rendered = displacement(0.8);
-    expect(rendered.mm * 1000).toBeCloseTo(1.51246, 4);
+    // 1.51246 before § 2q.5's rim densities and throughput fit.
+    expect(rendered.mm * 1000).toBeCloseTo(1.51252, 4);
     expect(rendered.mm * 1000 / referee[2]!.um).toBeLessThan(0.75);
   });
 

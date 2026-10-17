@@ -227,14 +227,19 @@ describe("§ 2j.3 — the two branches agree, and share nothing but the trace", 
           if (Math.hypot(x - c, y - c) * g.pixelScaleMm <= halfBlurMm) hin += v;
         }
       }
-      // 0.20665 against 0.20625 (emitter): the histogram's pixel edge on a 41-pixel
-      // radius, as § 2i.4 measured it. A transmitted field's wave branch has carried
-      // each component's own power since § 2n, and its ray branch still the point's
-      // irradiance: 0.30053 against 0.29741, 3.1e-3 apart — the oil's own
-      // sine-condition offence (9.2e-3 at its rim), which the two now read
-      // differently. Recorded rather than bounded away; brightfield never blends.
+      // 0.20522 against 0.20625 (emitter). Read off the launches alone the light
+      // inside is 0.20521 (§ 2q.5), so the wave branch is right to 1.4e-5 and the
+      // histogram reads 1.0e-3 high — not § 2i.4's pixel edge alone. Before § 2q.5
+      // the wave branch read 0.20665, 1.4e-3 high, and the two agreed to 4e-4 by
+      // cancelling. A transmitted field's wave branch has carried each component's
+      // own power since § 2n, and its ray branch still the point's irradiance:
+      // 0.29873 against 0.29741, 1.32e-3 apart. Off the launches the two are
+      // 0.29867 and 0.29608, 2.59e-3 apart — the oil's own sine-condition offence
+      // (9.2e-3 at its rim) — less the histogram's same 1.3e-3. (3.12e-3 before:
+      // the six-term throughput fit read the wave branch 1.9e-3 high.) Recorded
+      // rather than bounded away; brightfield never blends.
       if (source === "emitter") expect(Math.abs(inside / total - hin / htot)).toBeLessThan(1.5e-3);
-      else expect(inside / total - hin / htot).toBeCloseTo(3.12e-3, 4);
+      else expect(inside / total - hin / htot).toBeCloseTo(1.32e-3, 4);
     },
     180_000,
   );
