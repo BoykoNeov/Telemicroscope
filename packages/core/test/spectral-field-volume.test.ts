@@ -542,8 +542,9 @@ describe("§ 6be — the third axis", () => {
       // the laid pupil's rim is, along each ray's own bearing, to 1e-12 — the
       // bisection's step. Its own bearing: the ray aimed sideways lands 0.9–2.1e-3
       // off the sideways line, by the displacement, so the rim read straight
-      // sideways is a different ray, and its radius differs from this one's by
-      // half that squared. A ruler read on the axis and misapplied off it
+      // sideways is a different ray, and on a rim displaced by c its radius
+      // differs from this one's by c times that offset, to first order (6.0e-6
+      // at 430 nm, h = 0.5). A ruler read on the axis and misapplied off it
       // would scale all four rims alike; the sideways ones sit within 4.2e-4 of
       // 1 while the other two part by 3–9e-3, so the displacement is the lens's.
       // (The rays' DIRECTIONS part differently — 1.0e-2 at 430 nm, h = 0.25,
