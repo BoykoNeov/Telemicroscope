@@ -1,5 +1,5 @@
 import { imagePixelScaleMm, type PupilScale } from "../wave/psf";
-import { incoherentImage, type EdgeRule, type EmitterField } from "./fluorescence";
+import { edgePlan, incoherentImage, type EdgePlan, type EdgeRule, type EmitterField } from "./fluorescence";
 import type { PatchPupil } from "./brightfield";
 import { patchWeight } from "./render";
 import {
@@ -238,6 +238,17 @@ export interface FieldVolumeOptions {
   readonly edgeSamples?: number;
   /** `IncoherentPsfOptions.edgeRule` (§ 2q.4), carried with `edgeSamples`. */
   readonly edgeRule?: EdgeRule;
+  /**
+   * Where the crossing rule's rim is kept between calls, one plan per patch
+   * index (§ 2r.1). A patch's slices differ by a defocus, which is phase only, so
+   * on `"crossing"` each patch lays its rim out once and every slice reuses it
+   * whether or not this is passed. Passing it keeps the plans for the NEXT call:
+   * a focus sweep re-forms one outline at every stage, and asks again what the
+   * last step already laid out. Filled on first use; a plan handed a different
+   * outline is refused by § 2q.7's guard, so one book serves one frame, one
+   * wavelength and one patch grid.
+   */
+  readonly edgePlans?: Map<number, EdgePlan>;
   /** Called once per patch finished, for progress and cost accounting. */
   readonly onPatch?: (done: number, total: number) => void;
   /**
@@ -415,6 +426,26 @@ export function renderFieldVolume(
       // curried, and the difference between 16 traces and 144 of them.
       const depthPupils = pupils((px + 0.5) / patches, (py + 0.5) / patches);
       let referenceSum = 0;
+      // Laid out once per patch on `"crossing"`, where a second slice or a
+      // second call will reuse it; a lone slice with no book lays its own.
+      const patch = py * patches + px;
+      let plan: EdgePlan | undefined;
+      if (
+        options.edgeRule === "crossing" &&
+        (options.edgeSamples ?? 1) > 1 &&
+        (options.edgePlans !== undefined || volume.slices.length > 1)
+      ) {
+        plan = options.edgePlans?.get(patch);
+        if (plan === undefined) {
+          plan = edgePlan(depthPupils(waves[reference]!), {
+            pupilSamples: options.pupilSamples,
+            size: n,
+            edgeSamples: options.edgeSamples!,
+            edgeRule: "crossing",
+          });
+          options.edgePlans?.set(patch, plan);
+        }
+      }
 
       for (let s = 0; s < volume.slices.length; s++) {
         const values = volume.slices[s]!.field.values;
@@ -439,6 +470,7 @@ export function renderFieldVolume(
           ...(options.scale === undefined ? {} : { scale: options.scale }),
           ...(options.edgeSamples === undefined ? {} : { edgeSamples: options.edgeSamples }),
           ...(options.edgeRule === undefined ? {} : { edgeRule: options.edgeRule }),
+          ...(plan === undefined ? {} : { edgePlan: plan }),
         });
         maxGridPhaseStepWaves = Math.max(maxGridPhaseStepWaves, formed.maxGridPhaseStepWaves);
         if (s === reference) referenceSum = formed.formedSum;

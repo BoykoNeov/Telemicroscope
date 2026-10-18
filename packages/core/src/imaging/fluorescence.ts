@@ -1126,6 +1126,8 @@ export interface IncoherentImageOptions {
   readonly edgeSamples?: number;
   /** `IncoherentPsfOptions.edgeRule` (§ 2q.4), carried with `edgeSamples`. */
   readonly edgeRule?: EdgeRule;
+  /** `IncoherentPsfOptions.edgePlan` (§ 2q.7): the rim laid out once, checked here. */
+  readonly edgePlan?: EdgePlan;
 }
 
 /**
@@ -1151,6 +1153,7 @@ export function incoherentImage(
     ...(options.scale === undefined ? {} : { scale: options.scale }),
     ...(options.edgeSamples === undefined ? {} : { edgeSamples: options.edgeSamples }),
     ...(options.edgeRule === undefined ? {} : { edgeRule: options.edgeRule }),
+    ...(options.edgePlan === undefined ? {} : { edgePlan: options.edgePlan }),
   });
   const intensity = convolveCircular(object.values, kernel.values, n);
   const weight = throughputWeight(options.throughput, kernel.formedSum);

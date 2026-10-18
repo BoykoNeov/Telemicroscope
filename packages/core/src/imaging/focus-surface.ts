@@ -3,7 +3,7 @@ import type { PupilLayout } from "../wave/psf";
 import { bandLimitedPeak } from "../math/band-limited-peak";
 import { objectNumericalAperture } from "../pupil/microscope";
 import type { EmitterSlabs, VolumeEmitterDensity } from "./emitter-volume";
-import type { EdgeRule } from "./fluorescence";
+import type { EdgePlan, EdgeRule } from "./fluorescence";
 import { imageRadiusForObjectHeight, objectFieldTile } from "./object-field";
 import { radialMapCovering, type RadialMapSeed } from "./radial-map";
 import { focusDepthMm, formVolumePlane, neutralVolumeEmitterDensity } from "./spectral-volume";
@@ -235,6 +235,10 @@ export function renderedBestFocus(
   const numericalAperture = objectNumericalAperture(system, wavelengthNm);
   const depthOfFocusMm = (wavelengthNm * 1e-6) / (numericalAperture * numericalAperture);
 
+  // Every stage of the sweep forms the same frame through the same traced
+  // pupils — a stage moves the specimen, not the lens — so the crossing rule's
+  // rim is laid out at the first and reused at every other (§ 2r.1).
+  const plans = options.edgeRule === "crossing" ? new Map<number, EdgePlan>() : undefined;
   const peakAt = (focusMm: number, bandLimited: boolean): number => {
     const frame = objectFieldTile(system, {
       size: options.size,
@@ -277,6 +281,7 @@ export function renderedBestFocus(
       { nm: wavelengthNm, weight: 1 },
       frame.centreMm,
       seeded,
+      plans,
     ).image.intensity;
     if (bandLimited) return bandLimitedPeak(image, options.size).value;
     let peak = 0;

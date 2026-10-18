@@ -3,7 +3,7 @@ import { objectNumericalAperture } from "../pupil/microscope";
 import { paraxialTrace } from "../trace/paraxial";
 import type { OpticalSystem, WavelengthSample } from "../trace/system";
 import type { EmissionSpectrum } from "./emission";
-import type { EdgeRule } from "./fluorescence";
+import type { EdgePlan, EdgeRule } from "./fluorescence";
 import {
   depthRescale,
   rasterizeEmitterVolume,
@@ -534,6 +534,11 @@ export interface FluorescenceSpectralVolume extends FluorescenceSpectralStack {
  * merely agreed numerically would be free to drift — and so a caller who wants
  * one channel at a time has the same one. § 6bb.1 pins it bitwise against the
  * § 6az render written by hand.
+ *
+ * `edgePlans` is `FieldVolumeOptions.edgePlans` — a book of rims kept for a
+ * caller that forms this one plane again at another stage (§ 2r.1). It is an
+ * argument and not an option because a book serves ONE wavelength's frame, and
+ * the options are shared by every wavelength of a spectral render.
  */
 export function formVolumePlane(
   system: OpticalSystem,
@@ -542,6 +547,7 @@ export function formVolumePlane(
   sample: WavelengthSample,
   centreMm: { readonly x: number; readonly y: number },
   radialMap?: RadialMap,
+  edgePlans?: Map<number, EdgePlan>,
 ): FormedVolumePlane {
   const frame = objectFieldTile(system, {
     ...options,
@@ -600,6 +606,7 @@ export function formVolumePlane(
       scale: frame.scale,
       ...(options.edgeSamples === undefined ? {} : { edgeSamples: options.edgeSamples }),
       ...(options.edgeRule === undefined ? {} : { edgeRule: options.edgeRule }),
+      ...(edgePlans === undefined ? {} : { edgePlans }),
       ...(options.onSlice === undefined
         ? {}
         : { onSlice: (done: number, total: number) => options.onSlice!(done, total, sample.nm) }),

@@ -39,6 +39,7 @@ whole ladder.
 | [2o](#step-2o--the-exit-layouts-orientation-the-geometrys-not-the-aims) | Past infinity the aim mirrors a telecentric pupil (531–587 nm, DIN 4×) and the exit layout copied it; signed by convergence, its centroid is the rays' | `exit-orientation` |
 | [2p](#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone) | Single-plane fluorescence flips by its frame: a plane's light is the emitter's collected cone, 2/(1 + cos u) of the paraxial share, to 3e-4 | `throughput-units` |
 | [2q](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout) | Stale cache; pixel peak; staircase rim; counted edge; ringless rim; flip; re-asked rim. Keyed; interpolated; resolved; located; slid; restated; laid once | `aperture-sine-key`, `band-limited-peak`, `edge-*`, `exit-density-rim` |
+| [2r](#step-2r--the-mosaic-chain-on-the-exit-layout) | A sweep re-laid one rim per stage. Laid once per sweep | `sweep-plan` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -5197,6 +5198,71 @@ and 1.2765× at 0.6 (1.25×).
 So the rungs now assert the integral and check the engine against it, rather than
 asserting what one lattice read. The integral is a closed form of the engine's own
 wavefront, so this step adds a pin and does not count toward the stop rule.
+
+## Step 2r — the mosaic chain on the exit layout
+
+Source: engine change — `renderFieldVolume` lays the crossing rule's rim out once per patch and keeps it in an optional book (`FieldVolumeOptions.edgePlans`), `formVolumePlane` carries a book, `renderedBestFocus` keeps one per sweep, `incoherentImage` carries `edgePlan` (`imaging/field-volume.ts`, `spectral-volume.ts`, `focus-surface.ts`, `fluorescence.ts`)
+· Tests: § 2r.1 in `packages/core/test/sweep-plan.test.ts`
+
+Register item 24's next chain: the fluorescence mosaic, § 6bh on, and the
+readings the seam chain (§ 6bk → § 6cq) takes from it. § 2q.6 flipped the volume
+chain on three changes at once — the exit layout, the located edge (§ 2q.4) and
+the band-limited peak (§ 2q.2) — and its "What it leaves" sends the mosaic's
+sweeps to the same three.
+
+A trial flip measured first, over the 36 test files that cite § 6bh–§ 6cq.
+**The layout alone is not a flip this chain can take**: on the exit layout a
+tile's outline changes shape with field, so the point-sampled rim's error stops
+cancelling between tiles, and the readings this chain is made of compare tiles.
+§ 6bi.2's brightness step at 1 mm of field, at 32 pupil samples:
+
+| | point-sampled | located |
+|---|---|---|
+| aim | 5.509e-3 | 6.672e-3 |
+| exit | **1.3385e-2** | 6.733e-3 |
+
+The located edge agrees across layouts to 0.9%; the point-sampled exit reading
+is twice it. Across 16, 32 and 64 samples — where the tile grows with the
+lattice, and a step that is a throughput gradient over a pitch should grow with
+it — the located step goes 2.16e-3, 6.73e-3, 1.60e-2 and the point-sampled one
+1.08e-2, 1.34e-2, 1.56e-2: the staircase is most of the small tiles' reading.
+So the chain takes all three. And all three cost: the 36 files took 2 429 s
+against 387 s.
+
+### § 2r.1 — a focus sweep lays its rim out once
+
+Where that time went is § 2q.7's finding again, in modules § 2q.7 did not
+reach. On the 4×/0.10 at 430 nm and 0.55 mm of object height, exit layout, 48
+pupil samples, one `renderedBestFocus` sweep cost 2.0 s point-sampled and
+**22.7 s** located, its profile ray traces and Zernike bases behind the
+bisections' amplitude questions; a mosaic render beside it 1.0 s and 3.8 s.
+A sweep forms one frame at every stage — a stage moves the specimen, not the
+lens — and every stage forms three slices, so it laid the same outline out
+about forty times. `renderFieldVolume` and `renderedBestFocus` took no plan.
+
+**Hypothesis.** Lay each patch's rim out once, reuse it across its slices, and
+let a sweep keep the plans between stages: the sweep then costs what its phases
+cost. **Refuted by** an image through a plan or a book that differs from the
+image without one in any bit, a book that saves no amplitude questions on its
+second use, or a book accepted at another wavelength's outline.
+
+- **Bitwise.** A three-slice stack through a traced off-axis pupil equals its
+  slices formed one by one with no plan and summed in order; a book carried over
+  three stages on a 2×2 patch grid equals each stage formed fresh, image,
+  throughputs and phase step; and the sweep above reads 0.1892332100975374 mm,
+  the best focus the engine read before it kept a book.
+- **What it saves.** The book's second stage asks the outline under a fifth of
+  the first stage's amplitudes, and the third the same as the second — the
+  lattice box and the guard's probes. The sweep: **2.8 s**, 1.4× point-sampled.
+  The 36 files under the whole trial flip: 317 s, against 387 s for the engine
+  unflipped.
+- **Refused.** A book laid out at 430 nm is refused at 656 nm, by § 2q.7's
+  guard. A lone slice with no book lays its own rim, as before.
+
+A mosaic render still lays one rim per tile and wavelength — every one a
+different outline — and pays 3.8× for it; nothing reuses those.
+
+Nothing moved: every image is bitwise what it was.
 
 ## Step 3a — the standard observer and thermal sources
 
