@@ -64,7 +64,18 @@ export default defineConfig({
      * all five files are identical, and in the same order, before and after.
      * What is lost is detection speed on a genuine hang, and the 60 s figure was
      * already not really providing that for a suite whose slowest file runs 80 s.
+     *
+     * **Raised to 600 s at § 2r.2**, when the mosaic chain moved onto the exit
+     * layout's located rim. A mosaic render lays one rim per tile and wavelength
+     * (§ 2r.1's "nothing reuses those"), so the five files whose first rung builds
+     * the mosaics and sweeps — `second-objective`, `third-magnification`,
+     * `fourth-corner`, `matched-flat-field`, `refusal-boundary` — got heavier.
+     * Two at a time their slowest rung is 61 s, under the 70 s above; on a full
+     * run, 15 workers on 16 cores, the same first rungs took **181–263 s**, a
+     * 4–6× load multiplier where the last raise measured 2.3×. 600 s is 2.3× that
+     * worst full-run rung. A budget, not a tolerance: every one of the five
+     * passes, unchanged, when the pool is not saturated.
      */
-    testTimeout: 180_000,
+    testTimeout: 600_000,
   },
 });

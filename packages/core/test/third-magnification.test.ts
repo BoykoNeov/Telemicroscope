@@ -597,8 +597,15 @@ describe("§ 6bl.5 — the sweep's refusal was MAGNIFICATION's on the aim layout
     // lens refuses at a height the other passes, so the verdict is not
     // magnification's alone at a fixed height, and the confound stands.
     const at2sHeights = { ...SWEEP, wavelengthsNm: [430, DESIGN, RED], objectHeightsMm: [0, H2 / 2, H2] };
-    expect(() => focusSurface(FOUR, at2sHeights)).toThrow(/1\.234635/);
-    expect(() => focusSurface(FOUR, at2sHeights)).toThrow(/object height 1\.99686/);
+    // Caught once: each call re-runs the sweeps up to the refusing height.
+    let refusal = "";
+    try {
+      focusSurface(FOUR, at2sHeights);
+    } catch (e) {
+      refusal = (e as Error).message;
+    }
+    expect(refusal).toMatch(/1\.234635/);
+    expect(refusal).toMatch(/object height 1\.99686/);
     const at2sHeight = focusSurface(FOUR, { ...at2sHeights, maxPlateauDepths: 1e9 });
     expect(Math.abs(at2sHeight.fieldDropMm[0]![2]!)).toBeCloseTo(0.1368098022097644, 7);
 

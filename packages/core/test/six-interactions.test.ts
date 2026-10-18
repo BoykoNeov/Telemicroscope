@@ -246,6 +246,17 @@ const anisoI = (q: Record<Cell, Cost>): number =>
 
 const anchorOf = (k: number): number => extentOf(LENS.s20, Q6BO.s20[0] * k, Q6BO.s20[1] * k);
 
+/** § 2r.3: the render-free pair is read on the aim layout, so its quartet's field
+ *  is that layout's frame — the same `size` and `pupilSamples`, 0.8% smaller. */
+const anchorAim = (k: number): number =>
+  objectFieldTile(LENS.s20, {
+    size: Q6BO.s20[0] * k,
+    pupilSamples: Q6BO.s20[1] * k,
+    wavelengthNm: DESIGN,
+    centreMm: AXIS,
+    layout: "aim",
+  }).halfExtentMm;
+
 /** The plateau's quartet samples at 48 where the others sample at 32, so its
  *  common field is 1.5x theirs — the same `ps * M / NA`, a different anchor. */
 const plateauAnchor = (): number => extentOf(LENS.s20, 64, 24);
@@ -305,8 +316,8 @@ const rows = (): readonly Row[] => {
       matched: SPLIT_EDGE_MATCHED,
       anchorMm: anchorOf(1),
     },
-    { name: "anisotropy", branch: anisoI(b), matched: anisoI(m), anchorMm: anchorOf(1) },
-    { name: "registration cost", branch: costI(b), matched: costI(m), anchorMm: anchorOf(1) },
+    { name: "anisotropy", branch: anisoI(b), matched: anisoI(m), anchorMm: anchorAim(1) },
+    { name: "registration cost", branch: costI(b), matched: costI(m), anchorMm: anchorAim(1) },
     { name: "plateau", branch: PLATEAU_BRANCH, matched: PLATEAU_MATCHED, anchorMm: plateauAnchor() },
     { name: "escape", branch: ESCAPE_BRANCH, matched: ESCAPE_MATCHED, anchorMm: anchorOf(2) },
   ];
@@ -427,13 +438,18 @@ describe("§ 6bs.3 — the six sit at THREE anchors, in the ratio 1 : 1.5 : 2", 
     expect(plateauAnchor() / extentOf(LENS.f20, 128, 48)).toBeCloseTo(1.0254918639410666, 12);
   });
 
-  it("and the six's own anchors take three distinct values, not one", () => {
+  it("and the six's own anchors take three fields, not one — four values, the render-free pair's on the aim layout's frame", () => {
+    // § 2r.3: the anisotropy and the registration cost are read on the aim
+    // layout, whose frame at Q6BO's shape is 0.8% smaller than the exit
+    // layout's the four rendered rows are read on — the same field to that.
     const anchors = [...new Set(rows().map((r) => r.anchorMm.toPrecision(10)))];
-    expect(anchors).toHaveLength(3);
+    expect(anchors).toHaveLength(4);
+    expect(anchorAim(1)).toBeCloseTo(0.46769328761900353, 12);
+    expect(anchorAim(1) / anchorOf(1)).toBeCloseTo(0.9919448683024904, 9);
   });
 });
 
-describe("§ 6bs.4 — five of the six go onto ONE anchor, and the escape's verdict does not move", () => {
+describe("§ 6bs.4 — five of the six go onto ONE anchor, to 0.8%, and the escape's verdict does not move", () => {
   it("§ 6br.6's second anchor IS the other five's, and the escape reads 0.3666634 there", () => {
     // § 6br's family walks the same extent ladder this file does: its second
     // rung sits exactly where § 6bo and § 6bp took their quartets.
@@ -456,7 +472,11 @@ describe("§ 6bs.4 — five of the six go onto ONE anchor, and the escape's verd
       .map((r) =>
         r.name === "escape" ? { ...r, matched: ESCAPE_AT_COMMON_ANCHOR, anchorMm: anchorOf(1) } : r,
       );
-    expect(new Set(five.map((r) => r.anchorMm))).toEqual(new Set([anchorOf(1)]));
+    // One field to 0.8%: the exit layout's frame for the three rendered rows,
+    // the aim layout's for the two render-free ones (§ 2r.3).
+    expect(new Set(five.map((r) => r.anchorMm))).toEqual(new Set([anchorOf(1), anchorAim(1)]));
+    const span = five.map((r) => r.anchorMm);
+    expect(Math.max(...span) / Math.min(...span)).toBeLessThan(1.009);
     // 1 / 4 / 0 on the aim layout, where the plateau was the unchanged row.
     expect(tally(five)).toEqual({ reversed: 1, understated: 3, unchanged: 1 });
   });
@@ -538,9 +558,10 @@ describe("§ 6bs.6 — the six were reported in TWO growth measures, and they di
 
 describe("§ 6bs.7 — the anchor sensitivity is not the escape's, and two verdicts fail at the top", () => {
   it("both render-free interactions run monotone over four anchors", () => {
-    const anchors = KS.map(anchorOf);
-    expect(anchors[0]!).toBeCloseTo(0.4714912114212198, 12);
-    expect(anchors[3]!).toBeCloseTo(3.7719296913697584, 12);
+    // On the aim layout's frames, as their seams are (§ 2r.3).
+    const anchors = KS.map(anchorAim);
+    expect(anchors[0]!).toBeCloseTo(0.46769328761900353, 12);
+    expect(anchors[3]!).toBeCloseTo(3.7415463009520282, 12);
 
     const costs = KS.map((k) => costI(quartet(k)));
     const anisos = KS.map((k) => anisoI(quartet(k)));

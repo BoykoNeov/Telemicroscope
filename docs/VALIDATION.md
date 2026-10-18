@@ -39,7 +39,7 @@ whole ladder.
 | [2o](#step-2o--the-exit-layouts-orientation-the-geometrys-not-the-aims) | Past infinity the aim mirrors a telecentric pupil (531–587 nm, DIN 4×) and the exit layout copied it; signed by convergence, its centroid is the rays' | `exit-orientation` |
 | [2p](#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone) | Single-plane fluorescence flips by its frame: a plane's light is the emitter's collected cone, 2/(1 + cos u) of the paraxial share, to 3e-4 | `throughput-units` |
 | [2q](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout) | Stale cache; pixel peak; staircase rim; counted edge; ringless rim; flip; re-asked rim. Keyed; interpolated; resolved; located; slid; restated; laid once | `aperture-sine-key`, `band-limited-peak`, `edge-*`, `exit-density-rim` |
-| [2r](#step-2r--the-mosaic-chain-on-the-exit-layout) | Sweep rim per stage; mosaic chain flipped; field seam. Laid once; 30 reversed; the aim ruler's, 0 on exit | `sweep-plan`, `field-seam-zero` |
+| [2r](#step-2r--the-mosaic-chain-on-the-exit-layout) | Sweep rim per stage; mosaic chain flipped; field seam. Laid once; 28 reversed; the aim ruler's, 0 on exit | `sweep-plan`, `field-seam-zero` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -5284,8 +5284,14 @@ value that does not come back on a second run. Neither happens: with the default
 forced to `"exit"` the 36 files read what they read with it at `"aim"`, and every
 file was re-run to a fixed point.
 
+The 36 files ran in 239 s and 335 s on two runs of the restated chain (§ 2r.1's
+trial: 317 s, against 387 s unflipped). Inside a whole-suite run, though, the
+five files whose first rung builds the mosaics and sweeps took 181–263 s on that
+rung against 61 s at most two at a time, so the test budget went to 600 s
+(`vitest.config.ts` says why).
+
 About 600 pinned lines in sixteen files changed. Most re-record and say the same
-thing; **30 claims reversed and 14 weakened**, each marked in its own test as
+thing; **28 claims reversed and 14 weakened**, each marked in its own test as
 § 2r.2 with the aim layout's reading kept beside it, and every file's header
 still quotes its step as first published. Three mechanisms carry most of it.
 
@@ -5370,7 +5376,9 @@ does not use. They are kept as that layout's: each file in the chain asks for
 `layout: "aim"` on every seam and every ruler its seams are read against, and
 says why. The render readings those files take from § 6bk → § 6cc are the exit
 layout's (§ 2r.2), and where a seam-chain file tabulates them beside its costs
-it reads its frames on the exit layout too (`six-interactions`).
+each row carries its own layout's frame: in `six-interactions` the four rendered
+rows sit at the exit layout's anchor and the two render-free ones at the aim
+layout's, the same field to 0.8%.
 
 ### What it leaves
 

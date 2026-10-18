@@ -587,7 +587,7 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     the volume and focus-surface chain with the app's volume panels at
     [§ 2q.6](VALIDATION.md#-2q6--the-flip), 184 readings in eight files and three claims reversed —
     ~~the mosaic, the seam chain last~~ — the mosaic chain at [§ 2r.2](VALIDATION.md#-2r2--the-flip),
-    some 600 pinned lines in sixteen files, 30 claims reversed and 14 weakened;
+    some 600 pinned lines in sixteen files, 28 claims reversed and 14 weakened;
     the seam chain at [§ 2r.3](VALIDATION.md#-2r3--the-field-scans-seam-was-the-aim-layouts-ruler), whose field-scan seam
     was the aim layout's per-tile ruler and is 0 on the exit layout, so its
     files keep the aim layout and ask for it. What is left is the default itself
@@ -1011,7 +1011,7 @@ number and land the day one arrives.
 ## C. The fluorescence-mosaic chain, § 6bk → § 6cq
 
 *Since § 2r the chain's rendered readings are the exit layout's ([§ 2r.2](VALIDATION.md#-2r2--the-flip),
-30 claims reversed — the list is there) and its seams the aim layout's, kept
+28 claims reversed — the list is there) and its seams the aim layout's, kept
 ([§ 2r.3](VALIDATION.md#-2r3--the-field-scans-seam-was-the-aim-layouts-ruler)). What follows is as the chain left it on the aim
 layout; an item a reversal answers says so.*
 
