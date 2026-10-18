@@ -1612,7 +1612,7 @@ headless driver — because the memos are worth more in Chrome than in node, and
 work that got cheaper is the work that was repeating itself. A4's ~2.3× browser
 penalty no longer describes this job. *[Since § 2q.7 the rim is resolved: 1.22–1.75 s
 over the catalogue in node, 2.1–2.75× the point-sampled sweep — see* the volume
-panels resolve their rim *below. The browser figures here were not re-read.]*
+panels resolve their rim *below. In the browser at the opening view: 1.47–1.48 s.]*
 
 **And the captions were driven, for D10's reason.** The suite builds no `Worker`
 and renders no panel, so all three branches of the rewritten note were read out of
@@ -1703,6 +1703,10 @@ through one plan per outline. Switched on without the plan the depth job cost
 | picture, 128 bins, 27 planes | 959 ms | 1050 ms |
 | axial response + cone | 556–643 ms | 1.22–1.75 s |
 | depth curve | 194–292 ms | 0.62–0.96 s |
+
+In the browser, off the panel's own elapsed readouts in headless Chrome at the
+opening view (20×/0.10, matched and in water): picture 159–181 ms, axial response
+1.47–1.48 s, depth curve 0.79–0.83 s. The captions render as written.
 
 **What it bought.** The depth curve's Maréchal depth for the oil 100×/1.40 into
 water read 1.084 µm against a converged 1.171 — 7% short — and into air 1.255

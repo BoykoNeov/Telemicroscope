@@ -1330,8 +1330,9 @@ const CONE_BINS = [0, CONE_PUPIL_SAMPLES / 4, CONE_PUPIL_SAMPLES / 2, (3 * CONE_
  * **Since § 2q.7 the rim is resolved**, through one plan per outline — the
  * response, each asymmetry control and the cone stack each lay out their own —
  * and the job measures **1.22–1.75 s** over the catalogue in node, 2.1–2.75× the
- * point-sampled sweep. The browser figures above are the point-sampled ones and
- * were not re-read.
+ * point-sampled sweep. In the browser, read off this readout's `elapsedMs` through
+ * the panel in headless Chrome at the opening view (20×/0.10, matched and in
+ * water): 1.47–1.48 s.
  */
 export function axialResponse(request: AxialRequest): AxialResult {
   const started = performance.now();
