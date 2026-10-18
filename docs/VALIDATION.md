@@ -5603,14 +5603,16 @@ astigmatism's departure and two thirds of coma's. The odd-term margin was not
 
 The suite with the change: 116 tests in 25 files failed, three of them on load
 alone (`doublet-wall`'s 180 s rung, the app's `golden` worker, the app's
-`telecentric` wall clock — each re-run alone and passing on its values). The
+`telecentric` wall clock — all three passed on their values in the second full
+run, the one this step was committed on). The
 other 22 files were re-run under a recorder that logs a failed comparison
 instead of throwing, so one run lists every moved reading: **~300 readings**,
 almost all the mosaic and focus chains' off-axis exit readings pinned to 7–12
 digits, restated at the same digits. A second round moved 15 more that are
 computed from borrowed constants (§ 6bn's and § 6bm's cited cells, § 6bk.3's
 ratios), and those constants now carry one value in every file that cites them,
-`growth-measures` and `six-interactions` included, where nothing asserted them.
+`growth-measures` and `six-interactions` included — which moved 11 more readings
+there, computed from the cited values, restated the same way.
 Readings that moved inside their tolerances were not audited, as at § 2s.
 
 **Three claims of exactness, each investigated rather than restated:**
@@ -5643,9 +5645,10 @@ Readings that moved inside their tolerances were not audited, as at § 2s.
   exact one to seven digits (0.75113121 against 0.7511312) and differs in the
   eighth, where it agreed to six; the rung pins both at the new precision.
 
-**One ceiling restated, not a tolerance:** § 6bf.7's `interactionDepths < 0.18`
-sat 0.7% over § 2q.6's 0.1787 with no stated meaning beside its six-digit pin; the
-reading is 0.1802 and the ceiling is 0.19, set the same way.
+**One ceiling raised:** § 6bf.7's `interactionDepths < 0.18` has no stated
+meaning beside its six-digit pin; § 2q.6 set it by raising 0.15 to 0.18 when the
+reading went 0.148 → 0.1787. The reading is 0.1802 and the ceiling is 0.19, set
+the same way — a raised bound, recorded here so it can be overruled.
 
 **Register items it touched without closing:** item 39's axial anchor is still
 the largest phase step of nine (0.34088 against the eight from 0.33337, which
@@ -24576,7 +24579,7 @@ because the anchor is the entire choice.
 | | what survives is § 6be.1's other term — `stageSpreadMm` 0.16654575766951885 mm of pure axial colour against the field scan's 0.18008961951932861, **1.0813×**, and `exposures` still 27 | ✅ |
 | **§ 6bj.4 — the flat field inverts: the free one goes flat, the scanner's becomes exact** | one pupil forms every tile, so the nine `patchThroughput` scalars are `Object.is`-equal, `throughputFlatField`'s span is **exactly 0** and its planes are 1 to 1.9e-12 — the mean's own summation error | ✅ |
 | | so dividing by it moves the seam by **6.6e-13 of itself**, where § 6bi.4's same division took 121× off a field scan's | ✅ |
-| | and `scannerFlatField` — the per-tile repeating frame that made § 6bi's mosaic 11.0% WORSE — is `Object.is`-equal to `renderedFlatField` here, and takes the seam to exactly 0 | ✅ |
+| | and `scannerFlatField` — the per-tile repeating frame that made § 6bi's mosaic 11.0% WORSE — is `Object.is`-equal to `renderedFlatField` here, and takes the seam to ~~exactly 0~~ two ulps: the tiles are the anchor's frame bit for bit, and a / (a/m) is m to ±1 ulp — the row sums had cancelled those until [§ 2t](#step-2t--the-exit-layouts-fit-keeps-the-traced-rim) moved the frame's last bits | ✅ |
 | | **and it is literally the same array in both geometries**: a field scan's scanner calibration is bitwise the stage scan's true one, so the verdict belongs to the geometry and not to the picture | ✅ |
 | | what is left is the map and not the glass: seam 6.9685e-4 against a field scan's 5.2943e-3, **7.597×**, and 10.07× on the axis | ✅ |
 | **§ 6bj.5 — the distortion becomes a SEAM, and it is anisotropic** | on the axis the two geometries are indistinguishable — 1.32e-4 px against 1.02e-4 — and both are isotropic to ten digits, the map being even there | ✅ |
@@ -26307,11 +26310,13 @@ it is **0.8231653** — agreeing to six digits and differing in the seventh, bec
 § 6bn formed it from its own rounded 0.02238865 and 0.4498281 rather than from the
 doubles. Both are pinned, each at the precision it earns, and § 6br.1 asserts the
 disagreement at the seventh digit rather than papering over it. This is the trap
-§ 6bp.8 recorded, and it cost this step a failing first run of its own.
+§ 6bp.8 recorded, and it cost this step a failing first run of its own. (Where the
+rounding falls is the cells' own: on the exit layout since [§ 2t](#step-2t--the-exit-layouts-fit-keeps-the-traced-rim) the two agree to
+seven digits and differ in the eighth, and the rung asserts that instead.)
 
 | Rung | What it pins | |
 | --- | --- | --- |
-| **§ 6br.1 — the branch column reproduces, and § 6bn's number came from rounded cells** | § 6bk's and § 6bm's 10× escapes come back as 0.022388654298862054 and 0.4498281027627471, matching every digit § 6bn cited; the exact interaction is 0.8231652575877593, close to the published 0.8231651 at six digits and NOT at seven | ✅ |
+| **§ 6br.1 — the branch column reproduces, and § 6bn's number came from rounded cells** | § 6bk's and § 6bm's 10× escapes come back as 0.022388654298862054 and 0.4498281027627471, matching every digit § 6bn cited; the exact interaction is 0.8231652575877593, close to the published 0.8231651 at six digits and NOT at seven (on the exit layout since [§ 2t](#step-2t--the-exit-layouts-fit-keeps-the-traced-rim): 0.7511312 against the rounded cells' 0.75113121, close at seven and NOT at eight) | ✅ |
 | **§ 6br.2 — the quartet sits at one field** | the magnification lever cancels to twelve digits on both rows; the aperture lever keeps § 6bo.1's traced-NA residual, 1.0155048 and identical at both magnifications, which is why § 6br.6 measures the cancellation instead of asserting it | ✅ |
 | **§ 6br.3 — understated, not reversed — the last of § 6bn's six closes** | 0.8231653 becomes 0.4108834, both below 1, the departure from 1 growing 2.0034038× | ✅ |
 | **§ 6br.4 — the halving is two levers moving OPPOSITE ways** | 16.5389× to 12.9280× at 20× against 20.0918× to 31.4640× at 10×, i.e. 0.7816771× down and 1.5660148× up, pinned as a sign test on the product of the two departures | ✅ |
@@ -28351,7 +28356,7 @@ is what a ratio of ratios does when two of its four terms have run out.
 
 | Rung | What it pins | |
 | --- | --- | --- |
-| **§ 6cc.0 — one render is the whole anchor ladder at one sampling** | `halfExtentMm` goes as `pupilSamples` alone (§ 6bw.2) so the anchor's field IS its sampling, and the held pixel scale makes every smaller anchor a centred sub-box of the largest render; the largest box reproduces § 6br.6's own 0.1249815 to eleven digits, so the sub-box readings hang off the published number | ✅ |
+| **§ 6cc.0 — one render is the whole anchor ladder at one sampling** | `halfExtentMm` goes as `pupilSamples` alone (§ 6bw.2) so the anchor's field IS its sampling, and the held pixel scale makes every smaller anchor a centred sub-box of the largest render; the largest box reproduces § 6br.6's own 0.1249815 to eleven digits, so the sub-box readings hang off the published number (to the bit since [§ 2t](#step-2t--the-exit-layouts-fit-keeps-the-traced-rim), both sums compensated: plainly summed, the order alone reached 1.14e-11 once the off-axis fit moved the last bits) | ✅ |
 | **§ 6cc.1 — held at one sampling the fall is still there, and stronger** | 0.4764788 → 0.3726088 → 0.2582668 → 0.1249815, monotone and 3.81× end to end against the published 3.29× over the same range — so the anchor's other effect was masking 16% of the fall rather than causing it | ✅ |
 | **§ 6cc.2 — and the sampling pushes the other way** | the same physical box at four times the pupil samples reads 0.4764788 against the ladder's 0.4108834, 16% higher, with every cell lower at the finer pupil, 34% to 45% (0.578, 0.564, 0.655 and 0.551) — an experiment the ladder cannot do by choosing a frame, and one § 6br.5's 0.75% pixel band does not cover | ✅ |
 | **§ 6cc.3 — the mechanism: the slow cells run out of light to lose** | both slow escapes fall, bottom at the third box and TURN (0.005154 → 0.005292 and 0.002558 → 0.002644) while both fast ones fall on to 0.024846 and 0.099348, so the 20× aperture lever collapses 20.86 → 4.70 where the 10× gives up a third — § 6br.6's saturation argument at the OTHER bound | ✅ |
