@@ -188,6 +188,13 @@ export interface IncoherentPsfOptions {
    * `"count"`, § 2q.3's, bitwise. Needs `edgeSamples` > 1.
    */
   readonly edgeRule?: EdgeRule;
+  /**
+   * The rim laid out once by `edgePlan` (§ 2q.7), for a sweep over pupils that
+   * share an outline. Must match this call's lattice, `edgeSamples` and
+   * `edgeRule`; checked cell by cell against the pupil, and refused on a misfit.
+   * The kernel is bitwise the one formed without it.
+   */
+  readonly edgePlan?: EdgePlan;
 }
 
 /**
@@ -384,37 +391,267 @@ function edgeCellMask(
 }
 
 /**
- * The pupil's mean complex field and mean power over one lattice cell, on an
- * `m`×`m` sub-grid — `[re, im, power]` into `out`. The phase is asked for only
- * where the amplitude transmits, `PupilFunction.phaseWaves`'s own contract.
+ * A resolved rim, laid out once (§ 2q.7): which lattice cells an aperture edge
+ * cuts, and for each the points its field is summed at, with their weights and
+ * amplitudes.
+ *
+ * Everything in it is read off the pupil's AMPLITUDE, so it is the same for every
+ * pupil that shares an outline — a defocus, a depth (§ 6l.6: a depth's aberration
+ * changes no amplitude), a focus step — and such a pupil is then asked only for
+ * its phase, at the recorded points. Laying out a cut cell asks the outline about
+ * 230 times on the crossing rule, against about 20 phases, so a sweep over one
+ * outline lays it out once instead of once per kernel. `incoherentPsf` without a
+ * plan lays one out for its own call and sums it the same way, so a kernel formed
+ * with a plan is bitwise the kernel formed without one.
+ *
+ * Handed a pupil whose outline it was not laid out on, a plan would put the rim
+ * in the wrong place and say nothing. So `incoherentPsf` checks every cut cell
+ * against the pupil it is given — the lattice point's amplitude, the first
+ * recorded point's, and a probe either side of one located crossing — bitwise,
+ * and refuses a mismatch. Any other amplitude function is caught, and so is a
+ * rim moved past one bisection step at any probed crossing; an outline that
+ * moves only where no probe looks is not. Lay out one plan per outline. Only
+ * `"crossing"` is laid out: see `edgePlan`.
  */
-function cellMean(
+export interface EdgePlan {
+  readonly pupilSamples: number;
+  readonly size: number;
+  readonly edgeSamples: number;
+  readonly edgeRule: EdgeRule;
+  /** Cut cells laid out — what `IncoherentPsf.edgeCells` reports. */
+  readonly cells: number;
+  /** The layout itself; read only by `incoherentPsf`. */
+  readonly layout: EdgeLayout;
+}
+
+/** `EdgePlan`'s cells, flattened in the lattice's own row-major visiting order. */
+export interface EdgeLayout {
+  readonly mask: Uint8Array;
+  /** Cell c's points are `nodeStart[c]` up to `nodeStart[c + 1]`. */
+  readonly nodeStart: Int32Array;
+  readonly xs: Float64Array;
+  readonly ys: Float64Array;
+  /** Quadrature weight per point; 1 on `"count"`. */
+  readonly ws: Float64Array;
+  readonly as: Float64Array;
+  /** How cell c's sums become means: 0 as summed, 1 ÷ sub-samples², 2 ÷ step². */
+  readonly finish: Uint8Array;
+  /** The guard's half; empty for a plan laid out inside one call. */
+  readonly lattice: Float64Array;
+  readonly probeStart: Int32Array;
+  readonly probeX: Float64Array;
+  readonly probeY: Float64Array;
+  readonly probeIn: Uint8Array;
+}
+
+/** Collects one layout's cells; `guarded` also records what the guard checks. */
+class EdgeRecorder {
+  readonly xs: number[] = [];
+  readonly ys: number[] = [];
+  readonly ws: number[] = [];
+  readonly as: number[] = [];
+  readonly nodeStart: number[] = [0];
+  readonly finish: number[] = [];
+  readonly lattice: number[] = [];
+  readonly probeX: number[] = [];
+  readonly probeY: number[] = [];
+  readonly probeIn: number[] = [];
+  readonly probeStart: number[] = [0];
+  constructor(readonly guarded: boolean) {}
+  node(x: number, y: number, w: number, a: number): void {
+    this.xs.push(x);
+    this.ys.push(y);
+    this.ws.push(w);
+    this.as.push(a);
+  }
+  /** Whether this cell still wants a probe. */
+  probing(): boolean {
+    return this.guarded && this.probeX.length === this.probeStart[this.probeStart.length - 1]!;
+  }
+  probe(x: number, y: number, inside: number): void {
+    this.probeX.push(x);
+    this.probeY.push(y);
+    this.probeIn.push(inside);
+  }
+  close(finish: number): void {
+    this.finish.push(finish);
+    this.nodeStart.push(this.xs.length);
+    this.probeStart.push(this.probeX.length);
+  }
+}
+
+/**
+ * The cells of one lattice's rim — `edgeCellMask`'s cells, each laid out by the
+ * rule's recorder, in the order `incoherentPsf` visits them.
+ */
+function layEdgeCells(
+  pupil: PupilFunction,
+  n: number,
+  pupilSamples: number,
+  edgeSamples: number,
+  edgeRule: EdgeRule,
+  guarded: boolean,
+): { readonly cells: number; readonly layout: EdgeLayout } {
+  const { half, step, lo, hi } = latticeBox(n, pupilSamples);
+  const mask = edgeCellMask(pupil, n, step, lo, hi);
+  const rec = new EdgeRecorder(guarded);
+  const record = edgeRule === "crossing" ? recordCellCrossing : recordCellMean;
+  let cells = 0;
+  for (let iy = lo; iy <= hi; iy++) {
+    const py = (iy - half) * step;
+    for (let ix = lo; ix <= hi; ix++) {
+      if (mask[iy * n + ix] !== 1) continue;
+      const px = (ix - half) * step;
+      if (guarded) rec.lattice.push(pupil.amplitude(px, py));
+      record(pupil, px, py, step, edgeSamples, rec);
+      cells++;
+    }
+  }
+  return {
+    cells,
+    layout: {
+      mask,
+      nodeStart: Int32Array.from(rec.nodeStart),
+      xs: Float64Array.from(rec.xs),
+      ys: Float64Array.from(rec.ys),
+      ws: Float64Array.from(rec.ws),
+      as: Float64Array.from(rec.as),
+      finish: Uint8Array.from(rec.finish),
+      lattice: Float64Array.from(rec.lattice),
+      probeStart: Int32Array.from(rec.probeStart),
+      probeX: Float64Array.from(rec.probeX),
+      probeY: Float64Array.from(rec.probeY),
+      probeIn: Uint8Array.from(rec.probeIn),
+    },
+  };
+}
+
+/**
+ * Lay out a pupil's rim for reuse — `EdgePlan`. The options are the ones every
+ * `incoherentPsf` it is handed to must carry: the plan is refused on any other
+ * lattice or rule.
+ */
+export function edgePlan(
+  pupil: PupilFunction,
+  options: {
+    readonly pupilSamples: number;
+    readonly size: number;
+    readonly edgeSamples: number;
+    readonly edgeRule?: EdgeRule;
+  },
+): EdgePlan {
+  requireLattice(options.size, options.pupilSamples, "edgePlan");
+  const { edgeSamples, edgeRule } = edgeOptions(options, "edgePlan");
+  if (edgeSamples === 1) {
+    throw new Error("edgePlan: a plan lays out cut cells' sub-grids — pass edgeSamples > 1");
+  }
+  // The count's outline IS its sub-grid, so a rim that moved without flipping a
+  // probed sub-sample can still flip another, and a guard that could vouch for it
+  // would ask every one — the work a plan exists to skip.
+  if (edgeRule !== "crossing") {
+    throw new Error(
+      `edgePlan: only the "crossing" rule can be laid out and checked — the count's outline is its ` +
+        `whole sub-grid, so a plan of it could not be vouched for without asking every sub-sample`,
+    );
+  }
+  const { cells, layout } = layEdgeCells(
+    pupil,
+    options.size,
+    options.pupilSamples,
+    edgeSamples,
+    edgeRule,
+    true,
+  );
+  return {
+    pupilSamples: options.pupilSamples,
+    size: options.size,
+    edgeSamples,
+    edgeRule,
+    cells,
+    layout,
+  };
+}
+
+/**
+ * `edgeSamples` and `edgeRule`, checked — shared by `incoherentPsf` and `edgePlan`
+ * so the two cannot read one option two ways.
+ */
+function edgeOptions(
+  options: { readonly edgeSamples?: number; readonly edgeRule?: EdgeRule },
+  who: string,
+): { readonly edgeSamples: number; readonly edgeRule: EdgeRule } {
+  const edgeSamples = options.edgeSamples ?? 1;
+  if (!(Number.isInteger(edgeSamples) && edgeSamples >= 1)) {
+    throw new Error(`${who}: edgeSamples must be a positive integer, got ${edgeSamples}`);
+  }
+  const edgeRule = options.edgeRule ?? "count";
+  if (edgeRule !== "count" && edgeRule !== "crossing") {
+    throw new Error(`${who}: edgeRule must be "count" or "crossing", got ${String(edgeRule)}`);
+  }
+  if (options.edgeRule !== undefined && edgeSamples === 1) {
+    throw new Error(
+      `${who}: edgeRule "${edgeRule}" reads a cut cell's sub-grid — pass edgeSamples > 1 with it`,
+    );
+  }
+  return { edgeSamples, edgeRule };
+}
+
+/** The grid and the pupil's fit in it — `incoherentPsf`'s refusals, shared with `edgePlan`. */
+function requireLattice(n: number, pupilSamples: number, who: string): void {
+  requireGrid(n);
+  if (!(pupilSamples > 0)) throw new Error(`pupilSamples must be positive, got ${pupilSamples}`);
+  // The pupil spans pupilSamples bins across its diameter and must sit inside
+  // the grid with the lattice's outermost ring included. Clamping to the grid
+  // instead would truncate it, and a truncated pupil is indistinguishable from
+  // a smaller aperture — `abbeImage`'s own reason for throwing here, and the
+  // same coverage cap that would read as physics.
+  if (pupilSamples > n - 2) {
+    throw new Error(
+      `${who}: a pupil of ${pupilSamples} bins does not fit a ${n}-bin grid — raise size ` +
+        `to at least ${pupilSamples + 2}, or lower pupilSamples`,
+    );
+  }
+}
+
+/** The lattice's step and the box of bins the pupil's support |u| <= 1 can reach. */
+function latticeBox(
+  n: number,
+  pupilSamples: number,
+): { readonly half: number; readonly step: number; readonly lo: number; readonly hi: number } {
+  const half = n / 2;
+  const step = 2 / pupilSamples;
+  return {
+    half,
+    step,
+    lo: Math.max(0, Math.ceil(half - 1 / step)),
+    hi: Math.min(n - 1, Math.floor(half + 1 / step)),
+  };
+}
+
+/**
+ * One cut cell on an `m`×`m` sub-grid (`"count"`, § 2q.3): every sub-sample the
+ * amplitude passes is a point of weight 1, and the cell's means are the sums over
+ * m². The phase is asked for only where the amplitude transmits,
+ * `PupilFunction.phaseWaves`'s own contract — at summing time, not here.
+ */
+function recordCellMean(
   pupil: PupilFunction,
   px: number,
   py: number,
   step: number,
   m: number,
-  out: Float64Array,
+  rec: EdgeRecorder,
 ): void {
-  let re = 0;
-  let im = 0;
-  let power = 0;
   for (let sy = 0; sy < m; sy++) {
     const qy = py + ((sy + 0.5) / m - 0.5) * step;
     for (let sx = 0; sx < m; sx++) {
       const qx = px + ((sx + 0.5) / m - 0.5) * step;
       const a = pupil.amplitude(qx, qy);
       if (!(a > 0)) continue;
-      const ang = 2 * Math.PI * pupil.phaseWaves(qx, qy);
-      re += a * Math.cos(ang);
-      im += a * Math.sin(ang);
-      power += a * a;
+      rec.node(qx, qy, 1, a);
     }
   }
-  const cells = m * m;
-  out[0] = re / cells;
-  out[1] = im / cells;
-  out[2] = power / cells;
+  rec.close(1);
 }
 
 /** Two-point Gauss–Legendre nodes on [0, 1]; both weights are ½. */
@@ -431,9 +668,8 @@ const GL3_W = [5 / 18, 8 / 18, 5 / 18] as const;
 const CROSSING_HALVINGS = 16;
 
 /**
- * `cellMean` under `EdgeRule` `"crossing"` (§ 2q.4): `[re, im, power]` into
- * `out`, the cell's means, from lines across the outline whose open runs are
- * located rather than counted.
+ * One cut cell under `EdgeRule` `"crossing"` (§ 2q.4): lines across the outline
+ * whose open runs are located rather than counted, each run's points recorded.
  *
  * Every line is asked at `m + 1` nodes, `step/m` apart with the cell's own
  * sides included; between two nodes that disagree the crossing is bisected. Two
@@ -442,13 +678,13 @@ const CROSSING_HALVINGS = 16;
  * and the corners with them: an earlier draft that asked only inner lines missed
  * eight corner nips of an r = 0.9 disc at 24 samples, 9.3e-5 of a cell each.
  */
-function cellMeanCrossing(
+function recordCellCrossing(
   pupil: PupilFunction,
   px: number,
   py: number,
   step: number,
   m: number,
-  out: Float64Array,
+  rec: EdgeRecorder,
 ): void {
   const x0 = px - 0.5 * step;
   const y0 = py - 0.5 * step;
@@ -470,25 +706,16 @@ function cellMeanCrossing(
       inside(x0, y0 + step - t) === first;
   }
   if (uniform) {
-    let re = 0;
-    let im = 0;
-    let power = 0;
     for (let gy = 0; gy < 3 && first === 1; gy++) {
       for (let gx = 0; gx < 3; gx++) {
         const qx = x0 + GL3_X[gx]! * step;
         const qy = y0 + GL3_X[gy]! * step;
         const a = pupil.amplitude(qx, qy);
         if (!(a > 0)) continue;
-        const w = GL3_W[gx]! * GL3_W[gy]!;
-        const ang = 2 * Math.PI * pupil.phaseWaves(qx, qy);
-        re += w * a * Math.cos(ang);
-        im += w * a * Math.sin(ang);
-        power += w * a * a;
+        rec.node(qx, qy, GL3_W[gx]! * GL3_W[gy]!, a);
       }
     }
-    out[0] = re;
-    out[1] = im;
-    out[2] = power;
+    rec.close(0);
     return;
   }
   const rows = new Uint8Array(m * (m + 1));
@@ -511,19 +738,28 @@ function cellMeanCrossing(
   const alongX = rowCrossings >= colCrossings;
   // A point at `t` along a line `s` across, in the strips' direction.
   const at = (t: number, s: number): number => inside(alongX ? x0 + t : x0 + s, alongX ? y0 + s : y0 + t);
-  // Bisect between two disagreeing points of a segment, `inside(lo)` = `a`.
-  const crossing = (lo: number, hi: number, a: number, test: (u: number) => number): number => {
+  // Bisect between two disagreeing points of a segment, `inside(lo)` = `a`. The
+  // guard's probe is the pair it ends on, which straddle the outline by 2⁻¹⁶ of
+  // a node gap.
+  const crossing = (
+    lo: number,
+    hi: number,
+    a: number,
+    test: (u: number) => number,
+    probe?: (u: number, inside: number) => void,
+  ): number => {
     for (let i = 0; i < CROSSING_HALVINGS; i++) {
       const mid = 0.5 * (lo + hi);
       if (test(mid) === a) lo = mid;
       else hi = mid;
     }
+    if (probe !== undefined) {
+      probe(lo, a);
+      probe(hi, 1 - a);
+    }
     return 0.5 * (lo + hi);
   };
 
-  let re = 0;
-  let im = 0;
-  let power = 0;
   const flags = new Uint8Array(m + 1);
   // One line `across` the strips, its open length located and its field
   // integrated, weighted by `weight` (an area per unit length). The nodes only
@@ -539,18 +775,17 @@ function cellMeanCrossing(
         const t = t0 + GL3_X[g]! * len;
         const a = pupil.amplitude(x(t), y(t));
         if (!(a > 0)) continue;
-        const w = GL3_W[g]! * len * weight;
-        const ang = 2 * Math.PI * pupil.phaseWaves(x(t), y(t));
-        re += w * a * Math.cos(ang);
-        im += w * a * Math.sin(ang);
-        power += w * a * a;
+        rec.node(x(t), y(t), GL3_W[g]! * len * weight, a);
       }
     };
+    // `at`'s own coordinates, so the guard asks the very points the bisection did.
+    const probe = (u: number, f: number) =>
+      rec.probe(alongX ? x0 + u : x0 + across, alongX ? y0 + across : y0 + u, f);
     let start = flags[0] === 1 ? 0 : -1;
     for (let k = 0; k < m; k++) {
       const a = flags[k]!;
       if (a === flags[k + 1]) continue;
-      const t = crossing(k * h, (k + 1) * h, a, (u) => at(u, across));
+      const t = crossing(k * h, (k + 1) * h, a, (u) => at(u, across), rec.probing() ? probe : undefined);
       if (a === 1) {
         integrate(start, t);
         start = -1;
@@ -589,10 +824,69 @@ function cellMeanCrossing(
     }
   }
   // ∫ over the cell, over its area step².
-  const scale = 1 / (step * step);
-  out[0] = re * scale;
-  out[1] = im * scale;
-  out[2] = power * scale;
+  rec.close(2);
+}
+
+/**
+ * Cell c's means, `[re, im, power]` into `out`: the pupil's phase asked at the
+ * layout's points and summed as the rule's own loop always summed it — the same
+ * products in the same order, so a laid-out cell is bitwise the cell resolved in
+ * place.
+ */
+function sumEdgeCell(
+  pupil: PupilFunction,
+  layout: EdgeLayout,
+  c: number,
+  step: number,
+  m: number,
+  out: Float64Array,
+): void {
+  let re = 0;
+  let im = 0;
+  let power = 0;
+  const { xs, ys, ws, as } = layout;
+  for (let k = layout.nodeStart[c]!; k < layout.nodeStart[c + 1]!; k++) {
+    const w = ws[k]!;
+    const a = as[k]!;
+    const ang = 2 * Math.PI * pupil.phaseWaves(xs[k]!, ys[k]!);
+    re += w * a * Math.cos(ang);
+    im += w * a * Math.sin(ang);
+    power += w * a * a;
+  }
+  const finish = layout.finish[c]!;
+  if (finish === 1) {
+    const cells = m * m;
+    out[0] = re / cells;
+    out[1] = im / cells;
+    out[2] = power / cells;
+  } else if (finish === 2) {
+    const scale = 1 / (step * step);
+    out[0] = re * scale;
+    out[1] = im * scale;
+    out[2] = power * scale;
+  } else {
+    out[0] = re;
+    out[1] = im;
+    out[2] = power;
+  }
+}
+
+/**
+ * Whether cell c of a plan laid out elsewhere fits this pupil — `EdgePlan`'s
+ * guard. `a` is the lattice point's amplitude, already asked by the caller.
+ */
+function edgeCellFits(pupil: PupilFunction, layout: EdgeLayout, c: number, a: number): boolean {
+  if (layout.lattice[c] !== a) return false;
+  const s = layout.nodeStart[c]!;
+  if (s < layout.nodeStart[c + 1]! && pupil.amplitude(layout.xs[s]!, layout.ys[s]!) !== layout.as[s]) {
+    return false;
+  }
+  for (let p = layout.probeStart[c]!; p < layout.probeStart[c + 1]!; p++) {
+    if ((pupil.amplitude(layout.probeX[p]!, layout.probeY[p]!) > 0 ? 1 : 0) !== layout.probeIn[p]) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /**
@@ -606,30 +900,15 @@ function cellMeanCrossing(
  */
 export function incoherentPsf(pupil: PupilFunction, options: IncoherentPsfOptions): IncoherentPsf {
   const n = options.size;
-  requireGrid(n);
   const pupilSamples = options.pupilSamples;
-  if (!(pupilSamples > 0)) throw new Error(`pupilSamples must be positive, got ${pupilSamples}`);
-  // The pupil spans pupilSamples bins across its diameter and must sit inside
-  // the grid with the lattice's outermost ring included. Clamping to the grid
-  // instead would truncate it, and a truncated pupil is indistinguishable from
-  // a smaller aperture — `abbeImage`'s own reason for throwing here, and the
-  // same coverage cap that would read as physics.
-  if (pupilSamples > n - 2) {
-    throw new Error(
-      `incoherentPsf: a pupil of ${pupilSamples} bins does not fit a ${n}-bin grid — raise size ` +
-        `to at least ${pupilSamples + 2}, or lower pupilSamples`,
-    );
-  }
+  requireLattice(n, pupilSamples, "incoherentPsf");
 
-  const half = n / 2;
-  const step = 2 / pupilSamples;
   const re = new Float64Array(n * n);
   const im = new Float64Array(n * n);
   // The pupil's support is |u| <= 1, so only that box is visited — which also
   // keeps a pupil function that re-traces rays from being asked about
   // frequencies it could never transmit (`abbeImage`'s own reason).
-  const lo = Math.max(0, Math.ceil(half - 1 / step));
-  const hi = Math.min(n - 1, Math.floor(half + 1 / step));
+  const { half, step, lo, hi } = latticeBox(n, pupilSamples);
   const rowPhase = new Float64Array(n);
   const rowIn = new Uint8Array(n);
   let transmittingSamples = 0;
@@ -645,21 +924,30 @@ export function incoherentPsf(pupil: PupilFunction, options: IncoherentPsfOption
       ? pupil.cellQuadrature(step)
       : undefined;
   let quadratureCells = 0;
-  const edgeSamples = options.edgeSamples ?? 1;
-  if (!(Number.isInteger(edgeSamples) && edgeSamples >= 1)) {
-    throw new Error(`incoherentPsf: edgeSamples must be a positive integer, got ${edgeSamples}`);
-  }
-  const edgeRule = options.edgeRule ?? "count";
-  if (edgeRule !== "count" && edgeRule !== "crossing") {
-    throw new Error(`incoherentPsf: edgeRule must be "count" or "crossing", got ${String(edgeRule)}`);
-  }
-  if (options.edgeRule !== undefined && edgeSamples === 1) {
+  const { edgeSamples, edgeRule } = edgeOptions(options, "incoherentPsf");
+  const plan = options.edgePlan;
+  if (
+    plan !== undefined &&
+    (plan.pupilSamples !== pupilSamples ||
+      plan.size !== n ||
+      plan.edgeSamples !== edgeSamples ||
+      plan.edgeRule !== edgeRule)
+  ) {
     throw new Error(
-      `incoherentPsf: edgeRule "${edgeRule}" reads a cut cell's sub-grid — pass edgeSamples > 1 with it`,
+      `incoherentPsf: edgePlan was laid out at pupilSamples ${plan.pupilSamples}, size ${plan.size}, ` +
+        `edgeSamples ${plan.edgeSamples}, edgeRule "${plan.edgeRule}" — this call asks for ` +
+        `${pupilSamples}, ${n}, ${edgeSamples}, "${edgeRule}"`,
     );
   }
-  const resolveCell = edgeRule === "crossing" ? cellMeanCrossing : cellMean;
-  const edge = edgeSamples > 1 ? edgeCellMask(pupil, n, step, lo, hi) : undefined;
+  // A plan handed in is checked cell by cell against this pupil; one laid out
+  // here is this pupil's own and needs no check.
+  const layout =
+    plan !== undefined
+      ? plan.layout
+      : edgeSamples > 1
+        ? layEdgeCells(pupil, n, pupilSamples, edgeSamples, edgeRule, false).layout
+        : undefined;
+  const edge = layout?.mask;
   let edgeCells = 0;
   // What the cut cells pass, ⟨A²⟩, beyond what their mean field carries, |⟨P⟩|²:
   // the light the edge throws past the frame, folded back below as a floor.
@@ -669,9 +957,16 @@ export function incoherentPsf(pupil: PupilFunction, options: IncoherentPsfOption
   // A cut cell: its mean field goes into the transform, |mean field|² into
   // `energy` and the rest of its power into `edgeDeficit`. Returns whether it
   // passed any.
-  const resolveEdgeCell = (ix: number, iy: number, px: number, py: number): boolean => {
-    resolveCell(pupil, px, py, step, edgeSamples, mean);
-    edgeCells++;
+  const resolveEdgeCell = (ix: number, iy: number, px: number, py: number, a: number): boolean => {
+    // The layout's cells are in this loop's own visiting order.
+    const c = edgeCells++;
+    if (plan !== undefined && !edgeCellFits(pupil, layout!, c, a)) {
+      throw new Error(
+        `incoherentPsf: edgePlan does not fit this pupil — the cut cell at (${px}, ${py}) reads a ` +
+          `different outline or amplitude than the plan was laid out on; lay out one plan per outline`,
+      );
+    }
+    sumEdgeCell(pupil, layout!, c, step, edgeSamples, mean);
     if (mean[2] === 0) return false;
     re[iy * n + ix] = mean[0]!;
     im[iy * n + ix] = mean[1]!;
@@ -696,7 +991,7 @@ export function incoherentPsf(pupil: PupilFunction, options: IncoherentPsfOption
         prevIn = false;
         rowIn[ix] = 0;
         // A cut cell whose centre the edge excludes can still pass light.
-        if (isEdge && resolveEdgeCell(ix, iy, px, py)) {
+        if (isEdge && resolveEdgeCell(ix, iy, px, py, a)) {
           if (firstRow < 0) firstRow = iy;
           lastRow = iy;
         }
@@ -716,7 +1011,7 @@ export function incoherentPsf(pupil: PupilFunction, options: IncoherentPsfOption
       rowIn[ix] = 1;
       rowPhase[ix] = w;
       if (isEdge) {
-        resolveEdgeCell(ix, iy, px, py);
+        resolveEdgeCell(ix, iy, px, py, a);
         if (firstRow < 0) firstRow = iy;
         lastRow = iy;
         transmittingSamples++;

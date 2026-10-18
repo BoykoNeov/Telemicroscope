@@ -38,7 +38,7 @@ whole ladder.
 | [2n](#step-2n--brightfield-on-the-exit-layout-a-direction-at-its-optical-sine) | Brightfield flips by its frame: a direction at its optical sine, a field component at its own cos θ; a clear field is Fresnel's to 1e-7 | `brightfield-exit-layout` |
 | [2o](#step-2o--the-exit-layouts-orientation-the-geometrys-not-the-aims) | Past infinity the aim mirrors a telecentric pupil (531–587 nm, DIN 4×) and the exit layout copied it; signed by convergence, its centroid is the rays' | `exit-orientation` |
 | [2p](#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone) | Single-plane fluorescence flips by its frame: a plane's light is the emitter's collected cone, 2/(1 + cos u) of the paraxial share, to 3e-4 | `throughput-units` |
-| [2q](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout) | Stale cache; pixel peak; staircase rim; counted edge; ringless rim; flip. Keyed; interpolated; resolved; located; slid; restated | `aperture-sine-key`, `band-limited-peak`, `edge-resolved-kernel`, `edge-crossing`, `exit-density-rim` |
+| [2q](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout) | Stale cache; pixel peak; staircase rim; counted edge; ringless rim; flip; re-asked rim. Keyed; interpolated; resolved; located; slid; restated; laid once | `aperture-sine-key`, `band-limited-peak`, `edge-*`, `exit-density-rim` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -4625,8 +4625,8 @@ objective's sine-condition residual (~3e-4 on the DIN 4×).
 
 ## Step 2q — the volume and focus-surface chain on the exit layout
 
-Source: engine fix — `exitApertureSine`'s cache key (`pupil/opd.ts`) names every field of the system the reading depends on; engine change — `bandLimitedPeak` (`math/band-limited-peak.ts`), opt-in to a focus sweep as `FocusSweepOptions.peak`; engine change — `incoherentPsf`'s `edgeSamples` (`imaging/fluorescence.ts`), opt-in, carried by `renderVolume`, `renderFieldVolume`, the spectral volume, `FocusSweepOptions`, `renderFluorescence` and `formEmitterPlane`; engine change — `EdgeRule` `"crossing"` (`imaging/fluorescence.ts`), opt-in beside `edgeSamples` and carried with it; engine fix — `exitDensity`'s derivative slides inward at sixth order, and the exit layout's throughput rides in the density's fit (`ExitDensity.transmitted`, `pupilFunctionFromOpd`'s `apodizationCarriesThroughput`)
-· Tests: § 2q.1 in `packages/core/test/aperture-sine-key.test.ts`; § 2q.2 in `band-limited-peak.test.ts`; § 2q.3 in `edge-resolved-kernel.test.ts`; § 2q.4 in `edge-crossing.test.ts`; § 2q.5 in `exit-density-rim.test.ts`; § 2q.6's pins in `spectral-field-volume.test.ts` (§ 6be.2's reference sphere) and `spectral-volume.test.ts` (§ 6bb.2's `rimShape`), its restatements in the six volume and focus files and `packages/app/test/volume-cap`, `volume-mount`; § 6r.7 restated in `brightfield-spectrum.test.ts`
+Source: engine fix — `exitApertureSine`'s cache key (`pupil/opd.ts`) names every field of the system the reading depends on; engine change — `bandLimitedPeak` (`math/band-limited-peak.ts`), opt-in to a focus sweep as `FocusSweepOptions.peak`; engine change — `incoherentPsf`'s `edgeSamples` (`imaging/fluorescence.ts`), opt-in, carried by `renderVolume`, `renderFieldVolume`, the spectral volume, `FocusSweepOptions`, `renderFluorescence` and `formEmitterPlane`; engine change — `EdgeRule` `"crossing"` (`imaging/fluorescence.ts`), opt-in beside `edgeSamples` and carried with it; engine fix — `exitDensity`'s derivative slides inward at sixth order, and the exit layout's throughput rides in the density's fit (`ExitDensity.transmitted`, `pupilFunctionFromOpd`'s `apodizationCarriesThroughput`); engine change — `edgePlan` (`imaging/fluorescence.ts`), the crossing rule's rim laid out once per outline and checked against every pupil it is handed, carried by `depthKernels` and `renderVolume`
+· Tests: § 2q.1 in `packages/core/test/aperture-sine-key.test.ts`; § 2q.2 in `band-limited-peak.test.ts`; § 2q.3 in `edge-resolved-kernel.test.ts`; § 2q.4 in `edge-crossing.test.ts`; § 2q.5 in `exit-density-rim.test.ts`; § 2q.7 in `edge-plan.test.ts`; § 2q.6's pins in `spectral-field-volume.test.ts` (§ 6be.2's reference sphere) and `spectral-volume.test.ts` (§ 6bb.2's `rimShape`), its restatements in the six volume and focus files and `packages/app/test/volume-cap`, `volume-mount`; § 6r.7 restated in `brightfield-spectrum.test.ts`
 
 Register item 24's last fluorescence chain, step 2 of the user's split: the
 volume and focus-surface pictures (§ 6k, § 6l's app panels, § 6az, § 6bb,
@@ -4664,6 +4664,9 @@ on a cloned prescription, which no earlier read can have touched.
 | **§ 2q.6 — the flip** | the volume and focus chain on the exit layout and the located edge: no pupil light past radius 1 is lost — the formed sum against a fine quadrature holds to 1e-4 from 0 to 6 mm, 0.2–0.3% of it past 1 | ✅ |
 | | the off-axis bundle's displacement is the rays': a reference sphere built from its definition puts the outward, inward and sideways rim rays on the laid rim to 1e-12 | ✅ |
 | | § 6bb.2's colour tilt, 1.56%, is the transmission times the rim brightening, which traced rays and cos³ predict to 1.1e-5 | ✅ |
+| **§ 2q.7 — the rim is laid out once per outline** | a kernel formed through a reused plan is bitwise the kernel formed without one: defocus sweeps at 24–64 samples, a truncating mount's depths on the ideal and the traced pupil, `depthKernels` and `renderVolume` | ✅ |
+| | through the plan the pupil is asked its amplitude on the lattice and the guard's probes only — 1 561 against 78 892 at 32 samples, 18 585 against 345 468 at 128 — and its phase exactly as often; an ellipse keeps πab to 2.5e-9 over a reused sweep | ✅ |
+| | refused on any other outline: a disc's rim moved by 0.5 down to 1e-4 of a cell either way, the apodization dropped, the traced rim at 2 mm on the axial plan; and on another lattice, sub-sampling or rule — the count is not laid out | ✅ |
 
 § 6az.5's NaN was the lever — the DIN 4× with its stop on the front surface —
 reading the default objective's rim after § 6az.2 had read it, so its two
@@ -5074,6 +5077,53 @@ Three claims reversed, two changed in kind (§ 6bd.6's vanishing amplitude half,
 - **§ 6bd.4's profile inside the clip** bends less than the exit density
   resolves; its sign there is not a measurement.
 - **The mosaic chain**, § 6bh on, then the seam chain.
+
+### § 2q.7 — the rim laid out once
+
+Switching the app's volume panels onto the located edge was measured before it
+was asked for, and it cost far more than § 2q.4's 2.3–2.5×: on node, the depth
+panel went from 0.25–0.7 s to 5–7 s (20–25×), the axial response from 0.6 s to
+5.5–7.6 s, the volume picture 6–12×. What it buys is real — the depth panel's
+Maréchal depth for the oil 100×/1.40 into water reads 1.084 µm point-sampled,
+1.161 resolved, against 1.171 at 256 samples; into air 1.255 against 1.119 and a
+converged 1.122 — so the question was where the time goes.
+
+Into the outline. One kernel at 32 samples asks the traced pupil 78 716
+amplitudes and 6 709 phases resolved, against 1 089 and 733 point-sampled: a
+cut cell's bisections ask the outline about 230 times for some 20 phases. And a
+sweep asks the same outline again for every kernel — a defocus is phase only,
+and § 6l.6 pins that a depth's aberration changes no amplitude. Sharing the
+pupil's memo across depths bought back 8%: the cost was the bisection itself.
+
+**Hypothesis.** Lay the rim out once — which cells the outline cuts, and in each
+the points, weights and amplitudes its field is summed at — and a sweep costs
+what its phases cost. **Refuted by** a kernel through a plan that differs from
+the kernel without one in any bit, a plan that saves no amplitude questions, or
+a plan accepted on an outline it was not laid out on.
+
+- **One code path, bitwise.** `incoherentPsf` without a plan lays out its own
+  and sums it the same way — the same products, in the same order — so the plan
+  is not a second implementation. Against the engine before the change, 156
+  pupil × option pairs hashed equal: discs, an obstructed annulus, the traced
+  DIN 4× on and off axis, a mount stack with § 6l.14's cell quadrature, 24–128
+  samples, point-sampled, counted and located.
+- **What a sweep costs.** Per kernel over a ten-step defocus sweep of one
+  memoized pupil, point-sampled against located: 0.41 ms against 12.1 ms for
+  the oil 100×/1.40 into water at 32 samples, 1.20 ms through one plan (2.9×);
+  the 20×/0.10 0.47, 11.4 and 1.29 ms; at 128 samples 11.4, 87.8 and 15.5 ms
+  (1.4×). Laying the plan costs one resolved kernel or less, 8–9 ms at 32.
+- **The guard.** A plan handed to a pupil with another outline would put the rim
+  where it is not and say nothing, so every cut cell is checked against the pupil
+  it is handed: the lattice point's amplitude, the first recorded point's, and
+  the two points either side of one located crossing — bitwise. A disc's rim
+  moved by 1e-4 of a cell is refused, and so is the same outline with its
+  apodization dropped, and the DIN 4×'s traced rim at 2 mm on its axial plan. An
+  outline that moves only where no probe looks is not caught: a plan is one
+  outline's. The count is not laid out — its outline is its whole sub-grid, and
+  a guard that could vouch for it would ask every sub-sample.
+
+What it leaves: the app's three volume panels on the plan, which is the
+next change.
 
 ## Step 3a — the standard observer and thermal sources
 
