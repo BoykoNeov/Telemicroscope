@@ -590,8 +590,15 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     some 600 pinned lines in sixteen files, 28 claims reversed and 14 weakened;
     the seam chain at [§ 2r.3](VALIDATION.md#-2r3--the-field-scans-seam-was-the-aim-layouts-ruler), whose field-scan seam
     was the aim layout's per-tile ruler and is 0 on the exit layout, so its
-    files keep the aim layout and ask for it. What is left is the default itself
-    (Suggested order 20).
+    files keep the aim layout and ask for it. ~~What is left is the default itself
+    (Suggested order 20).~~ **The default flipped at [§ 2s.4](VALIDATION.md#-2s4--the-flip)**:
+    `"exit"` at every conjugate. What still moved with it was the aim layout's
+    own ruler in fourteen files — pinned there by name, as the seam chain was —
+    one mosaic that dropped the layout it was asked for ([§ 2s.1](VALIDATION.md#-2s1--a-mosaics-tiles-take-the-layout-they-are-asked-for)), and A1's
+    table, whose oil rows' cells gap was the aim ruler. **Item 24's residue:**
+    the chains named in § 2s's *What it leaves* stay on the aim layout by name
+    and are not flipped, and the app's stage with them (APP.md D4); item 42 is
+    the exit layout's own.
     Readings that moved INSIDE their tolerances under § 2m were not audited
     (§ 2j's follow-up did that for its own flip); one met while editing was the
     retinal Airy in APP.md, 1.384″ → 1.380″. Found
@@ -1418,6 +1425,9 @@ radial-map nodes · § 6ba differential bleaching.
     The mosaic chain flipped at [§ 2r.2](VALIDATION.md#-2r2--the-flip) (items 39–41 opened; a
     focus sweep lays its rim out once since § 2r.1), and the seam chain's field
     term is the aim layout's ruler, 0 on the exit layout — kept on the aim
-    layout at [§ 2r.3](VALIDATION.md#-2r3--the-field-scans-seam-was-the-aim-layouts-ruler). Next: the default itself, for finite
+    layout at [§ 2r.3](VALIDATION.md#-2r3--the-field-scans-seam-was-the-aim-layouts-ruler). ~~Next: the default itself, for finite
     conjugates — every chain now names its layout, so what still moves is what
-    reads the default.
+    reads the default.~~ **Flipped at [§ 2s.4](VALIDATION.md#-2s4--the-flip)** (item 42 opened, and § 6ag's
+    on-axis spread found to be the slope coordinate's). What is left of the
+    entry is its residue — the chains pinned to the aim layout by name — and
+    item 42.

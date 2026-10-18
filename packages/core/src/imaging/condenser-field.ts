@@ -217,7 +217,7 @@ export interface TracedConeOptions {
   readonly reach?: number;
   /**
    * The layout of the pupil this cone will light — the frame's (§ 2n). Default
-   * by the conjugate, as everywhere. On the exit layout a lattice point is a
+   * `"exit"`, as everywhere (§ 2s). On the exit layout a lattice point is a
    * canonical coordinate, linear in the optical direction sine (see
    * `pupilDirectionMap`), and the weights are the diaphragm's area per unit of it.
    */

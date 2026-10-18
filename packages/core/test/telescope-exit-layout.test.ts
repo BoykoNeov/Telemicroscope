@@ -12,8 +12,9 @@ import { type PhaseScreen } from "../src/wave/seeing";
  *
  * Register item 24 flips the default pupil layout one chain at a time. The
  * telescope chain is every system whose object is at infinity, so the default
- * is now chosen by the conjugate (`defaultPupilLayout`): `"exit"` at infinity,
- * `"aim"` at a finite object until the microscope chains flip.
+ * was chosen by the conjugate (`defaultPupilLayout`): `"exit"` at infinity,
+ * `"aim"` at a finite object until the microscope chains flipped — which they
+ * had by § 2s, where the finite default went to `"exit"` too.
  *
  * The exit layout reads the transform's ruler off the cone the light actually
  * leaves in, where the aim layout read the paraxial one. On a telescope those
@@ -56,19 +57,21 @@ function ruler(system: OpticalSystem): number {
 
 const cosSquaredHalfRim = (focalRatio: number) => 1 / (1 + 1 / (16 * focalRatio * focalRatio));
 
-describe("§ 2m.0 — the default follows the conjugate", () => {
-  it("exit at an infinite object, aim at a finite one — and unasked is exactly the named layout", () => {
+describe("§ 2m.0 — the default follows the conjugate (§ 2s: exit at both)", () => {
+  it("exit at an infinite object and, since § 2s, at a finite one — and unasked is exactly the named layout", () => {
+    // § 2m pinned "aim" at the finite conjugate; § 2s flipped it, and the line
+    // now says so rather than being deleted, so the rung still tests both.
     const telescope = paraboloid(5);
     const finite: OpticalSystem = { ...telescope, conjugate: { kind: "finite", distance: 4000 } };
     expect(defaultPupilLayout(telescope)).toBe("exit");
-    expect(defaultPupilLayout(finite)).toBe("aim");
+    expect(defaultPupilLayout(finite)).toBe("exit");
     const opts = { pupilSamples: 32, padFactor: 4 } as const;
     expect(psf(telescope, 0, NM, opts).intensity).toEqual(psf(telescope, 0, NM, { ...opts, layout: "exit" }).intensity);
-    expect(psf(finite, 0, NM, opts).intensity).toEqual(psf(finite, 0, NM, { ...opts, layout: "aim" }).intensity);
-    // ...and the two layouts are not one, or the two lines above are empty.
-    expect(psf(telescope, 0, NM, { ...opts, layout: "aim" }).pixelScaleMm).not.toBe(
-      psf(telescope, 0, NM, opts).pixelScaleMm,
-    );
+    expect(psf(finite, 0, NM, opts).intensity).toEqual(psf(finite, 0, NM, { ...opts, layout: "exit" }).intensity);
+    // ...and the two layouts are not one at either conjugate, or the lines above are empty.
+    for (const system of [telescope, finite]) {
+      expect(psf(system, 0, NM, { ...opts, layout: "aim" }).pixelScaleMm).not.toBe(psf(system, 0, NM, opts).pixelScaleMm);
+    }
   });
 });
 

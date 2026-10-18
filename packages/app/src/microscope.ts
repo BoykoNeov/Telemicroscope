@@ -242,8 +242,7 @@ export interface FrameRequest {
   readonly size: number;
   /**
    * The pupil layout the frame's ruler and every pupil laid on it are traced in.
-   * Default by the conjugate — still the aim layout at a finite object, until
-   * each chain flips (register item 24); brightfield asks for `"exit"` (§ 2n).
+   * Default `"exit"` since § 2s; every panel that forms an image names it anyway.
    */
   readonly layout?: PupilLayout;
 }
@@ -383,10 +382,13 @@ export function describeSystem(
   const started = performance.now();
   try {
     const system = build();
+    // The frame the image panels form on (§ 2n names it there), so the table
+    // describes the frame they draw — named rather than defaulted (§ 2s).
     const frame = objectFieldFrame(system, {
       size: request.size,
       pupilSamples: request.pupilSamples,
       wavelengthNm: LAMBDA_NM,
+      layout: "exit",
     });
     const tracedNA = objectNumericalAperture(system, LAMBDA_NM);
     const drift = scaleDrift(system, frame);

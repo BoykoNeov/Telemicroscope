@@ -15,6 +15,7 @@ import {
   describeEntry,
   describeSystem,
   MICROSCOPE_CATALOG,
+  type MicroscopeKind,
 } from "../src/microscope";
 import { LAMBDA_NM } from "../src/microscope";
 import { renderBrightfieldScene } from "../src/brightfield";
@@ -422,5 +423,47 @@ describe("D8 — the builder draws the lens it solved, and it is the lens the nu
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect("layout" in result).toBe(false);
+  });
+});
+
+describe("§ 2s.4 — A1's cells column on the exit layout: the immersion gap was the ruler", () => {
+  /**
+   * A1's `cells` column is span ÷ λ/(2·NA), § 6h's closed form checked on
+   * screen, and APP.md recorded it landing on `pupilSamples` within a percent
+   * for the dry rows and ~2.5× under it for the two oil ones — a gap it put on
+   * λ/(2·NA) being quoted at the vacuum wavelength, "a physics question with its
+   * own rung". The table now describes the exit layout's frame (the frame the
+   * image panels form on), and on it the oil rows land on 32 too. The gap was
+   * the aim layout's paraxial ruler, 1.759× off on the oil 100×/1.25 (§ 2i) —
+   * the readings beside each line are that layout's.
+   */
+  const REQUEST = { pupilSamples: 32, size: 64 };
+  const cells = (kind: MicroscopeKind): number => {
+    const r = describeEntry({ kind, ...REQUEST });
+    if (!r.ok) throw new Error(`${kind} refused`);
+    return r.readout.resolutionCells;
+  };
+
+  it("the oil rows land on pupilSamples, where the aim layout read 18.29 and 12.61", () => {
+    expect(Math.abs(cells("oil-100x-125") / 32 - 1)).toBeLessThan(1e-2);
+    expect(Math.abs(cells("oil-100x-140") / 32 - 1)).toBeLessThan(1e-2);
+    expect(cells("oil-100x-125")).toBeCloseTo(32.171, 2);
+    expect(cells("oil-100x-140")).toBeCloseTo(32.220, 2);
+  });
+
+  it("the NA 0.10 rows still agree, at 94.2 µm rather than one identical 93.54", () => {
+    // On the aim layout the three infinity rows covered 93.539 µm bitwise: the
+    // paraxial ruler is set by the label NA alone. Each lens now reads its own
+    // traced aperture sine (§ 2r.2's "each lens reads its own ruler"), so they
+    // agree to 3e-4 and not to the bit, and the DIN rim lens sits 0.1% under.
+    const span = (kind: MicroscopeKind): number => {
+      const r = describeEntry({ kind, ...REQUEST });
+      if (!r.ok) throw new Error(`${kind} refused`);
+      return r.readout.objectSpanUm;
+    };
+    const rows = (["inf-4x-010", "inf-10x-010", "inf-20x-010"] as const).map(span);
+    expect(rows[0]).toBeCloseTo(94.213, 2);
+    for (const s of rows) expect(Math.abs(s / rows[0]! - 1)).toBeLessThan(3e-4);
+    expect(span("din-4x-010")).toBeCloseTo(94.123, 2);
   });
 });

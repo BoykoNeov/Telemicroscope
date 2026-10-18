@@ -65,7 +65,7 @@ import { besselJ } from "../src/math/bessel";
  */
 
 const L = LINE_D;
-/** The layout under test. The engine's default is still `"aim"` (register item 24). */
+/** The layout under test, named — the engine's default too since § 2s. */
 const EXIT = { layout: "exit" } as const;
 
 const oil = () =>

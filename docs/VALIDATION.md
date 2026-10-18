@@ -40,7 +40,7 @@ whole ladder.
 | [2p](#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone) | Single-plane fluorescence flips by its frame: a plane's light is the emitter's collected cone, 2/(1 + cos u) of the paraxial share, to 3e-4 | `throughput-units` |
 | [2q](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout) | Stale cache; pixel peak; staircase rim; counted edge; ringless rim; flip; re-asked rim. Keyed; interpolated; resolved; located; slid; restated; laid once | `aperture-sine-key`, `band-limited-peak`, `edge-*`, `exit-density-rim` |
 | [2r](#step-2r--the-mosaic-chain-on-the-exit-layout) | Sweep rim per stage; mosaic chain flipped; field seam. Laid once; 28 reversed; the aim ruler's, 0 on exit | `sweep-plan`, `field-seam-zero` |
-| [2s](#step-2s--the-default-itself-for-finite-conjugates) | Mosaic drops its layout; condenser spread; exit fit's rim. Forwarded; the slope's 1/N⁴, not the condenser; four samples dropped (item 42) | `mosaic-layout`, `condenser-source`, `object-field` |
+| [2s](#step-2s--the-default-itself-for-finite-conjugates) | Mosaic drops its layout; condenser spread; exit fit's rim; the flip. Forwarded; the slope's 1/N⁴; item 42; exit everywhere, oil cells 32 | `mosaic-layout`, `condenser-source`, `object-field`, `builder` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -5392,14 +5392,15 @@ layout's, the same field to 0.8%.
   (mod 2) reads ≥ 0.073% high on the located rim, untraced.
 - **The layout's and the rim's shares** of each moved reading, split only on the
   three readings § 2r.2 names.
-- **The default itself.** Every chain now names its layout; flipping
+- ~~**The default itself.** Every chain now names its layout; flipping
   `defaultPupilLayout` for finite conjugates is the run that finds what still
-  reads it.
+  reads it.~~ Flipped at [§ 2s.4](#-2s4--the-flip); the run found a mosaic that
+  dropped the layout it was asked for (§ 2s.1).
 
 ## Step 2s — the default itself, for finite conjugates
 
 Source: engine change — `mosaicLayout`, `mosaicTileAt` and the spectral mosaic forward the `layout` they are asked for to their tile frames (`imaging/mosaic.ts`, `mosaic-spectrum.ts`)
-· Tests: § 2s.1 in `packages/core/test/mosaic-layout.test.ts`; § 2s.2 in `condenser-source.test.ts`; § 2s.3 in `object-field.test.ts`; the pins in the fourteen files named below and `packages/app/src/stage.ts`
+· Tests: § 2s.1 in `packages/core/test/mosaic-layout.test.ts`; § 2s.2 in `condenser-source.test.ts`; § 2s.3 in `object-field.test.ts`; § 2s.4 below; the pins in the fourteen files named below and `packages/app/src/stage.ts`
 
 Register item 24's last entry: every chain now names its layout (§ 2r.3), so
 flipping `defaultPupilLayout` at a finite conjugate is the run that finds what
@@ -5512,6 +5513,47 @@ the law is back to ×4 inside § 6m.4's own bounds on both members. Register ite
 What is left weakened: coma 1.0020 and astigmatism 1.977 on the rim member (aim
 1.00002 and 2.000), not split between the coordinate and the dropped rim; the
 axis's odd-term margin 161× and 488× (aim 183× and 886×), still two orders.
+
+### § 2s.4 — the flip
+
+Source: engine change — `defaultPupilLayout` returns `"exit"` at a finite conjugate too (`wave/psf.ts`); the app's catalogue table names it (`packages/app/src/microscope.ts`)
+· Tests: `telescope-exit-layout.test.ts` (§ 2m.0, both conjugates), `optimize.test.ts` (§ 1.8.8), `packages/app/test/builder.test.ts` (§ 2s.4)
+
+With § 2s.1–§ 2s.3 in, the trial flip moved four things and nothing else: § 2m.0,
+which asserts the default; § 1.8.8, a concentric mirror at a 400 mm conjugate;
+and, unasserted anywhere, A1's catalogue table and D8's readout, which built
+their frame unasked. **Hypothesis:** those are the default's only readers.
+**Refuted by** any other reading that moves under the flip on a full run.
+
+- **§ 2m.0** now pins `"exit"` at both conjugates, and that the two layouts'
+  pixels differ at both, so the "unasked is the named layout" lines are not
+  empty.
+- **§ 1.8.8** restated: the reachable ceiling 2.1698e-2 above the closed form
+  (aim 2.1797e-2), the impostor's Strehl 7.475e-3 (7.507e-3). The finding
+  survives the layout: the impostor still matches the perfect design inside
+  3e-4 at ν = 0.5, and the single-frequency run is still fooled.
+- **A1's table** asks for `"exit"` by name — the frame the image panels form
+  on — and its `cells` column, span ÷ λ/(2·NA), lands on `pupilSamples` on the
+  oil rows too: 32.17 and 32.22 at 32, where the aim layout read 18.29 and
+  12.61. APP.md had put that ~2.5× gap on λ/(2·NA) being quoted at the vacuum
+  wavelength and left it as "a physics question with its own rung"; it was the
+  aim layout's paraxial ruler, 1.759× off on the oil 100×/1.25 (§ 2i). **That
+  explanation is reversed.** The three NA 0.10 rows agree at 94.21–94.24 µm, to
+  3e-4 rather than bitwise — each lens now reads its own traced aperture sine.
+
+The default is now `"exit"` everywhere. `"aim"` is what a reading asks for by
+name when it is that layout's own ruler (§ 2r.3 and the table above).
+
+### What it leaves
+
+- **The chains that stay on the aim layout by name** are not flipped, and are
+  item 24's residue rather than its closure: § 6h, § 6m, § 6n, § 6o.6–§ 6o.8,
+  § 6s.2, § 6t.3, § 6ag, § 6x.1, § 6ae.7, § 6ak.5, § 6an, § 6ap, § 6aq.8 and the
+  seam chain (§ 2r.3). Each pins its reason; each could be re-derived on the
+  exit layout's ruler, where several of its readings are 0 or ∞.
+- **The exit layout's fit drops the off-axis rim** (item 42, § 2s.3).
+- **The app's stage** stays on the aim layout until the located rim is costed
+  for it (APP.md D4).
 
 ## Step 3a — the standard observer and thermal sources
 

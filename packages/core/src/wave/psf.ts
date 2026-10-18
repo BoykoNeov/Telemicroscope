@@ -921,27 +921,26 @@ export interface SystemPsfOptions extends PsfOptions {
  * and reads the ruler off the paraxial exit pupil, which is the same thing only
  * where the aim maps linearly onto the exit cone.
  *
- * **The default follows the conjugate** (`defaultPupilLayout`). At an infinite
- * object it is `"exit"` since § 2m, which flipped every chain imaging from
- * infinity — telescopes, the optimiser's MTF, the telecentric tail — and pinned
- * the ruler there to closed forms (a paraboloid's cos²(u′/2), a classical
- * Cassegrain's the same at its system focal ratio). At a finite object it is
- * still `"aim"`, which is known to be wrong off the paraxial regime — 1.759× in
- * the ruler on § 6e's oil 100×/1.25, and 0.2–1.2% on the DIN dry objectives the
- * mosaic chain is built on — for one reason: every reading pinned on a traced
- * microscope pupil moves with it, and those chains flip one numbered step at a
- * time (register item 24). No finite chain coincides with a property of the
- * system, so they flip by their FRAME (`ObjectFieldFrame.layout`): brightfield
- * did at § 2n. A caller that needs a high-NA pupil right asks for `"exit"`.
+ * **The default is `"exit"`** (`defaultPupilLayout`). At an infinite object
+ * since § 2m, which flipped every chain imaging from infinity — telescopes, the
+ * optimiser's MTF, the telecentric tail — and pinned the ruler there to closed
+ * forms (a paraboloid's cos²(u′/2), a classical Cassegrain's the same at its
+ * system focal ratio). At a finite object since § 2s, after the microscope
+ * chains flipped one numbered step at a time (register item 24) by their FRAME
+ * (`ObjectFieldFrame.layout`). `"aim"` is wrong off the paraxial regime — 1.759×
+ * in the ruler on § 6e's oil 100×/1.25, 0.2–1.2% on the DIN dry objectives — and
+ * is kept for the readings that are its own ruler: those name it (§ 2r.3, § 2s).
  */
 export type PupilLayout = "aim" | "exit";
 
 /**
- * The layout a caller gets unasked: `"exit"` at an infinite conjugate (§ 2m),
- * `"aim"` at a finite one until the microscope chains flip (register item 24).
+ * The layout a caller gets unasked: `"exit"`, at an infinite conjugate since
+ * § 2m and at a finite one since § 2s. Still a function of the system, so the
+ * call sites that ask it keep one place to change if a conjugate ever needs
+ * its own answer again.
  */
-export function defaultPupilLayout(system: OpticalSystem): PupilLayout {
-  return system.conjugate.kind === "infinite" ? "exit" : "aim";
+export function defaultPupilLayout(_system: OpticalSystem): PupilLayout {
+  return "exit";
 }
 
 /**
@@ -979,7 +978,7 @@ export interface LaidPupilOptions {
 
 /**
  * Lay a traced map out for the transform, in the layout asked for (default
- * by the conjugate, `defaultPupilLayout` — see `PupilLayout` for why).
+ * `"exit"`, `defaultPupilLayout` — see `PupilLayout` for why).
  */
 export function laidPupil(
   system: OpticalSystem,

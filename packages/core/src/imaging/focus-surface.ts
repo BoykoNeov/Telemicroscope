@@ -107,8 +107,8 @@ export interface FocusSweepOptions {
   readonly radialMapNodes?: number;
   /**
    * The layout every swept frame is traced in — `ObjectFieldFrame.layout`.
-   * Default by the conjugate (`defaultPupilLayout`); the volume chain asks for
-   * `"exit"` (§ 2q).
+   * Default `"exit"` (`defaultPupilLayout`, § 2s); the volume chain asks for it
+   * by name (§ 2q).
    */
   readonly layout?: PupilLayout;
   /**

@@ -291,7 +291,7 @@ export interface FieldPupilOptions {
   readonly obstruction?: number;
   /** Spider vanes, passed through to the pupil. */
   readonly spider?: SpiderSpec;
-  /** `psf()`'s `PupilLayout`; the frame's ruler follows it. Default by the conjugate (`defaultPupilLayout`). */
+  /** `psf()`'s `PupilLayout`; the frame's ruler follows it. Default `"exit"` (`defaultPupilLayout`, § 2s). */
   readonly layout?: PupilLayout;
   /**
    * What fills the pupil on the exit layout — `PupilSource` (§ 2j). Default

@@ -379,7 +379,10 @@ made visible rather than hidden), object and image pixel scale, λ/(2·NA),
 **It is a table rather than a selector, and that was the one departure from this
 doc.** A selector shows one row at a time and the finding worth showing is a
 *comparison*: three rows at NA 0.10 covering an identical 93.5 µm while their
-image pixels scale exactly with M. That is constraint 1 as an experiment the
+image pixels scale exactly with M. *(Since [§ 2s](VALIDATION.md#step-2s--the-default-itself-for-finite-conjugates) the table describes the exit
+layout's frame — the one the image panels form on — and each lens reads its own
+traced aperture sine: the three agree at 94.21–94.24 µm, to 3e-4 rather than to
+the bit, and their pixels still scale with M to 5e-4.)* That is constraint 1 as an experiment the
 reader runs — move the grid control and watch the crop *not* change — rather than
 as a paragraph. The whole catalogue is ~550 ms, which buys it.
 
@@ -422,8 +425,14 @@ the page. It is shown with the gap named instead: λ/(2·NA) is quoted at the
 **vacuum** wavelength and lets the medium in through NA alone, while the frame's
 extent carries the wavelength in the medium as well. Constraint 1 above already
 declines to re-derive the immersion span and quotes it as measured; the panel
-says the same thing where a reader can see it. Closing the gap is a physics
-question with its own rung, not a UI one.
+says the same thing where a reader can see it. ~~Closing the gap is a physics
+question with its own rung, not a UI one.~~ **Closed at [§ 2s](VALIDATION.md#step-2s--the-default-itself-for-finite-conjugates), and it was
+not the medium:** on the exit layout's frame the oil rows read 32.17 and 32.22
+cells at `pupilSamples` 32, where the aim layout read 18.29 and 12.61. The gap
+was the aim layout's paraxial ruler, 1.759× off on the oil 100×/1.25 (§ 2i) —
+the vacuum-wavelength explanation above was a reason that fitted the number, not
+the cause. The dry rows read 29.7–32.1 (the 4×/0.20, at 12 waves rms, is the
+29.7). Pinned in `test/builder.test.ts`.
 
 **Why first:** A2–A6 all consume `buildFrame`, and it is where "the frame is
 93 µm wide, not 5 mm" gets said once instead of five times.

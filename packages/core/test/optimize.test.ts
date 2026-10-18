@@ -2815,7 +2815,9 @@ describe("DLS § 1.8.8 — one frequency is not a merit, and the impostor proves
   it("reaches the engine's own ceiling EXACTLY, from inside the basin", () => {
     const ceiling = mtfRead(concentricMirror(-CONJUGATE, CONJUGATE), 0.5);
     // The reachable target, not the closed form — 2.2% above it at this grid.
-    expect(ceiling / diffractionLimitedMtf(0.5) - 1).toBeCloseTo(2.1797e-2, 6);
+    // 2.1797e-2 on the aim layout; on the exit layout, this finite-conjugate
+    // mirror's default since § 2s, the reachable ceiling sits 2.1698e-2 above.
+    expect(ceiling / diffractionLimitedMtf(0.5) - 1).toBeCloseTo(2.1698e-2, 6);
 
     const r = optimizeSystem(
       concentricMirror(-CONJUGATE + 0.05, CONJUGATE),
@@ -2851,7 +2853,7 @@ describe("DLS § 1.8.8 — one frequency is not a merit, and the impostor proves
 
     // It is genuinely ruined, by every other readout the engine has.
     const image = psf(impostor, 0, LINE_D, { pupilSamples: MTF_SAMPLES, padFactor: 4 });
-    expect(image.strehl).toBeCloseTo(7.507e-3, 5);
+    expect(image.strehl).toBeCloseTo(7.475e-3, 5); // 7.507e-3 on the aim layout (§ 2s)
     expect(fitRms(wfFit(impostor, pupilGrid(21), 28))).toBeCloseTo(2.3084, 3);
 
     // …and indistinguishable at ν = 0.5.
