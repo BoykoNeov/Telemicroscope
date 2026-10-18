@@ -5,14 +5,17 @@ import {
   depthStrehl,
   MARECHAL_FLOOR,
   memoizedPupil,
+  mountSpecFor,
   renderVolumeScene,
   resolveMount,
   type MountChoice,
   type VolumeRequest,
 } from "../src/volume";
 import { entryOf, buildFrame, LAMBDA_NM } from "../src/microscope";
-import { fieldPupilAt } from "@telemicroscope/core/imaging";
+import { fieldPupilAt, mountWavefrontWaves } from "@telemicroscope/core/imaging";
 import { getMedium } from "@telemicroscope/core/materials";
+import { mountDepthTolerance } from "@telemicroscope/core/designs";
+import { objectNumericalAperture } from "@telemicroscope/core/pupil";
 
 /**
  * D10 — A5's z-slider through a real mount, as invariants rather than as prose.
@@ -311,8 +314,8 @@ describe("D10 — the two questions, and what each one keeps", () => {
   it("separates the mount's asymmetry from the objective's own residual defocus", () => {
     // A1 traces to the system's own image plane, so a row carries a residual
     // defocus that is already an asymmetry about w₂₀ = 0 with no mount in it —
-    // the 100×/1.25 reads 0.35× at zero depth (0.47× on the aim layout, before
-    // § 2q.6 laid the panel's pupils where their rays went). Quoting the mounted number alone
+    // the 100×/1.25 reads 0.389× at zero depth (0.35× point-sampled, 0.47× on the
+    // aim layout before § 2q.6 laid the panel's pupils where their rays went). Quoting the mounted number alone
     // would hand that share to the mount. The ideal-pupil control is what says
     // which is which, and a matched mount makes it exactly 1.
     const flat = axialResponse({ spec: entryOf("oil-100x-125").spec, mount: "matched", depthUm: 10 });
@@ -329,17 +332,22 @@ describe("D10 — the two questions, and what each one keeps", () => {
 
     const wet = axialResponse({ spec: entryOf("oil-100x-125").spec, mount: "WATER", depthUm: 10 });
     if (!wet.ok) throw new Error(wet.error);
-    // The mount's own share and the mounted objective's differ by 29%, which is
+    // The mount's own share and the mounted objective's differ by 32%, which is
     // the whole reason the pair is printed rather than the single number. Their
     // ORDER is not a law: on the aim layout the mount's own was the larger
     // (16.88× against 13.17×) and this rung said the objective's residual works
     // the other way; laid where its rays went (§ 2q.6) the mounted objective
-    // reads 21.74× against the same 16.88× — the ideal pupil has no layout to
+    // read 21.74× against the same 16.88× — the ideal pupil has no layout to
     // move — while its residual still sits below 1. A ±1-wave ratio does not
     // add its two causes, so a residual under 1 does not pull the mounted
-    // figure under the mount's.
-    expect(wet.readout.sweep.asymmetryIdeal!).toBeCloseTo(16.878339, 5);
-    expect(wet.readout.sweep.asymmetry!).toBeCloseTo(21.738545, 5);
+    // figure under the mount's. On the resolved rim (§ 2q.7) the pair reads
+    // 22.65× against 17.13×. These are LATTICE readings: 10 µm of water steps the
+    // 32-bin pupil 0.9–1.3 waves per sample across ±2 waves of defocus, over the
+    // panel's half-wave guard, and the asymmetry line carries no guard of its own
+    // (register item 38) — at 20 µm under the 1.40 the ideal pupil's ratio reads
+    // 13.2 resolved and 3.5 point-sampled at 32 bins, and still 7.7 and 8.0 at 256.
+    expect(wet.readout.sweep.asymmetryIdeal!).toBeCloseTo(17.126511, 5);
+    expect(wet.readout.sweep.asymmetry!).toBeCloseTo(22.649392, 5);
     expect(wet.readout.sweep.asymmetry! / wet.readout.sweep.asymmetryIdeal! - 1).toBeGreaterThan(0.2);
     expect(wet.readout.sweep.asymmetryBare!).toBeLessThan(1);
     // Best focus moves POSITIVE: water is rarer than D263, so the depth
@@ -350,17 +358,77 @@ describe("D10 — the two questions, and what each one keeps", () => {
 });
 
 describe("D10 — the depth budget, bisected", () => {
-  it("floors the over-report at (λ/14)/σ(0.8) = 0.9501 where third-order theory is right", () => {
-    // The number is arithmetic, not a fit: Maréchal's λ/14 is an APPROXIMATION to
-    // Strehl 0.8 — exp(−(2πσ)²) at σ = λ/14 is 0.8177 — so a bisection at 0.8 runs
-    // 1.0525× deeper than the coefficient allows at EVERY aperture, whatever the
-    // wavefront does. A dry 0.10 into water has no third-order departure left to
-    // add to it, so the ratio lands on the floor and the whole bisection is
-    // checked against a closed form rather than against itself.
+  it("reads a dry 0.10's over-report off the exact wavefront, 0.9688, above Maréchal's 0.9501", () => {
+    // Three factors, each a number rather than a fit. Maréchal's λ/14 is an
+    // APPROXIMATION to Strehl 0.8 — exp(−(2πσ)²) at σ = λ/14 is 0.8177 — which
+    // floors the ratio at (λ/14)/σ(0.8) = 0.9501. Exactly, a pure ρ⁴ crosses 0.8
+    // at 0.95751 of Maréchal's coefficient (a radial integral, no lattice). And
+    // the stack's exact wavefront is not a pure ρ⁴ even at 0.10 into water: its
+    // ρ⁶ term carries 1.19% of the balanced rms, which lands it at 0.96883.
+    //
+    // The reference is that last number, recomputed here grid-free — the disc's
+    // Strehl as a radial integral of the engine's own wavefront, best defocus,
+    // bisected at 0.8 — so the panel's lattice bisection is checked against
+    // something it does not share. Until § 2q.7 this rung read the floor, 0.9501,
+    // to two places: the point-sampled rim read 0.9516 at 32 bins and 0.9666 at
+    // 128, and at 32 its staircase error happened to cancel the ρ⁶ term.
     expect(MARECHAL_FLOOR).toBeCloseTo(0.9501, 4);
-    const result = depthStrehl({ spec: entryOf("inf-20x-010").spec, mount: "WATER" });
+    const spec = entryOf("inf-20x-010").spec;
+    const { system } = buildFrame({ spec, pupilSamples: 32, size: 64 });
+    const na = objectNumericalAperture(system, LAMBDA_NM);
+    const mount = resolveMount(system, "WATER");
+    const mountSpec = mountSpecFor(mount, na, 0);
+    const quoted = mountDepthTolerance(na, LAMBDA_NM, mount.index, mount.immersionIndex).marechalMm;
+    const N = 1000;
+    const strehl = (depthMm: number, w20: number) => {
+      let re = 0;
+      let im = 0;
+      for (let i = 0; i < N; i++) {
+        const r = (i + 0.5) / N;
+        const phase = 2 * Math.PI * (mountWavefrontWaves(mountSpec, depthMm, r) + w20 * r * r);
+        re += Math.cos(phase) * r;
+        im += Math.sin(phase) * r;
+      }
+      return (2 * re / N) ** 2 + (2 * im / N) ** 2;
+    };
+    const golden = (Math.sqrt(5) - 1) / 2;
+    const best = (depthMm: number) => {
+      let lo = -3;
+      let hi = 3;
+      let c = hi - golden * (hi - lo);
+      let d = lo + golden * (hi - lo);
+      let fc = strehl(depthMm, c);
+      let fd = strehl(depthMm, d);
+      for (let i = 0; i < 30; i++) {
+        if (fc > fd) {
+          hi = d;
+          d = c;
+          fd = fc;
+          c = hi - golden * (hi - lo);
+          fc = strehl(depthMm, c);
+        } else {
+          lo = c;
+          c = d;
+          fc = fd;
+          d = lo + golden * (hi - lo);
+          fd = strehl(depthMm, d);
+        }
+      }
+      return Math.max(fc, fd);
+    };
+    let lo = 0;
+    let hi = 2 * quoted;
+    for (let i = 0; i < 30; i++) {
+      const mid = 0.5 * (lo + hi);
+      if (best(mid) >= 0.8) lo = mid;
+      else hi = mid;
+    }
+    const gridFree = quoted / (0.5 * (lo + hi));
+    expect(gridFree).toBeCloseTo(0.96883, 4);
+    const result = depthStrehl({ spec, mount: "WATER" });
     if (!result.ok) throw new Error(result.error);
-    expect(result.readout.overReport!).toBeCloseTo(MARECHAL_FLOOR, 2);
+    // Measured 0.96901: the panel's eight golden steps cost it 1e-4 of Strehl.
+    expect(Math.abs(result.readout.overReport! - gridFree)).toBeLessThan(5e-4);
   });
 
   it("refuses to quote a budget where the engine does, and says which refusal", () => {
@@ -434,10 +502,20 @@ describe("§ 6l.14 — the panel's picture carries the cell quadrature", () => {
     expect(memoizedPupil({ amplitude: () => 1, phaseWaves: () => 0 }).cellQuadrature).toBeUndefined();
   });
 
-  it("corrects rim cells on a truncating mount below the slip, and none on a matched one", () => {
-    const air = renderVolumeScene({ ...base, mount: "AIR", depthUm: 2 });
-    const matched = renderVolumeScene({ ...base, mount: "matched", depthUm: 2 });
-    if (!air.ok || !matched.ok) throw new Error("a scene refused");
+  it("corrects the cusp inside the rim on a truncating mount below the slip, and none on a matched one", () => {
+    // Since § 2q.7 the cells the wall cuts are the resolved rim's, which samples
+    // them finer than the 16² quadrature did: at 2 µm of air every one of the 60
+    // cells § 6l.14 corrected lies in the rim's mask, so none is left to it. From
+    // 5 µm the cusp outruns the lattice inside the mask too, and those cells are
+    // still averaged — 28 here. On four mount-and-depth cases at three focus settings, resolved
+    // kernels sit closer than point+quadrature ones to a 128-bin pupil either way
+    // it is sampled.
+    const shallow = renderVolumeScene({ ...base, mount: "AIR", depthUm: 2 });
+    const air = renderVolumeScene({ ...base, mount: "AIR", depthUm: 5 });
+    const matched = renderVolumeScene({ ...base, mount: "matched", depthUm: 5 });
+    if (!shallow.ok || !air.ok || !matched.ok) throw new Error("a scene refused");
+    expect(shallow.readout.quadratureCells).toBe(0);
+    expect(shallow.readout.edgeCells).toBeGreaterThan(0);
     expect(air.readout.quadratureCells).toBeGreaterThan(0);
     expect(matched.readout.quadratureCells).toBe(0);
     // § 6l.6 survives it: a shared factor per stack moves no slice's flux.

@@ -646,8 +646,10 @@ function DepthPlot({ request }: { request: DepthRequest }) {
             Maréchal&rsquo;s <em>approximation</em> to Strehl 0.8 and actually delivers 0.8177. The
             wavefront is linear in depth, so a bisection at 0.8 runs{" "}
             {(1 / d.marechalFloor).toFixed(4)}× deeper than the coefficient allows at{" "}
-            <em>every</em> aperture. Everything above that floor is the exact wavefront outrunning
-            its own leading term.
+            <em>every</em> aperture. Even a pure ρ⁴ sits a little above it — exactly it crosses 0.8
+            at 0.9575 of the coefficient, the exponential being an approximation too — and the
+            rest is the exact wavefront outrunning its own leading term: a dry 0.10 into water
+            reads 0.969.
             <br />
             {d.elapsedMs.toFixed(0)} ms · does not recompute when the depth slider moves
           </>
@@ -1034,7 +1036,7 @@ export function VolumePanel() {
                 label="grid step"
                 value={`${readout.maxGridPhaseStepWaves.toFixed(4)} waves / sample`}
                 level={thresholdLevel(readout.maxGridPhaseStepWaves, GRID_STEP_LIMIT)}
-                detail={`worst plane is ${worstPlaneWaves.toFixed(2)} waves out; its kernel puts ${(readout.worstSliceOutsideFraction * 100).toFixed(1)}% of its light outside the frame's inscribed circle${readout.quadratureCells > 0 ? `; ${readout.quadratureCells} cells at the mount's rim are averaged over the cell rather than point-sampled (§ 6l.14)` : ""}`}
+                detail={`worst plane is ${worstPlaneWaves.toFixed(2)} waves out; its kernel puts ${(readout.worstSliceOutsideFraction * 100).toFixed(1)}% of its light outside the frame's inscribed circle, the light its rim throws past the frame counted in as an even floor; ${readout.edgeCells} rim cells are resolved rather than point-sampled (§ 2q.7)${readout.quadratureCells > 0 ? `, and ${readout.quadratureCells} inside the rim, where the mount's term outruns the lattice, are averaged over the cell (§ 6l.14)` : ""}`}
               />
               σ {readout.axisRmsWaves.toFixed(5)} waves on axis, as traced (λ/14 ={" "}
               {MARECHAL_WAVES.toFixed(5)}) · {readout.elapsedMs.toFixed(0)} ms

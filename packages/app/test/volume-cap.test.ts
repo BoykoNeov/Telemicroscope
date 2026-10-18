@@ -102,13 +102,18 @@ describe("§ 6k.9 in the app — the picture is on the exact cap", () => {
     // says not to. The difference between the two pictures GROWS as the pupil
     // refines, so the coarse grid is under-reporting the very thing the change is
     // for, and a warning that says "refine the pupil" is the true statement.
+    // On the resolved rim (§ 2q.7) it grows less evenly: 0.3019, 0.3371, 0.3359,
+    // 0.3427, 0.3467 at 32, 48, 64, 96 and 128 bins (point-sampled 0.2950, 0.3287,
+    // 0.3341, 0.3392, 0.3457), so 48 and 64 tie within the bead field's own last
+    // digits and only 32 is pinned below both — weakened from a monotone claim.
     const gaps = [32, 48, 64].map((bins) => {
       const exact = readout(base(OIL, bins, "matched"));
       const para = paraboloidRender(OIL, bins, "matched");
       return gapOverPeak(exact.intensity, para.intensity, para.peak);
     });
     expect(gaps[0]!).toBeLessThan(gaps[1]!);
-    expect(gaps[1]!).toBeLessThanOrEqual(gaps[2]!);
+    expect(gaps[0]!).toBeLessThan(gaps[2]!);
+    expect(Math.abs(gaps[1]! / gaps[2]! - 1)).toBeLessThan(0.01);
     // And the under-report is worth naming: a tenth of the answer, at the setting
     // a reader opens the panel on.
     expect(gaps[0]! / gaps[2]!).toBeLessThan(0.95);

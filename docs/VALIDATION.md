@@ -4626,7 +4626,7 @@ objective's sine-condition residual (~3e-4 on the DIN 4×).
 ## Step 2q — the volume and focus-surface chain on the exit layout
 
 Source: engine fix — `exitApertureSine`'s cache key (`pupil/opd.ts`) names every field of the system the reading depends on; engine change — `bandLimitedPeak` (`math/band-limited-peak.ts`), opt-in to a focus sweep as `FocusSweepOptions.peak`; engine change — `incoherentPsf`'s `edgeSamples` (`imaging/fluorescence.ts`), opt-in, carried by `renderVolume`, `renderFieldVolume`, the spectral volume, `FocusSweepOptions`, `renderFluorescence` and `formEmitterPlane`; engine change — `EdgeRule` `"crossing"` (`imaging/fluorescence.ts`), opt-in beside `edgeSamples` and carried with it; engine fix — `exitDensity`'s derivative slides inward at sixth order, and the exit layout's throughput rides in the density's fit (`ExitDensity.transmitted`, `pupilFunctionFromOpd`'s `apodizationCarriesThroughput`); engine change — `edgePlan` (`imaging/fluorescence.ts`), the crossing rule's rim laid out once per outline and checked against every pupil it is handed, carried by `depthKernels` and `renderVolume`
-· Tests: § 2q.1 in `packages/core/test/aperture-sine-key.test.ts`; § 2q.2 in `band-limited-peak.test.ts`; § 2q.3 in `edge-resolved-kernel.test.ts`; § 2q.4 in `edge-crossing.test.ts`; § 2q.5 in `exit-density-rim.test.ts`; § 2q.7 in `edge-plan.test.ts`; § 2q.6's pins in `spectral-field-volume.test.ts` (§ 6be.2's reference sphere) and `spectral-volume.test.ts` (§ 6bb.2's `rimShape`), its restatements in the six volume and focus files and `packages/app/test/volume-cap`, `volume-mount`; § 6r.7 restated in `brightfield-spectrum.test.ts`
+· Tests: § 2q.1 in `packages/core/test/aperture-sine-key.test.ts`; § 2q.2 in `band-limited-peak.test.ts`; § 2q.3 in `edge-resolved-kernel.test.ts`; § 2q.4 in `edge-crossing.test.ts`; § 2q.5 in `exit-density-rim.test.ts`; § 2q.7 in `edge-plan.test.ts` and, for the app panels, `packages/app/test/volume-mount`, `volume-cap`; § 2q.6's pins in `spectral-field-volume.test.ts` (§ 6be.2's reference sphere) and `spectral-volume.test.ts` (§ 6bb.2's `rimShape`), its restatements in the six volume and focus files and `packages/app/test/volume-cap`, `volume-mount`; § 6r.7 restated in `brightfield-spectrum.test.ts`
 
 Register item 24's last fluorescence chain, step 2 of the user's split: the
 volume and focus-surface pictures (§ 6k, § 6l's app panels, § 6az, § 6bb,
@@ -5069,8 +5069,9 @@ Three claims reversed, two changed in kind (§ 6bd.6's vanishing amplitude half,
 
 ### What it leaves
 
-- **The app's volume panels on the point-sampled rim.** `edgeSamples` is not
-  asked for there yet; its cost per panel is measured first.
+- ~~**The app's volume panels on the point-sampled rim.** `edgeSamples` is not
+  asked for there yet; its cost per panel is measured first.~~ Measured and switched
+  on at [§ 2q.7](#-2q7--the-rim-laid-out-once).
 - **The in-clip coupling's route** (register item 33, refuted as stated): the
   displaced bundle is the candidate, not shown.
 - **The 2×'s threshold** (item 34): the layout moves it across, as the lattice did.
@@ -5122,8 +5123,24 @@ a plan accepted on an outline it was not laid out on.
   outline's. The count is not laid out — its outline is its whole sub-grid, and
   a guard that could vouch for it would ask every sub-sample.
 
-What it leaves: the app's three volume panels on the plan, which is the
-next change.
+### The app's volume panels, on the plan
+
+The three jobs on `#/volume` resolve their rim through one plan per outline
+(`resolvedRim` in `packages/app/src/volume.ts`): the picture 1.1–2.4× its
+point-sampled cost (40 → 74 ms at the opening view), the axial response and cone
+2.1–2.75× (1.22–1.75 s), the depth curve about 3× (0.62–0.96 s), node. A point's
+on-axis intensity is read with § 2q.3's floor taken off; the picture keeps it.
+
+| Reading | Was | Is | Why |
+|---|---|---|---|
+| `volume-mount`: a dry 0.10's over-report | the Maréchal floor 0.9501, to two places | 0.96901 against a grid-free 0.96883 | the floor is exp(−(2πσ)²)'s; a pure ρ⁴ crosses 0.8 at 0.95751 exactly, and the stack's ρ⁶ term adds 1.19% of the rms. Point-sampled the panel read 0.9516 at 32 bins and 0.9666 at 128: the staircase cancelling it — **corrected** |
+| `volume-mount`: the 1.25 at 10 µm, mounted / mount's own / bare | 21.74× / 16.88× / 0.35× | 22.65× / 17.13× / 0.389× | the rim; and a lattice reading (0.9–1.3 waves per sample) — register item 38 |
+| `volume-mount`: § 6l.14's quadrature on air | 60 cells at 2 µm | 0 at 2 µm, 28 at 5 µm | the cells the wall cuts are in the rim's mask; resolved kernels sit closer than point+quadrature to a 128-bin pupil on 12 of 12 cases, either way the reference is sampled |
+| `volume-cap`: exact-vs-paraboloid gap rising 32 → 48 → 64 | 0.2950, 0.3287, 0.3341 | 0.3019, 0.3371, 0.3359 (0.3427, 0.3467 at 96, 128) | 48 and 64 tie within the bead field's digits; 32 under both — **weakened** |
+
+Found beside it, and registered rather than fixed: § 6l.4's 4.74 µm rung is the
+staircase's — grid-free 4.544 µm (item 37); and the axial panel's asymmetry line
+has no guard and at depth reads the lattice (item 38).
 
 ## Step 3a — the standard observer and thermal sources
 

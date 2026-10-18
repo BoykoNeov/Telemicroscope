@@ -5,6 +5,7 @@ import {
   defocusing,
   depthKernels,
   depthOfFocusMm,
+  edgePlan,
   exactDepthOfFocusMm,
   fieldPupilAt,
   incoherentPsf,
@@ -20,7 +21,9 @@ import {
   renderVolume,
   withDefocus,
   withMountAberration,
+  type EdgePlan,
   type EmitterSlice,
+  type IncoherentPsf,
   type MountSpec,
   type PointEmitter,
 } from "@telemicroscope/core/imaging";
@@ -241,7 +244,7 @@ export const WAVEFRONT_RHO = 0.99;
  * It costs nothing extra, because the base pupil is memoized (see
  * `memoizedPupil`, and the cone stack's use of it below): 128 bins with the memo
  * is 273 ms against 217 ms for 64 bins without it, where the arithmetic alone
- * would have been 4×.
+ * would have been 4× (point-sampled, before § 2q.7 resolved the rim).
  *
  * The **step** sets the axial spectrum's Nyquist, 1/(2·step). At 1/4 of a wave
  * that is 2 cycles per wave, and measured, several unresolved rows report exactly
@@ -273,8 +276,13 @@ const CONE_STACK = Array.from(
  * grid 64 matches grid 128 to 1e-14, and so does the ν = 1 spectrum. So this
  * sweep runs on the smallest grid a 32-bin pupil fits (64²) and spends what it
  * saves on w₂₀ resolution instead — 1/32 of a wave, which is what makes the peak
- * offset below a measurement rather than a bracket. The peak position is
- * identical at 32 and 64 bins for every objective in the catalogue.
+ * offset below a measurement rather than a bracket. Read with the resolved rim
+ * and its floor taken off (`onAxis`), the curve at grid 64 still matches grid
+ * 128 to 6e-14. The peak position is identical at 32 and 64 bins for the seven
+ * corrected rows; the DIN 4×/0.15 and 4×/0.20, undercorrected with a broad
+ * response, wander with the lattice on either rim — −1.63, −1.47, −1.50 and
+ * −0.81, −1.06, −2.00 waves at 32, 64 and 128 bins resolved, the last on the
+ * sweep's own edge.
  */
 /**
  * How far above the closed form's null at ±1 wave the divisor must sit before the
@@ -288,6 +296,46 @@ const CONE_STACK = Array.from(
  * 1% keeps the finding and refuses the noise.
  */
 export const ASYMMETRY_FLOOR = 0.01;
+
+/**
+ * Every kernel on this surface resolves its rim (§ 2q.3) and locates it (§ 2q.4):
+ * the fixtures' own 8 sub-samples on the crossing rule, since § 2q.7.
+ *
+ * Point-sampled, the rim is a staircase that moves with the lattice, and these
+ * panels sit on coarse ones — 32 bins for the axial response and the depth curve.
+ * There it was not a rounding: the depth panel's Maréchal depth for the oil
+ * 100×/1.40 into water read 1.084 µm against a converged 1.171 (7% short), and
+ * into air 1.255 against 1.122 (12% long); resolved, 1.161 and 1.119. The cost
+ * was the outline asked again for every kernel of a sweep, and a plan laid out
+ * once per outline (`resolvedRim`) is what makes it affordable.
+ */
+export const EDGE_SAMPLES = 8;
+export const EDGE_RULE = "crossing" as const;
+
+/**
+ * The resolved rim's options for kernels of this pupil's outline — one plan laid
+ * out here and reused by every defocus, depth and focus step that shares it.
+ * `incoherentPsf` refuses the plan on any other outline, so a pupil that does not
+ * share it gets its own call to this, never a neighbour's result.
+ */
+function resolvedRim(
+  pupil: PupilFunction,
+  pupilSamples: number,
+  size: number,
+): { edgeSamples: number; edgeRule: typeof EDGE_RULE; edgePlan: EdgePlan } {
+  const rim = { edgeSamples: EDGE_SAMPLES, edgeRule: EDGE_RULE };
+  return { ...rim, edgePlan: edgePlan(pupil, { pupilSamples, size, ...rim }) };
+}
+
+/**
+ * A point emitter's on-axis intensity, read off a resolved kernel: its centre
+ * less the uniform floor the cut cells fold back (§ 2q.3). The floor is the light
+ * a hard rim throws past the frame, returned as a periodic frame's neighbours
+ * would return it; one emitter has no neighbours, and the floor grows with
+ * defocus, so read with it the axial response and the Strehl would brighten the
+ * further from focus they look.
+ */
+const onAxis = (kernel: IncoherentPsf): number => kernel.values[0]! - (kernel.edgeFloor ?? 0);
 
 export const AXIAL_PUPIL_SAMPLES = 32;
 export const AXIAL_SIZE = 64;
@@ -682,9 +730,14 @@ export interface VolumeReadout {
    * Lattice cells whose sample § 6l.14's cell quadrature replaced — the mount's
    * cusp, averaged rather than point-sampled. 0 on a matched mount or at depth 0.
    * The grid-step guard above still reads the POINT samples, so a truncating
-   * mount can read amber there with these cells already corrected.
+   * mount can read amber there with these cells already corrected. Since § 2q.7
+   * the cells the wall cuts are the resolved rim's (`edgeCells`), which samples
+   * them finer still, so what is counted here is the cusp INSIDE the rim's mask:
+   * 0 at 2 µm on every immersion row, 8–168 from 5 µm down.
    */
   readonly quadratureCells: number;
+  /** Lattice cells the resolved rim laid out (§ 2q.3, § 2q.7) — the worst slice's. */
+  readonly edgeCells: number;
   /** RMS OPD on axis, straight from the trace — A1's convention, no focus solve. */
   readonly axisRmsWaves: number;
   readonly elapsedMs: number;
@@ -770,9 +823,10 @@ function outsideInscribedCircle(values: Float64Array, n: number): number {
  * planes on the window's `<=` boundary and the fraction would flicker between
  * 1/N and 2/N for a reason that is about the window and not about the specimen.
  *
- * Rasterizing every plane is measured at 1–3 ms against 130–700 ms of rendering,
- * so the scene is rebuilt per job and not memoized: a cache keyed on the scene
- * would save under 1% and would have to be invalidated on six controls.
+ * Rasterizing every plane is measured at 1–3 ms against 75 ms–1.05 s of rendering
+ * (32 to 128 bins, the rim resolved — § 2q.7), so the scene is rebuilt per job
+ * and not memoized: a cache keyed on the scene would save under 2% and would have
+ * to be invalidated on six controls.
  */
 export function renderVolumeScene(request: VolumeRequest): VolumeResult {
   const started = performance.now();
@@ -813,7 +867,10 @@ export function renderVolumeScene(request: VolumeRequest): VolumeResult {
       capSinAlpha !== null && (request.depthWavefront ?? "exact") === "exact"
         ? "exact"
         : "paraboloid";
-    const pupils = mountPupils(axis.pupil, spec, drawn === "exact" ? capSinAlpha! : 0);
+    // Memoized because every slice asks the same lattice and rim points of the
+    // traced pupil; only the mount's term changes with depth (§ 2q.7's sweep).
+    const pupils = mountPupils(memoizedPupil(axis.pupil), spec, drawn === "exact" ? capSinAlpha! : 0);
+    const rim = resolvedRim(pupils(0), request.pupilSamples, request.size);
 
     const slices = beadSlices(
       system,
@@ -844,6 +901,7 @@ export function renderVolumeScene(request: VolumeRequest): VolumeResult {
         // § 6l.14: the mount's cusp averaged over each lattice cell, once per
         // stack at the focus depth. Inert on a matched mount and at depth 0.
         cellQuadrature: true,
+        ...rim,
       }),
     );
 
@@ -894,6 +952,7 @@ export function renderVolumeScene(request: VolumeRequest): VolumeResult {
       pupilSamples: request.pupilSamples,
       size: request.size,
       cellQuadrature: true,
+      ...rim,
     });
 
     const rhoDelivered = mountAperture(spec) / tracedNA;
@@ -957,6 +1016,7 @@ export function renderVolumeScene(request: VolumeRequest): VolumeResult {
         // One number for the whole stack: the factor is the focus depth's, so
         // every slice corrects the same cells (§ 6l.14).
         quadratureCells: worstKernel.quadratureCells ?? 0,
+        edgeCells: worstKernel.edgeCells ?? 0,
         axisRmsWaves: axis.rmsWaves,
         elapsedMs: performance.now() - started,
       },
@@ -1266,6 +1326,12 @@ const CONE_BINS = [0, CONE_PUPIL_SAMPLES / 4, CONE_PUPIL_SAMPLES / 2, (3 * CONE_
  * used to be here because the memos are worth more in Chrome than in node — the
  * job that got cheaper is the one that was repeating itself. Still well past what
  * a `setTimeout` deferral would cover, so it stays in its worker.
+ *
+ * **Since § 2q.7 the rim is resolved**, through one plan per outline — the
+ * response, each asymmetry control and the cone stack each lay out their own —
+ * and the job measures **1.22–1.75 s** over the catalogue in node, 2.1–2.75× the
+ * point-sampled sweep. The browser figures above are the point-sampled ones and
+ * were not re-read.
  */
 export function axialResponse(request: AxialRequest): AxialResult {
   const started = performance.now();
@@ -1288,13 +1354,14 @@ export function axialResponse(request: AxialRequest): AxialResult {
     // here: this sweep is 129 kernels over ONE aberrated pupil, so every lattice
     // point is asked 129 times for an answer that cannot have changed.
     const fixedDepth = memoizedPupil(withMountAberration(axis.pupil, spec, depthMm));
+    const responseOptions = { ...options, ...resolvedRim(fixedDepth, AXIAL_PUPIL_SAMPLES, AXIAL_SIZE) };
     const dofMm = depthOfFocusMm(LAMBDA_NM, tracedNA, mount.index);
 
     const steps = Math.round((2 * RESPONSE_HALF_WAVES) / RESPONSE_STEP);
     const waves = Array.from({ length: steps + 1 }, (_, i) => -RESPONSE_HALF_WAVES + i * RESPONSE_STEP);
-    const response = depthKernels(defocusing(fixedDepth), waves, options);
-    const atFocus = response[steps / 2]!.values[0]!;
-    const measured = response.map((k) => k.values[0]! / atFocus);
+    const response = depthKernels(defocusing(fixedDepth), waves, responseOptions);
+    const atFocus = onAxis(response[steps / 2]!);
+    const measured = response.map((k) => onAxis(k) / atFocus);
     let peakRatio = 0;
     let peakIndex = 0;
     measured.forEach((v, i) => {
@@ -1312,8 +1379,11 @@ export function axialResponse(request: AxialRequest): AxialResult {
     // The floor is against the response's own PEAK and not against zero: at ±1
     // wave the closed form is exactly null, so an exact-zero guard never fires
     // and the ratio of two near-nulls prints as though it were optics.
-    const ratioAt = (pupil: PupilFunction): number | null => {
-      const at = (w: number) => incoherentPsf(withDefocus(pupil, w), options).values[0]!;
+    const ratioAt = (base: PupilFunction): number | null => {
+      // Its own plan: the ideal pupil and the bare traced one are other outlines.
+      const pupil = memoizedPupil(base);
+      const own = { ...options, ...resolvedRim(pupil, AXIAL_PUPIL_SAMPLES, AXIAL_SIZE) };
+      const at = (w: number) => onAxis(incoherentPsf(withDefocus(pupil, w), own));
       const reference = at(0);
       const up = at(1);
       const down = at(-1);
@@ -1381,9 +1451,11 @@ export function axialResponse(request: AxialRequest): AxialResult {
     // function, the one `mountDepthCurve` already uses. It is what pays for the
     // finer pupil — 128 bins memoized costs less than 4× of 64 bins raw, and the
     // guard needs 128 (see the constants' header).
-    const kernels = depthKernels(mountPupils(memoizedPupil(conePupil), coneSpec, coneSinAlpha), CONE_STACK, {
+    const coneStack = mountPupils(memoizedPupil(conePupil), coneSpec, coneSinAlpha);
+    const kernels = depthKernels(coneStack, CONE_STACK, {
       pupilSamples: CONE_PUPIL_SAMPLES,
       size: CONE_SIZE,
+      ...resolvedRim(coneStack(0), CONE_PUPIL_SAMPLES, CONE_SIZE),
     });
     let throughputDrift = 0;
     let stackGridPhaseStepWaves = 0;
@@ -1512,18 +1584,26 @@ export function axialResponse(request: AxialRequest): AxialResult {
  * 0.075181 waves. The wavefront is linear in depth, so a bisection at Strehl 0.8
  * runs 1.0525× deeper than the λ/14 coefficient allows whatever the aperture, and
  * the quoted-over-bisected ratio therefore floors at **0.9501** rather than at 1.
- * Measured: 0.95 at every dry row in the catalogue, where the third-order form
- * has nothing left to be wrong about. Everything above that floor is § 6l.4's
+ * Even the 0.10 dry rows sit above it. Exactly, a pure ρ⁴ crosses Strehl 0.8 at
+ * 0.95751 of Maréchal's coefficient, not 0.95008 — the exponential is itself an
+ * approximation — and into water the stack's ρ⁶ term adds 1.19% of the rms on
+ * top: a grid-free bisection of the exact wavefront reads **0.96883**, and the
+ * panel 0.96901. The 0.15 reads 0.98343 and the 0.20 1.00404. Point-sampled, the
+ * 0.10 read 0.9516 at 32 bins and 0.9666 at 128 — the staircase's error, which
+ * at 32 happened to land on 0.9501. Everything above the floor is § 6l.4's
  * departure — the exact wavefront outrunning its own leading term as the aperture
  * approaches the *mount's* index, which is the smallest number in the stack.
  *
  * ## It reproduces the rung
  *
  * Run on an ideal pupil at § 6l.4's own probe (NA 1.2, water under IMMERSION-OIL)
- * this job returns **4.735 µm** against a quoted 21.34 µm — the rung's 4.74 µm and
- * **4.51×** — and it does so at grid 64 in 0.2 s where the ladder's brute-force
- * focus scan takes minutes. Two things buy that and neither touches the physics:
- * the golden section below, and `memoizedPupil`.
+ * this job returned **4.735 µm** against a quoted 21.34 µm — the rung's 4.74 µm and
+ * **4.51×** — at grid 64 in 0.2 s where the ladder's brute-force focus scan takes
+ * minutes. Two things buy that and neither touches the physics: the golden section
+ * below, and `memoizedPupil`. *[§ 2q.7: both were the point-sampled rim's. A
+ * grid-free bisection of the same wavefront reads 4.544 µm (4.70×); resolved, this
+ * job reads 4.539 at 32 bins and 4.555 at 64, point-sampled 4.736 and 4.590. The
+ * rung sits on the staircase — register item 37.]*
  */
 export interface DepthRequest {
   readonly spec: BuildSpec;
@@ -1627,7 +1707,9 @@ const DEPTH_SPAN_MATCHED_UM = 20;
  * pupil is a 28-term Zernike sum per sample, and `withMountAberration`'s phase is
  * a `stackWavefrontErrorMm` per sample. Measured, they are 1.9 ms and 4.0 ms of a
  * 5.8 ms transform at 64²/32 bins — the FFT itself is 0.23 ms. Caching the *first*
- * evaluation at each point takes the sweep from 5.8 ms per kernel to 0.5 ms.
+ * evaluation at each point takes the sweep from 5.8 ms per kernel to 0.5 ms. The
+ * resolved rim (§ 2q.7) asks it at the rim's points too: 1.2–1.3 ms per kernel
+ * through a plan, where laying the rim out afresh for every kernel cost 11–12 ms.
  *
  * This is memoization of a pure function and not a model of one: a point that has
  * not been seen is computed by the engine, and a point that has is returned
@@ -1704,9 +1786,12 @@ const FOCUS_STEPS = 8;
 function bestPeak(base: PupilFunction, spec: MountSpec, depthMm: number, options: {
   readonly size: number;
   readonly pupilSamples: number;
+  readonly edgeSamples: number;
+  readonly edgeRule: typeof EDGE_RULE;
+  readonly edgePlan: EdgePlan;
 }): number {
   const pupil = memoizedPupil(withMountAberration(base, spec, depthMm));
-  const at = (w: number) => incoherentPsf(withDefocus(pupil, w), options).values[0]!;
+  const at = (w: number) => onAxis(incoherentPsf(withDefocus(pupil, w), options));
   const center = balancedDefocusWaves(spec, depthMm);
   let lo = center - FOCUS_BRACKET;
   let hi = center + FOCUS_BRACKET;
@@ -1745,8 +1830,18 @@ export function depthStrehl(request: DepthRequest): DepthResult {
     const tracedNA = objectNumericalAperture(system, LAMBDA_NM);
     const mount = resolveMount(system, request.mount);
     const spec = mountSpecFor(mount, tracedNA, 0);
-    const traced = fieldPupilAt(system, frame, 0.5, 0.5).pupil;
-    const ideal = idealPupil();
+    // Memoized once and shared by every depth: the mount's term is added per depth
+    // on top, and the base's points are the same ones each time.
+    const traced = memoizedPupil(fieldPupilAt(system, frame, 0.5, 0.5).pupil);
+    const ideal = memoizedPupil(idealPupil());
+    // One plan per outline, laid out at depth 0: the wall does not move with depth
+    // (§ 6l.6), so every depth and every focus step of the search shares it.
+    const rimOf = (base: PupilFunction) => ({
+      ...options,
+      ...resolvedRim(withMountAberration(base, spec, 0), AXIAL_PUPIL_SAMPLES, AXIAL_SIZE),
+    });
+    const idealOptions = rimOf(ideal);
+    const tracedOptions = rimOf(traced);
 
     let quoted: { marechalMm: number; quarterWaveMm: number } | null = null;
     let quotedRefusal: string | null = null;
@@ -1766,10 +1861,10 @@ export function depthStrehl(request: DepthRequest): DepthResult {
      * depth, and reporting the edge would turn "there is no such depth" into a
      * measurement of the search.
      */
-    const bisect = (base: PupilFunction): number | null => {
-      const reference = bestPeak(base, spec, 0, options);
+    const bisect = (base: PupilFunction, rim: typeof idealOptions): number | null => {
+      const reference = bestPeak(base, spec, 0, rim);
       if (!(reference > 0)) return null;
-      const strehl = (d: number) => bestPeak(base, spec, d, options) / reference;
+      const strehl = (d: number) => bestPeak(base, spec, d, rim) / reference;
       const start = quoted?.marechalMm ?? 1e-3;
       let hi = start;
       while (strehl(hi) >= MARECHAL_STREHL) {
@@ -1785,8 +1880,8 @@ export function depthStrehl(request: DepthRequest): DepthResult {
       return 0.5 * (lo + hi);
     };
 
-    const bisectedIdeal = bisect(ideal);
-    const bisectedTraced = bisect(traced);
+    const bisectedIdeal = bisect(ideal, idealOptions);
+    const bisectedTraced = bisect(traced, tracedOptions);
     const crossingMm = bisectedIdeal ?? bisectedTraced;
     const nearMm =
       crossingMm === null
@@ -1803,12 +1898,12 @@ export function depthStrehl(request: DepthRequest): DepthResult {
       }
     }
 
-    const idealReference = bestPeak(ideal, spec, 0, options);
-    const tracedReference = bestPeak(traced, spec, 0, options);
+    const idealReference = bestPeak(ideal, spec, 0, idealOptions);
+    const tracedReference = bestPeak(traced, spec, 0, tracedOptions);
     const curve: DepthPoint[] = depths.map((depthMm) => ({
       depthUm: depthMm * 1000,
-      ideal: bestPeak(ideal, spec, depthMm, options) / idealReference,
-      traced: bestPeak(traced, spec, depthMm, options) / tracedReference,
+      ideal: bestPeak(ideal, spec, depthMm, idealOptions) / idealReference,
+      traced: bestPeak(traced, spec, depthMm, tracedOptions) / tracedReference,
     }));
 
     return {

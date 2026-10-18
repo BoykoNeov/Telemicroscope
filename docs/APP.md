@@ -1610,7 +1610,9 @@ it is *faster than it was* — 881 / 821 / 651 → **687 / 727 / 611 ms** on the
 matched, in water and in air, read off the panel's own elapsed readout through a
 headless driver — because the memos are worth more in Chrome than in node, and the
 work that got cheaper is the work that was repeating itself. A4's ~2.3× browser
-penalty no longer describes this job.
+penalty no longer describes this job. *[Since § 2q.7 the rim is resolved: 1.22–1.75 s
+over the catalogue in node, 2.1–2.75× the point-sampled sweep — see* the volume
+panels resolve their rim *below. The browser figures here were not re-read.]*
 
 **And the captions were driven, for D10's reason.** The suite builds no `Worker`
 and renders no panel, so all three branches of the rewritten note were read out of
@@ -1683,6 +1685,53 @@ dominated by load from other work on the machine.
 
 Console clean on all three.
 
+#### The volume panels resolve their rim — § 2q.7
+
+*App wiring on `#/volume`, plus the engine change it needed — `edgePlan`,
+validated at [§ 2q.7](VALIDATION.md#-2q7--the-rim-laid-out-once). Closes § 2q.6's
+leftover "the app's volume panels on the point-sampled rim".*
+
+All three jobs — the picture, the axial response with its cone, and the depth
+curve — form every kernel on the resolved, located rim (8 sub-samples, crossing),
+through one plan per outline. Switched on without the plan the depth job cost
+20–25×; with it, best of three in one process against the point-sampled code, node:
+
+| Job | Point-sampled | Resolved |
+|---|---|---|
+| picture, opening view (20×, 32 bins, 9 planes) | 40 ms | 74 ms |
+| picture, other rows at 32 bins | 39–79 ms | 75–178 ms |
+| picture, 128 bins, 27 planes | 959 ms | 1050 ms |
+| axial response + cone | 556–643 ms | 1.22–1.75 s |
+| depth curve | 194–292 ms | 0.62–0.96 s |
+
+**What it bought.** The depth curve's Maréchal depth for the oil 100×/1.40 into
+water read 1.084 µm against a converged 1.171 — 7% short — and into air 1.255
+against 1.122, 12% long; resolved, 1.161 and 1.119. The dry rows' over-report read
+0.95 and is 0.969: a grid-free bisection of the exact wavefront says 0.96883, so the
+old floor-matching reading was the staircase cancelling the stack's ρ⁶ term. The
+oil 100×/1.25 into water over-reports 6.05× (3.09 µm), where it read 5.75× (3.25 µm).
+
+**Two readouts read the floor off.** A resolved kernel folds the light its rim throws
+past the frame back as a uniform floor (§ 2q.3). That is right for the picture, a
+field of beads, and wrong for a point's on-axis intensity, where it would brighten
+the response and the Strehl the further from focus they look — so the axial
+response, its asymmetry controls and the depth curve subtract it. Measured both
+ways: the depth panel's over-report agrees to four digits; the ideal pupil's ±1-wave
+ratio at 20 µm of water under the 1.40 reads 13.17 kept and 13.47 subtracted.
+
+**What moved on the panel.** The picture's spill share — light outside the inscribed
+circle — roughly doubles at the opening view (6.4e-3 → 1.2e-2): the rim's spill is
+in it now as the floor. No guard reads it. The asymmetry pair on the 1.25 at 10 µm
+reads 22.65× against 17.13× (21.74× / 16.88×), the bare residual 0.389× (0.35×);
+best focus stays +0.84 waves.
+
+**What it found.** The asymmetry line is a lattice reading at depth: 10 µm of water
+steps the 32-bin pupil 0.9–1.3 waves per sample, and at 20 µm under the 1.40 the
+ideal pupil's ratio is 3.5 point-sampled and 13.2 resolved at 32 bins, still 8.0 and
+7.7 at 256 — the wall's term is steep at any lattice (6.5 waves per sample at 128).
+The line carries no guard (register item 38). And § 6l.4's 4.74 µm rung is the
+staircase's: grid-free 4.544 µm (register item 37).
+
 #### The picture's rim cells are averaged, not point-sampled
 
 *App wiring on the same `#/volume` route, plus the engine change it needed —
@@ -1708,11 +1757,14 @@ fraction and the throughput drift do not move, since every slice of a stack
 shares the factor.
 
 **What changed on the panel:** the grid guard's detail now says how many rim
-cells were averaged. The guard's number itself still reads the point samples,
+cells were averaged. *[Since § 2q.7 the cells the wall cuts are the resolved rim's,
+and the detail counts both; the averaged ones are the cusp inside the rim — none at
+2 µm, 8–168 from 5 µm down.]* The guard's number itself still reads the point samples,
 so it keeps meaning what it meant, and a truncating mount can read amber with
 its rim already corrected — the detail says so rather than the colour changing.
-The cone panel is left point-sampled: it reads a support edge, which a factor
-shared by every slice cannot move.
+The cone panel is left ~~point-sampled~~ without the quadrature: it reads a support
+edge, which a factor shared by every slice cannot move. (Its rim is resolved since
+§ 2q.7.)
 
 **Cost in time:** a 5-slice air stack goes from 4–14 ms to 37–83 ms (best of
 five, node, 32 and 64 bins on a 128 grid), against the panel's 130–700 ms job.
@@ -4205,8 +4257,9 @@ are corrections to this section as it was written.
 - **The numbers this section quoted are § 6l's probe, not the panel's.** 19.24×,
   +1.11 waves and 4.51× are all **NA 1.2 on an ideal pupil**, and no catalogue row
   is NA 1.2. The panel computes its own: on the **oil 100×/1.25 in water** the
-  budget over-reports by **5.75×** (18.71 µm quoted against **3.25 µm** bisected),
-  and at 10 µm of depth the axial response is **21.74×** asymmetric with best focus
+  budget over-reports by ~~5.75×~~ **6.05×** (18.71 µm quoted against ~~3.25~~ **3.09 µm**
+  bisected, § 2q.7's resolved rim), and at 10 µm of depth the axial response is
+  ~~21.74×~~ **22.65×** asymmetric with best focus
   at **+0.84 waves** (13.17× and +0.72 before § 2q.6 laid the panel's pupils on
   the exit layout; the budget's three figures did not move). The engine's own figures are cited on the page as § 6l.4's
   and § 6l.7's reference points and labelled as such — this doc has been burned
@@ -4214,8 +4267,9 @@ are corrections to this section as it was written.
 - **The asymmetry needed a control the step had not thought of.** A1 traces to the
   system's *own* image plane, so a row carries a residual defocus that is already
   an asymmetry about w₂₀ = 0 with no mount in it: the 100×/1.25 reads **0.35×** at
-  zero depth. Quoting the mounted 21.74× alone would hand that share to the mount,
-  whose own contribution is **16.88×**. So the panel prints three numbers where the
+  zero depth (0.389× on § 2q.7's resolved rim). Quoting the mounted 21.74× alone
+  would hand that share to the mount, whose own contribution is **16.88×** (22.65×
+  and 17.13× resolved). So the panel prints three numbers where the
   step expected one: mounted, the mount's own (ideal pupil, same NA), and the
   objective's at zero depth. (On the aim layout these read 13.17×, 16.88× and 0.47×,
   and this entry said the mount's share was the larger "because the objective's
@@ -4270,13 +4324,18 @@ and the mount's phase is a stack solve per sample: 1.9 ms and 4.0 ms of a 5.8 ms
 transform whose FFT is 0.23 ms. Together they take a kernel from 5.8 ms to 0.5 ms.
 Run at § 6l.4's own probe it returns **4.735 µm and 4.51×**, the rung to the digit,
 at grid 64 — which is § 6k's measured grid-indifference for a DC readout being
-spent rather than re-argued.
+spent rather than re-argued. *[§ 2q.7: both point-sampled, and so is the rung. A
+grid-free bisection reads 4.544 µm (4.70×); resolved, the job reads 4.539 µm at 32
+bins — register item 37.]*
 
 **The over-report has a floor at 0.9501 and it is not the third-order form.**
 Maréchal's λ/14 is an *approximation* to Strehl 0.8 — exp(−(2πσ)²) there is
 0.8177 — so a bisection at 0.8 runs 1.0525× deeper at *every* aperture. Measured:
-**0.95 on every dry row in the catalogue**, where third-order theory has nothing
-left to be wrong about. Everything above that floor is § 6l.4's departure. The
+~~**0.95 on every dry row in the catalogue**, where third-order theory has nothing
+left to be wrong about~~ — **restated at § 2q.7**: 0.969 on the 0.10 rows, 0.983 on
+the 0.15, 1.004 on the 0.20. A pure ρ⁴ crosses 0.8 at 0.95751 exactly, and the
+stack's ρ⁶ term adds 1.19% of the rms at 0.10: grid-free, 0.96883. The 0.95 was the
+point-sampled staircase cancelling it at 32 bins. Everything above that floor is § 6l.4's departure. The
 panel prints the floor beside the ratio, because a reader who did not know it
 would read 0.95 as the budget being 5% pessimistic.
 

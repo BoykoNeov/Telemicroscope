@@ -825,6 +825,28 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     the wave branch was 1.4e-3 high as well. *What would pin it:* the histogram's
     fraction against the launches' as the pixel grid and the defocus change — an
     edge term falls with the radius in pixels, a bias in the ray weights does not.
+37. **§ 6l.4's bisected 4.74 µm is the point-sampled rim's.** Found at
+    [§ 2q.7](VALIDATION.md#-2q7--the-rim-laid-out-once), re-measuring the app's depth curve: a grid-free bisection of the
+    same exact wavefront (NA 1.2 ideal, water under oil; the disc's Strehl as a
+    radial integral, best defocus) crosses Strehl 0.8 at **4.544 µm**, so the
+    third-order budget over-reports 4.70× and not 4.51×. Point-sampled the same
+    bisection reads 4.736 at 32 bins and 4.590 at 64; resolved 4.539 and 4.555.
+    § 6l.7's Strehl walk (0.9606 → 0.7801 → 0.4386) and its "Maréchal crossed between
+    5 and 10 µm" were read on the same sampling. *What would pin it:* the rung's own
+    brute-force bisection on the resolved rim, or against the radial integral
+    directly, landing within a few 1e-3 of 4.544.
+38. **The axial panel's ±1-wave asymmetry has no lattice guard, and at depth it
+    reads the lattice.** Found at [§ 2q.7](VALIDATION.md#-2q7--the-rim-laid-out-once). The ratio divides two
+    near-null intensities, and below a few microns of mismatched mount the depth
+    term outruns any lattice the panel uses: at 20 µm of water under the 1.40 the
+    32-bin pupil steps 8.8 waves per sample and a 128-bin one still 6.5 — the
+    wall's cusp — and the ideal pupil's ratio reads 3.5 point-sampled and 13.2
+    resolved at 32 bins, 8.0 and 7.7 at 256. The 1.25 at 10 µm (0.9–1.3 waves per
+    sample) is the pinned app reading. The response curve beside it carries the
+    same exposure. *What would pin it:* a guard on the line from the response
+    kernels' own `maxGridPhaseStepWaves`, refusing past half a wave; or the ratio
+    converging over lattices once § 6l.14's quadrature is applied to the ±1-wave
+    kernels as it is to the picture.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;
