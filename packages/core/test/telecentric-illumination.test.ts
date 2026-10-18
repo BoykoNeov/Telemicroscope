@@ -103,6 +103,14 @@ const infinity = (stopPlacement: StopPlacement): OpticalSystem =>
     tubeLens: tubeLens(),
   }).system;
 
+/**
+ * § 2s: § 6x.1's offsets ask for the aim layout by name. h/R_ep is that layout's
+ * coordinate — a slope over the aimer's span — and on the exit layout the same
+ * direction sits at −n·L_c/ν, 0.2198 of a pupil radius per millimetre on the rim
+ * DIN rather than 0.21736 (§ 2n.2 measures the two side by side).
+ */
+const AIM = { layout: "aim" } as const;
+
 /** Brightfield frames are on the exit layout since § 2n; § 6x.1's closed form stays the aim coordinate's. */
 const frameOf = (system: OpticalSystem, pupilSamples = PS, size = SIZE) =>
   objectFieldFrame(system, { size, pupilSamples, wavelengthNm: L, layout: "exit" });
@@ -148,7 +156,7 @@ describe("§ 6x.1 — the illumination offset IS h/R_ep, and telecentricity kill
       const R = pupils(system, L).entrance.radius;
       expect(Number.isFinite(R)).toBe(true);
       for (const h of [0.0235, 0.1, 0.5, 1, 2]) {
-        expect(illuminationOffset(system, h, L) / (h / R)).toBeCloseTo(1, 10);
+        expect(illuminationOffset(system, h, L, AIM) / (h / R)).toBeCloseTo(1, 10);
       }
     }
   });
@@ -158,12 +166,12 @@ describe("§ 6x.1 — the illumination offset IS h/R_ep, and telecentricity kill
     // S is rarely above 1, so at a millimetre of field the cone this objective is
     // lit through sits a fifth of the way out of the aperture that must catch it.
     const system = din();
-    const perMm = illuminationOffset(system, 1, L);
+    const perMm = illuminationOffset(system, 1, L, AIM);
     expect(perMm).toBeCloseTo(0.21736, 5);
     // Exactly linear in the field, because h/R_ep is: the ratio over 100× of
     // field is the field ratio itself.
-    expect(illuminationOffset(system, 2, L) / perMm).toBeCloseTo(2, 12);
-    expect(illuminationOffset(system, 0.02, L) / perMm).toBeCloseTo(0.02, 12);
+    expect(illuminationOffset(system, 2, L, AIM) / perMm).toBeCloseTo(2, 12);
+    expect(illuminationOffset(system, 0.02, L, AIM) / perMm).toBeCloseTo(0.02, 12);
   });
 
   it("is BITWISE zero on § 6v's telecentric objective, at every field height", () => {
@@ -175,14 +183,14 @@ describe("§ 6x.1 — the illumination offset IS h/R_ep, and telecentricity kill
     const tele = infinity("backFocal");
     expect(pupils(tele, L).entrance.radius).toBe(Infinity);
     for (const h of [0, 0.001, 0.1, 1, 3]) {
-      expect(illuminationOffset(tele, h, L)).toBe(0);
+      expect(illuminationOffset(tele, h, L, AIM)).toBe(0);
     }
     // And its own negative control, on identical geometry, is not zero anywhere
     // off axis — so the null is the stop placement and not the lens.
     const rim = infinity("rim");
-    expect(illuminationOffset(rim, 0, L)).toBe(0);
+    expect(illuminationOffset(rim, 0, L, AIM)).toBe(0);
     for (const h of [0.001, 0.1, 1, 3]) {
-      expect(Math.abs(illuminationOffset(rim, h, L))).toBeGreaterThan(0);
+      expect(Math.abs(illuminationOffset(rim, h, L, AIM))).toBeGreaterThan(0);
     }
   });
 

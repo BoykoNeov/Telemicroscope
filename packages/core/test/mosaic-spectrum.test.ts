@@ -94,6 +94,9 @@ const bars = (periodMm: number): Specimen =>
 
 const ANCHOR = { x: 1.6, y: 0.8 } as const;
 
+/** § 2s: the readings that are the aim layout's own ruler ask for it by name. */
+const AIM = { layout: "aim" } as const;
+
 const optionsOf = (over: Partial<SpectralMosaicOptions> = {}): SpectralMosaicOptions => ({
   size: SIZE,
   pupilSamples: PS,
@@ -234,7 +237,13 @@ describe("§ 6t.3 — the ruler plane is the LEAST guarded, and the rest by a cl
     // This is § 6r.7's finding on a second axis: the blue end sets the sampling
     // AND the guard, because the plane that refuses first is the plane whose grid
     // the picture is on.
-    const geometry = spectralMosaicGeometry(SYSTEM, optionsOf());
+    //
+    // § 2s: read on the aim layout, by name. Its ruler is the paraxial reference
+    // sphere, and the law below — a pixel ∝ λ — is that ruler's. The exit
+    // layout's ruler is ν = |M|·n′·σ, traced per λ, so it carries the lens's
+    // lateral colour: the telecentric member's residual is 2.41e-3 there, not
+    // 2.4e-10, and the separation the last lines pin does not exist on it.
+    const geometry = spectralMosaicGeometry(SYSTEM, optionsOf(AIM));
     const pixelsPerCell = SIZE / PS;
 
     const ruler = geometry.planes[geometry.rulerIndex]!;
@@ -288,7 +297,7 @@ describe("§ 6t.3 — the ruler plane is the LEAST guarded, and the rest by a cl
     // It does NOT make the minimum-over-measured-scales redundant, and the rung
     // says so by pinning the floor rather than an equality: 2.4e-10 is still four
     // thousand ulp, so `stackBrightfieldPlanes` is still reading a measurement.
-    const telecentric = spectralMosaicGeometry(TELECENTRIC, optionsOf());
+    const telecentric = spectralMosaicGeometry(TELECENTRIC, optionsOf(AIM));
     const telecentricRuler = telecentric.planes[telecentric.rulerIndex]!;
     const telecentricWorst = Math.max(
       ...telecentric.planes.map((p) =>

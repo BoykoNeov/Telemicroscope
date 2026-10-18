@@ -146,6 +146,19 @@ function systemFor(spec: BuildSpec): OpticalSystem {
   return system;
 }
 
+/**
+ * The stage's pupil layout, named rather than defaulted — § 2s.
+ *
+ * The aim layout, which is what the stage has drawn since § A10 and what its
+ * goldens pin. A mosaic does not move to the exit layout on the layout alone:
+ * there a tile's outline changes shape with field, the point-sampled rim's error
+ * stops cancelling between tiles, and § 2r's trial measured the brightness step
+ * at a seam doubling (1.34e-2 against 6.7e-3). The engine's mosaic chain took
+ * the located rim with it at § 2r.2, at 3.8× a tile; the stage has not been
+ * costed for that, and APP.md records it as open.
+ */
+const STAGE_LAYOUT = "aim" as const;
+
 function optionsOf(request: StageRequest): MosaicOptions {
   return {
     tiles: 1,
@@ -153,6 +166,7 @@ function optionsOf(request: StageRequest): MosaicOptions {
     pupilSamples: request.pupilSamples,
     guardCells: request.guardCells,
     wavelengthNm: LAMBDA_NM,
+    layout: STAGE_LAYOUT,
   };
 }
 
@@ -163,6 +177,7 @@ function spectralOptionsOf(request: StageRequest): SpectralMosaicOptions {
     pupilSamples: request.pupilSamples,
     guardCells: request.guardCells,
     samples: lampSamples(request.lamp, request.wavelengths),
+    layout: STAGE_LAYOUT,
   };
 }
 

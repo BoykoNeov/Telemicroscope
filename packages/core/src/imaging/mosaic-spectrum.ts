@@ -203,6 +203,10 @@ function planeOptions(options: SpectralMosaicOptions): BrightfieldSpectrumOption
     ...(options.aim === undefined ? {} : { aim: options.aim }),
     ...(options.obstruction === undefined ? {} : { obstruction: options.obstruction }),
     ...(options.spider === undefined ? {} : { spider: options.spider }),
+    // The frame carries the layout its ruler was read in and every pupil laid on
+    // it follows the frame, so a layout dropped here was dropped for the whole
+    // tile — silently, until the default it fell back to changed (§ 2s).
+    ...(options.layout === undefined ? {} : { layout: options.layout }),
   };
 }
 

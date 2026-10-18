@@ -74,8 +74,19 @@ const rimDin4x = () =>
     }),
   }).system;
 
+/**
+ * § 2s: § 6h's frame and § 6m's tiles are the aim layout's, by name. What this
+ * chain pins is that layout's ruler — pupilSamples·λ·R/(4·n′·r_exit) in the
+ * paraxial reference sphere, a tile reading it at its own centre, the drift and
+ * the round trips that follow — and the exit layout reads the traced aperture
+ * sine on the axis instead, so on it a tile's ruler IS the anchor's (§ 2r.3).
+ * The legs that ask for `"exit"` say so where they stand, and what the field
+ * laws read on the exit layout is § 2s's own rung at the end of the file.
+ */
+const AIM = { layout: "aim" } as const;
+
 const frameOf = (system = din4x(), pupilSamples = PUPIL_SAMPLES, size = SIZE) =>
-  objectFieldFrame(system, { size, pupilSamples, wavelengthNm: LAMBDA });
+  objectFieldFrame(system, { size, pupilSamples, wavelengthNm: LAMBDA, ...AIM });
 
 /** Slope of log|y| against log|x| — the ORDER a quantity grows at. */
 function fittedOrder(xs: readonly number[], ys: readonly number[]): number {
@@ -735,6 +746,7 @@ const tileOf = (
     pupilSamples,
     wavelengthNm: LAMBDA,
     centreMm: { x, y },
+    ...AIM,
   });
 
 /** The image radius the chief ray from `h` reaches — where a tile is put. */
@@ -1557,5 +1569,76 @@ describe("§ 6m.4 — a millimetre of field, which one frame could not see", () 
     // The axial picture is the SAME picture — 4e-5 of contrast between the two
     // members — which is what says the falls above are field and not fixture.
     expect(Math.abs(seen[0]!.contrast - rim[0]!.contrast)).toBeLessThan(1e-4);
+  });
+});
+
+/* ── § 2s — the field laws, read on the exit layout ──────────────────────── */
+
+describe("§ 2s — § 6h.4's and § 6m.4's field laws on the exit layout", () => {
+  const EXIT = { layout: "exit" } as const;
+  const exitFrame = (system: OpticalSystem) =>
+    objectFieldFrame(system, { size: SIZE, pupilSamples: PUPIL_SAMPLES, wavelengthNm: LAMBDA, ...EXIT });
+  const exitTile = (system: OpticalSystem, x: number, pupilSamples = PUPIL_SAMPLES, size = SIZE) =>
+    objectFieldTile(system, { size, pupilSamples, wavelengthNm: LAMBDA, centreMm: { x, y: 0 }, ...EXIT });
+  const HEIGHTS = [0.1, 0.2, 0.4, 0.8];
+
+  /** Z4 minus a reference pupil's, at tile centres h, on one member. */
+  const defocusFrom = (member: OpticalSystem, reference: FieldPupil) =>
+    HEIGHTS.map(
+      (h) =>
+        coefficient(fieldPupilAt(member, exitTile(member, imageRadius(member, h)), 0.5, 0.5).fit, 4) -
+        coefficient(reference.fit, 4),
+    );
+  const ratios = (v: readonly number[]) => v.slice(1).map((d, i) => d / v[i]!);
+
+  it("field curvature is h² against a tile just off the axis — against the axis itself it carries a step", () => {
+    // § 6m.4 read Z4 at tile centres less the axial frame's and found ×4.00 per
+    // doubling to 1e-3. On the exit layout the same reading is 3.886, 3.970,
+    // 3.993 on the rim member: a constant −3.25e-5 waves under every off-axis
+    // tile, there at 1e-6 mm and at 0.8 mm alike. It is not the optics. The fit
+    // keeps samples inside ρ ≤ 1 + 1e-9, the exit coordinate is read against the
+    // AXIAL aperture sine, and off the axis the traced rim stops being that
+    // circle — four of its 313 samples land just outside and leave the fit, at
+    // any field (register item 42). Read against a tile 1e-4 mm out, which has
+    // lost the same four, the law is back to ×4 per doubling.
+    // § 6m.4's own bounds: 2e-3 on the shipped lens, whose h⁴ term is larger, 1e-3 on the rim.
+    for (const [member, bound] of [[din4x(), 2e-3], [rimDin4x(), 1e-3]] as const) {
+      const axis = fieldPupilAt(member, exitFrame(member), 0.5, 0.5);
+      const near = fieldPupilAt(member, exitTile(member, imageRadius(member, 1e-4)), 0.5, 0.5);
+      expect(axis.fit.samplesUsed).toBe(313);
+      expect(near.fit.samplesUsed).toBe(309);
+      for (const q of ratios(defocusFrom(member, near))) expect(Math.abs(q / 4 - 1)).toBeLessThan(bound);
+      expect(ratios(defocusFrom(member, axis))[0]!).toBeLessThan(3.97);
+    }
+    const rim = rimDin4x();
+    const step =
+      coefficient(fieldPupilAt(rim, exitTile(rim, imageRadius(rim, 1e-4)), 0.5, 0.5).fit, 4) -
+      coefficient(fieldPupilAt(rim, exitFrame(rim), 0.5, 0.5).fit, 4);
+    expect(step).toBeCloseTo(-3.248e-5, 8);
+  });
+
+  it("coma h¹ and astigmatism h² hold on the rim member, astigmatism to 1% rather than 1e-3", () => {
+    // § 6m.4's sharp pins were the rim member's: 1.00002 and 2.000 on the aim
+    // layout. On the exit layout coma reads 1.0020 and astigmatism 1.977 —
+    // weakened, and not split here between the coordinate's own field
+    // dependence and item 42's rim.
+    const rim = rimDin4x();
+    const pupils = HEIGHTS.map((h) => fieldPupilAt(rim, exitTile(rim, imageRadius(rim, h)), 0.5, 0.5));
+    const coma = pupils.map((p) => Math.hypot(coefficient(p.fit, 7), coefficient(p.fit, 8)));
+    const astig = pupils.map((p) => Math.hypot(coefficient(p.fit, 5), coefficient(p.fit, 6)));
+    expect(fittedOrder(HEIGHTS, coma)).toBeCloseTo(1.002, 3);
+    expect(fittedOrder(HEIGHTS, astig)).toBeCloseTo(1.977, 3);
+  });
+
+  it("the axis's odd terms stay two orders under the nearest patch's coma", () => {
+    // § 6h.4's margin: 183× and 886× on the aim layout, 161× and 488× here.
+    const odd = (p: FieldPupil) => Math.hypot(coefficient(p.fit, 7), coefficient(p.fit, 8));
+    const margin = (member: OpticalSystem) => {
+      const f = exitFrame(member);
+      const u = 0.5 + imageRadius(member, 0.05) / (2 * f.halfExtentMm);
+      return odd(fieldPupilAt(member, f, u, 0.5)) / odd(fieldPupilAt(member, f, 0.5, 0.5));
+    };
+    expect(margin(din4x())).toBeCloseTo(161.3, 0);
+    expect(margin(rimDin4x())).toBeCloseTo(488.3, 0);
   });
 });

@@ -698,12 +698,15 @@ describe("§ 6ae.7 — § 6x's illumination offset, sent to zero on purpose", ()
     const tele = scopeAt("backFocal").system;
     const rim = scopeAt("rim").system;
     for (const h of [0, 0.25, 0.5, 1]) {
-      expect(illuminationOffset(tele, h, L)).toBe(0);
+      expect(illuminationOffset(tele, h, L, { layout: "aim" })).toBe(0);
     }
-    expect(illuminationOffset(rim, 0, L)).toBe(0);
-    expect(illuminationOffset(rim, 1, L)).toBeCloseTo(0.21736, 5);
+    expect(illuminationOffset(rim, 0, L, { layout: "aim" })).toBe(0);
+    expect(illuminationOffset(rim, 1, L, { layout: "aim" })).toBeCloseTo(0.21736, 5);
     // Linear in the field, which is what `h/R_ep` says and what makes the zero a
     // statement about R_ep rather than about the height chosen to test it.
-    expect(illuminationOffset(rim, 0.25, L) * 4).toBeCloseTo(illuminationOffset(rim, 1, L), 12);
+    expect(illuminationOffset(rim, 0.25, L, { layout: "aim" }) * 4).toBeCloseTo(
+      illuminationOffset(rim, 1, L, { layout: "aim" }),
+      12,
+    );
   });
 });

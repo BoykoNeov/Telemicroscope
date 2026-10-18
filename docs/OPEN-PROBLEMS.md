@@ -885,6 +885,19 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     44–52 and its vertex 0.1 µm low; the other thirteen span 0.051% with no
     integer structure. *What would pin it:* the pupil lattice's offset at the
     two classes — a period of 2 in ps is a half-cell shift every other step.
+42. **Off the axis the exit layout's Zernike fit drops the traced rim.** Found
+    at [§ 2s.3](VALIDATION.md#-2s3--the-exit-layouts-fit-drops-the-rim-off-the-axis). `fitZernike` keeps samples inside ρ ≤ 1 + 1e-9, and the
+    exit coordinate is read against the AXIAL aperture sine; off the axis the
+    traced rim is no longer that circle, so four of a 21-sample trace's 313 land
+    just outside — 1.3e-9 out at 1e-6 mm, 6.4e-4 at 0.8 mm — and leave the fit
+    at every field but zero. On the rim DIN 4×/0.10 Z4 steps −3.248e-5 waves
+    between 1e-8 and 1e-6 mm and stays (−2.6e-5 telecentric), so § 6m.4's ×4 per
+    doubling reads 3.886 against the axis and 4.00 against a tile 1e-4 mm out.
+    The aim layout lays the rim at ρ = 1 exactly and never sees it. Every
+    off-axis exit-layout fit in the ladder carries it. *What would pin it:* the
+    fit's domain taken from the traced rim (`exitRim`) rather than the unit
+    circle, or every traced sample kept — the step must then vanish to the f64
+    floor — and the ladder's off-axis exit readings re-run to see what moves.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;

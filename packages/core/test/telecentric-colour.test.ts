@@ -149,12 +149,22 @@ const fresnelTransmittance = (nm: number): number => {
   return (1 - ((n - 1) / (n + 1)) ** 2) ** 2;
 };
 
+/**
+ * § 2s: every tile and plane here is the aim layout's, by name. § 6an's ruler is
+ * the paraxial reference sphere — the pole the pixel walks through, an object
+ * pixel exactly ∝ λ — and the exit layout's is the traced aperture sine, which
+ * carries the lens's lateral colour (0.15% off ∝ λ across the band) and has no
+ * pole. The honest band is pinned on the same tiles, so it is that layout's too.
+ */
+const AIM = { layout: "aim" } as const;
+
 const tileAt = (nm: number, system: OpticalSystem = TELECENTRIC) =>
   objectFieldTile(system, {
     size: SIZE,
     pupilSamples: PUPIL_SAMPLES,
     wavelengthNm: nm,
     centreMm: ORIGIN,
+    ...AIM,
   });
 
 const planeAt = (specimen: SpectralSpecimen, nm: number, system: OpticalSystem = TELECENTRIC) =>
@@ -168,6 +178,7 @@ const planeAt = (specimen: SpectralSpecimen, nm: number, system: OpticalSystem =
       samples: [{ nm, weight: 1 }],
       map: "uniform",
       patches: 1,
+      ...AIM,
     },
     { nm, weight: 1 },
     ORIGIN,
@@ -191,6 +202,7 @@ const stackOver = (
     samples,
     map: "uniform",
     patches: 1,
+    ...AIM,
   });
 
 /** 31 wavelengths of an equal-energy lamp across the honest band. */

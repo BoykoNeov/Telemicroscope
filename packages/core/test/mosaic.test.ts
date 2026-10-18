@@ -384,6 +384,17 @@ const TELECENTRIC: OpticalSystem = finiteConjugateMicroscope({
   objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
 }).system;
 
+/**
+ * § 2s: what this file reads off a tile's OWN ruler asks for the aim layout by
+ * name — the pitch drift (§ 6o.6), the seam (§ 6o.7) and the re-anchoring cost
+ * (§ 6o.8). That ruler is the paraxial reference sphere at the tile's centre,
+ * and it drifts with field; the exit layout's is the traced aperture sine read
+ * on the axis (§ 2i), so every tile reads the anchor's and the drift is exactly
+ * 0 (§ 2r.3). The identities in between hold on either layout and are read on
+ * the default.
+ */
+const AIM = { layout: "aim" } as const;
+
 const layoutOf = (over: Partial<Parameters<typeof mosaicLayout>[1]> = {}) =>
   mosaicLayout(SYSTEM, {
     tiles: 2,
@@ -462,6 +473,7 @@ describe("§ 6o.6 — a mosaic's pitch is not its tile span, and the solve is sk
         pupilSamples: TILE_PS,
         guardCells: 4,
         wavelengthNm: LAMBDA,
+        ...AIM,
       }),
     );
     for (let i = 1; i < drifts.length; i++) expect(drifts[i]!).toBeGreaterThan(drifts[i - 1]!);
@@ -487,6 +499,7 @@ describe("§ 6o.6 — a mosaic's pitch is not its tile span, and the solve is sk
         pupilSamples: TILE_PS,
         guardCells: 4,
         wavelengthNm: LAMBDA,
+        ...AIM,
       }),
     );
     const departure = drifts.slice(1).map((_, i) => {
@@ -508,11 +521,13 @@ describe("§ 6o.6 — a mosaic's pitch is not its tile span, and the solve is sk
       size: SIZE,
       pupilSamples: TILE_PS,
       wavelengthNm: LAMBDA,
+      ...AIM,
     }).scale.referenceRadius;
     const telecentricScale = objectFieldFrame(TELECENTRIC, {
       size: SIZE,
       pupilSamples: TILE_PS,
       wavelengthNm: LAMBDA,
+      ...AIM,
     }).scale.referenceRadius;
     // The magnitude ratio IS the pupil ratio squared, and it is sharpest at the
     // near end for the same reason the departure above is smallest there.
@@ -576,6 +591,7 @@ describe("§ 6o.7 — composed on a traced objective, and the seam it makes", ()
       guardCells,
       wavelengthNm: LAMBDA,
       centreMm,
+      ...AIM,
     } as const;
     const l = mosaicLayout(SYSTEM, options);
     const specimen = bars(8 * l.objectPixelScaleMm);
@@ -586,6 +602,7 @@ describe("§ 6o.7 — composed on a traced objective, and the seam it makes", ()
       size: SIZE,
       pupilSamples: TILE_PS,
       wavelengthNm: LAMBDA,
+      ...AIM,
       centreMm: { x: (tile0.centreMm.x + l.tiles[1]!.frame.centreMm.x) / 2, y: tile0.centreMm.y },
     });
     const truth = renderBrightfield(
@@ -850,7 +867,7 @@ describe("§ 6o.8 — the anchored tile, and rendering one alone", () => {
     // that has moved, and § 6m.4's ruler drifts by parts per million with field.
     //
     // Measured two ways, and they are two different sizes of mistake.
-    const axis = { ...stageOptions(1), centreMm: { x: 0, y: 0 } } as const;
+    const axis = { ...stageOptions(1), centreMm: { x: 0, y: 0 }, ...AIM } as const;
     const anchored = mosaicTileAt(SYSTEM, axis, 8, 0);
     const pxFrom = (centreMm: { x: number; y: number }, col: number): number =>
       Math.abs(

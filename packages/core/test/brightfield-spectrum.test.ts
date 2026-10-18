@@ -793,7 +793,15 @@ describe("§ 6r.9 — one condenser for every wavelength, and what that chooses"
     // The reason, stated as a test rather than as prose: with the stop in object
     // space the illumination direction it defines is the same at every λ, to the
     // last bit, at a field where there is something to be the same about.
-    const offsets = [450, 550, LINE_D, 650].map((nm) => illuminationOffset(DIN_4X, 2.25, nm));
+    //
+    // § 2s: on the aim layout, by name — its coordinate is a slope over the
+    // aimer's span, and both are the stop's. The direction is the same on the
+    // exit layout too, but its coordinate there is n·L over the frame's ruler
+    // ν = |M|·n′·σ, which carries the lens's lateral colour: 0.49438 at 450 nm
+    // and 0.49419 at 550.
+    const offsets = [450, 550, LINE_D, 650].map((nm) =>
+      illuminationOffset(DIN_4X, 2.25, nm, { layout: "aim" }),
+    );
     for (const o of offsets) expect(o).toBe(offsets[0]!);
     expect(offsets[0]!).toBeGreaterThan(0.4);
   });

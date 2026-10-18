@@ -3729,6 +3729,17 @@ recording them:
    seams the physics does not have. `abbeImage` normalizes the source weights to
    Σ = 1, so a clear field is intensity 1 whatever the condenser does, and the
    whole plane shares one reference.
+4. **It stays on the aim layout, by name** ([§ 2s](VALIDATION.md#step-2s--the-default-itself-for-finite-conjugates)). When the default flipped
+   for finite conjugates the stage was the one surface that would have moved on
+   the layout alone, and a mosaic is the chain where the layout alone is wrong:
+   on the exit layout a tile's outline changes with field, the point-sampled
+   rim's error stops cancelling at the seams, and § 2r's trial measured the
+   brightness step there doubling (1.34e-2 against 6.7e-3). The engine's mosaic
+   chain took the located rim with it, at 3.8× a tile (§ 2r.1). **Open:** the
+   stage on the exit layout and the located rim — a measured cost per tile
+   against the ~45 ms above, and the goldens re-recorded with the cause. Until
+   then `STAGE_LAYOUT` in `stage.ts` says `"aim"`, and the pictures are
+   unchanged.
 
 The original scope follows, unchanged.
 

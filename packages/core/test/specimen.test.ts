@@ -98,8 +98,17 @@ const tag = (system: OpticalSystem): string => (system === SYSTEM ? "backFocal" 
 const departureAt = (system: OpticalSystem, h: number): number =>
   imageRadiusForObjectHeight(system, h, LAMBDA) - Math.abs(frameOf(system).magnification) * h;
 
+/**
+ * § 2s: every frame and tile here is the aim layout's, by name. This file reads
+ * the map in TILE PIXELS — a bow, a second difference, a miss — and a pixel is
+ * the ruler's: on the aim layout the paraxial reference sphere at the tile's own
+ * centre, on the exit layout the traced aperture sine read on the axis. The map
+ * is the lens's on either; the pixel counts it is pinned in are this layout's.
+ */
+const AIM = { layout: "aim" } as const;
+
 const frameOf = (system: OpticalSystem, size = SIZE, pupilSamples = PUPIL_SAMPLES) =>
-  objectFieldFrame(system, { size, pupilSamples, wavelengthNm: LAMBDA });
+  objectFieldFrame(system, { size, pupilSamples, wavelengthNm: LAMBDA, ...AIM });
 
 /** Tiles are traced to build, and the rungs below share theirs. */
 const TILES = new Map<string, ObjectFieldFrame>();
@@ -118,6 +127,7 @@ const tileAt = (
       pupilSamples,
       wavelengthNm: LAMBDA,
       centreMm: { x, y },
+      ...AIM,
     });
     TILES.set(key, tile);
   }

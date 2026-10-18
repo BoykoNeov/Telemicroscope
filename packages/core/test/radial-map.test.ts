@@ -16,6 +16,7 @@ import { brightfieldSpectralStack } from "../src/imaging/brightfield-spectrum";
 import { diskSource } from "../src/illumination/source";
 import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/designs/microscope";
 import type { OpticalSystem } from "../src/trace/system";
+import type { PupilLayout } from "../src/wave/psf";
 
 /**
  * § 6s — the radial map, tabulated.
@@ -78,12 +79,13 @@ const RIM_SYSTEM: OpticalSystem = finiteConjugateMicroscope({
  */
 const FLOOR_NODES = 192;
 
-const tileAt = (x: number, y: number, size = 64, pupilSamples = 32): ObjectFieldFrame =>
+const tileAt = (x: number, y: number, size = 64, pupilSamples = 32, layout?: PupilLayout): ObjectFieldFrame =>
   objectFieldTile(SYSTEM, {
     size,
     pupilSamples,
     wavelengthNm: LAMBDA,
     centreMm: { x, y },
+    ...(layout === undefined ? {} : { layout }),
   });
 
 /** A specimen with structure on the scale the objective resolves. */
@@ -169,7 +171,11 @@ describe("§ 6s.1 — the map is odd, so the axis is exact rather than special",
 /* ── § 6s.2 — the order, against Lagrange's remainder ─────────────────────── */
 
 describe("§ 6s.2 — the interpolation error falls as the fourth power of the spacing", () => {
-  const frame = tileAt(2, 0);
+  // § 2s: the tile is the aim layout's, by name. Its span sets the radii the
+  // ladder below is read at, and the rounding floor is pinned at THOSE radii —
+  // the exit layout's ruler gives a different span and the floor there reads
+  // 11.1 ulp of the object height rather than under 10. The order is unmoved.
+  const frame = tileAt(2, 0, 64, 32, "aim");
   const span = radialMapCovering(SYSTEM, [frame], { nodes: 8 }).maxRadiusMm;
   const radii = tileRadii(frame);
   const exact = radii.map((r) => objectHeightForImageRadius(SYSTEM, r, LAMBDA, {}));

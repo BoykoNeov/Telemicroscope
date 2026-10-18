@@ -13,6 +13,7 @@ import {
   illuminationOffset,
   imageRadiusForObjectHeight,
   objectFieldTile,
+  pupilDirectionMap,
   pupilSlopeFrame,
   tracedPupil,
 } from "../src/imaging/object-field";
@@ -93,8 +94,18 @@ import { abbeImage, cosineGratingObject } from "../src/illumination/abbe";
  *    saying `coarse` (§ 6ag.5).
  *
  * What does NOT move is the cone's own weight spread - 1.3% on axis to 11.3% at
- * the edge - because that is the condenser's aberration and the objective has no
+ * the edge - ~~because that is the condenser's aberration~~ and the objective has no
  * say in it. The spread rungs below are read once for that reason.
+ *
+ * **§ 2s.2: on the axis that spread is not the condenser's — it is this file's
+ * coordinate.** A slope is not a sine, and the diaphragm's area per unit of
+ * slope² is its area per unit of sine² times N⁴ (N the ray's direction cosine
+ * along the axis). An aplanatic condenser lights the sine uniformly, so in
+ * slopes its weights spread by 1/N⁴ − 1 across the cone: 1.298% of the 1.323%
+ * on the axis, leaving 2.4e-4 — which is what the exit layout, whose coordinate
+ * IS the sine, reads (2.38e-4). Off axis the taper is the condenser's: 10.57% of
+ * the field edge's 11.3% survives on the exit layout. The last rung of this file
+ * pins all of it.
  */
 
 const L = 587.5618;
@@ -310,6 +321,20 @@ function contrastAt(intensity: Float64Array, n: number, kx: number): number {
   return (2 * Math.hypot(re, im)) / (n * n) / mean;
 }
 
+/**
+ * § 2s: everything here is the aim layout's, by name — the cone, the tiles it
+ * lights and the offset it is centred on. This file's subject is that layout's
+ * CURRENCY: § 6ag.3's pupil coordinate is the aimer's, a slope, and every weight
+ * below is the diaphragm's area per unit of it. The exit layout's coordinate is
+ * the optical direction sine instead (§ 2n), and what the weights read in it is
+ * § 2s's own rung at the end of the file.
+ */
+const AIM = { layout: "aim" } as const;
+
+/** `tracedCondenserCone` on the aim layout — every cone in this file. */
+const aimCone = (...[system, rev, h, options]: Parameters<typeof tracedCondenserCone>) =>
+  tracedCondenserCone(system, rev, h, { ...options, ...AIM });
+
 /** The tile at object height `h`, and the pupil its centre looks through. */
 function tileAt(system: ReturnType<typeof din4x>, h: number, pupilSamples = PS, size = SIZE) {
   const frame = objectFieldTile(system, {
@@ -317,6 +342,7 @@ function tileAt(system: ReturnType<typeof din4x>, h: number, pupilSamples = PS, 
     pupilSamples,
     wavelengthNm: L,
     centreMm: { x: imageRadiusForObjectHeight(system, h, L), y: 0 },
+    ...AIM,
   });
   return {
     frame,
@@ -357,7 +383,7 @@ describe("§ 6ag.1 — the construction runs BACKWARDS, and that is what makes i
     // a property of the thing that ships.
     const c = abbeCondenser({ numericalAperture: 0.1 });
     const rev = reverseCondenser(c, L);
-    const cone = tracedCondenserCone(system, rev, FIELD_EDGE, {
+    const cone = aimCone(system, rev, FIELD_EDGE, {
       pupilSamples: PS,
       apertureFraction: APERTURE,
     });
@@ -378,13 +404,13 @@ describe("§ 6ag.1 — the construction runs BACKWARDS, and that is what makes i
     // `latticeDiskSource`'s "S → 0 becomes `coherentSource` without a special
     // case", reached here through a trace.
     expect(() =>
-      tracedCondenserCone(system, rev, FIELD_EDGE, {
+      aimCone(system, rev, FIELD_EDGE, {
         pupilSamples: PS,
         stepMultiple: 64,
         apertureFraction: 0.02,
       }),
     ).toThrow(/landed no point inside a diaphragm/);
-    const degenerate = tracedCondenserCone(system, rev, 0, {
+    const degenerate = aimCone(system, rev, 0, {
       pupilSamples: PS,
       stepMultiple: 64,
       apertureFraction: 0.02,
@@ -392,10 +418,10 @@ describe("§ 6ag.1 — the construction runs BACKWARDS, and that is what makes i
     expect(degenerate.points.length).toBe(1);
     expect(degenerate.points[0]).toEqual({ sx: 0, sy: 0, weight: 1 });
     expect(() =>
-      tracedCondenserCone(system, rev, 0, { pupilSamples: 24, apertureFraction: APERTURE }),
+      aimCone(system, rev, 0, { pupilSamples: 24, apertureFraction: APERTURE }),
     ).toThrow(/power of two/);
     expect(() =>
-      tracedCondenserCone(system, rev, 0, { pupilSamples: PS, apertureFraction: 1.5 }),
+      aimCone(system, rev, 0, { pupilSamples: PS, apertureFraction: 1.5 }),
     ).toThrow(/cannot be opened past its own engraved NA/);
   });
 });
@@ -453,11 +479,11 @@ describe("§ 6ag.3 — CURRENCY: the pupil coordinate is a tangent, and a sine n
     // The refactor that exported the frame must not have moved § 6x.1's pin.
     for (const h of [0.25, 1, FIELD_EDGE]) {
       const frame = pupilSlopeFrame(system, h, L);
-      expect(illuminationOffset(system, h, L)).toBe(frame.pupilOf(0));
+      expect(illuminationOffset(system, h, L, AIM)).toBe(frame.pupilOf(0));
     }
     // …and the telecentric/on-axis zero stays a bitwise zero, which is what lets
     // `translateSource` return its input object (§ 6x).
-    expect(illuminationOffset(system, 0, L)).toBe(0);
+    expect(illuminationOffset(system, 0, L, AIM)).toBe(0);
 
     // **THE MOST DIRECT MEASUREMENT OF TELECENTRICITY IN THIS BRANCH.** On the
     // shipped objective that zero is not the on-axis case, it is every case: the
@@ -471,10 +497,10 @@ describe("§ 6ag.3 — CURRENCY: the pupil coordinate is a tangent, and a sine n
     // cone rung in this file is reading.
     const tele = teleDin4x();
     for (const h of [0, 0.25, 1, FIELD_EDGE, 3.2]) {
-      expect(illuminationOffset(tele, h, L)).toBe(0);
+      expect(illuminationOffset(tele, h, L, AIM)).toBe(0);
     }
-    expect(illuminationOffset(system, 0.25, L)).toBeCloseTo(5.434e-2, 5);
-    expect(illuminationOffset(system, 3.2, L)).toBeCloseTo(0.6956, 3);
+    expect(illuminationOffset(system, 0.25, L, AIM)).toBeCloseTo(5.434e-2, 5);
+    expect(illuminationOffset(system, 3.2, L, AIM)).toBeCloseTo(0.6956, 3);
   });
 
   it("THE MEASUREMENT: closing the aperture reaches the TANGENT ratio as NA³, and the sine ratio never", () => {
@@ -536,11 +562,14 @@ describe("§ 6ag.4 — THE FINDING: the condenser's aberration lands in the WEIG
     const rev = reverseCondenser(c, L);
     const spreads = [0, 1, FIELD_EDGE].map(
       (h) =>
-        tracedCondenserCone(system, rev, h, {
+        aimCone(system, rev, h, {
           pupilSamples: PS,
           apertureFraction: APERTURE,
         }).weightSpread,
     );
+    // § 2s.2: ~~the condenser's spherical~~ — 1.298% of the 1.32% is the slope
+    // coordinate's own 1/N⁴ − 1; the condenser's is 2.4e-4. The 4.95% and 11.3%
+    // off axis are 4.82% and 10.57% on the exit layout: the taper is real.
     expect(spreads[0]!).toBeCloseTo(0.0132, 3);
     expect(spreads[1]!).toBeCloseTo(0.0495, 3);
     expect(spreads[2]!).toBeCloseTo(0.113, 2);
@@ -663,9 +692,14 @@ describe("§ 6ag.4 — THE FINDING: the condenser's aberration lands in the WEIG
     // is meant: a max/min ratio is not an aberration coefficient, so the measured
     // per-halving factors are 4.26 and 4.70 rather than 4.00, and pinning them as
     // 4 exactly would be pinning a coincidence.
+    //
+    // § 2s.2: ~~the aberration-free limit~~ — what vanishes here as NA² is the
+    // slope coordinate's 1/N⁴ − 1 ≈ 2·NA², 2.038% of the 2.084% at NA 0.10, and
+    // the 4.26 and 4.70 are where the lattice cuts each cone's rim. The
+    // condenser's own spread is 4.5e-4 at NA 0.10 and 7.5e-5 at 0.05.
     const spreads = [0.1, 0.05, 0.025].map((na) => {
       const cc = abbeCondenser({ numericalAperture: na });
-      return tracedCondenserCone(system, reverseCondenser(cc, L), 0, {
+      return aimCone(system, reverseCondenser(cc, L), 0, {
         pupilSamples: 128,
         stepMultiple: 4,
         apertureFraction: 1,
@@ -755,6 +789,7 @@ describe("§ 6ag.5 — the coupling is ONE knob, and the failure mode is discret
         pupilSamples: ps,
         wavelengthNm: L,
         centreMm: { x: 0, y: 0 },
+        ...AIM,
       });
       return SIZE * frame.objectPixelScaleMm * (2 / ps);
     });
@@ -764,7 +799,7 @@ describe("§ 6ag.5 — the coupling is ONE knob, and the failure mode is discret
     // And the two feasibility sizes § 6af quoted are exactly these two rows.
     const span = (ps: number) =>
       SIZE *
-      objectFieldTile(system, { size: SIZE, pupilSamples: ps, wavelengthNm: L, centreMm: { x: 0, y: 0 } })
+      objectFieldTile(system, { size: SIZE, pupilSamples: ps, wavelengthNm: L, centreMm: { x: 0, y: 0 }, ...AIM })
         .objectPixelScaleMm;
     expect(span(32)).toBeCloseTo(0.0935, 4);
     expect(span(128)).toBeCloseTo(0.3742, 4);
@@ -784,7 +819,7 @@ describe("§ 6ag.5 — the coupling is ONE knob, and the failure mode is discret
     const rows = [16, 32, 64].map((ps) => {
       const tile = tileAt(system, 1, ps);
       return [1, 2].map((m) => {
-        const cone = tracedCondenserCone(system, rev, 1, {
+        const cone = aimCone(system, rev, 1, {
           pupilSamples: ps,
           stepMultiple: m,
           apertureFraction: APERTURE,
@@ -831,7 +866,7 @@ describe("§ 6ag.5 — the coupling is ONE knob, and the failure mode is discret
     // backwards through the CONDENSER, so the objective's glass has no vote.
     const teleRows = [16, 32, 64].map(
       (ps) =>
-        tracedCondenserCone(teleDin4x(), reverseCondenser(c, L), 1, {
+        aimCone(teleDin4x(), reverseCondenser(c, L), 1, {
           pupilSamples: ps,
           stepMultiple: 1,
           apertureFraction: APERTURE,
@@ -848,21 +883,21 @@ describe("§ 6ag.5 — the coupling is ONE knob, and the failure mode is discret
   it("the verdict reports, and says which knob — never throws, and never assumes", () => {
     // `illumination/fidelity`'s convention: absent information reads `unknown`
     // rather than fine, and a verdict is a field a caller decides about.
-    const noTile = tracedCondenserCone(system, rev, 1, {
+    const noTile = aimCone(system, rev, 1, {
       pupilSamples: PS,
       apertureFraction: APERTURE,
     });
     expect(noTile.fidelity.verdict).toBe("unknown");
     expect(noTile.fidelity.reason).toMatch(/not measured/);
 
-    const narrow = tracedCondenserCone(system, rev, 1, {
+    const narrow = aimCone(system, rev, 1, {
       pupilSamples: PS,
       apertureFraction: APERTURE,
       tileHalfWidthMm: tileAt(system, 1, PS).halfWidthMm,
     });
     expect(narrow.fidelity.verdict).toBe("valid");
 
-    const wide = tracedCondenserCone(system, rev, 1, {
+    const wide = aimCone(system, rev, 1, {
       pupilSamples: 64,
       apertureFraction: APERTURE,
       tileHalfWidthMm: tileAt(system, 1, 64).halfWidthMm,
@@ -880,7 +915,7 @@ describe("§ 6ag.5 — the coupling is ONE knob, and the failure mode is discret
     // illuminate, this one can.
     const tele = teleDin4x();
     expect(
-      tracedCondenserCone(tele, reverseCondenser(c, L), 1, {
+      aimCone(tele, reverseCondenser(c, L), 1, {
         pupilSamples: 64,
         apertureFraction: APERTURE,
         tileHalfWidthMm: tileAt(tele, 1, 64).halfWidthMm,
@@ -902,11 +937,11 @@ describe("§ 6ag.5b — the three readouts that had to respond, and one that had
     // would point every tile's illumination asymmetry the same way. That is
     // `imaging/object-field`'s own named hazard, on the other side of the
     // specimen, and it is invisible to any fixture that only ever sits on +x.
-    const mer = tracedCondenserCone(system, rev, 1, {
+    const mer = aimCone(system, rev, 1, {
       pupilSamples: PS,
       apertureFraction: APERTURE,
     });
-    const quarter = tracedCondenserCone(system, rev, 1, {
+    const quarter = aimCone(system, rev, 1, {
       pupilSamples: PS,
       apertureFraction: APERTURE,
       azimuthRad: Math.PI / 2,
@@ -946,7 +981,7 @@ describe("§ 6ag.5b — the three readouts that had to respond, and one that had
   });
 
   it("…and an arbitrary azimuth stays on the lattice too, where turning the RESULT would not", () => {
-    const odd = tracedCondenserCone(system, rev, 1, {
+    const odd = aimCone(system, rev, 1, {
       pupilSamples: PS,
       apertureFraction: APERTURE,
       azimuthRad: 0.7,
@@ -971,11 +1006,11 @@ describe("§ 6ag.5b — the three readouts that had to respond, and one that had
     const bright = abbeCondenser({ numericalAperture: 0.3 });
     const brightRev = reverseCondenser(bright, L);
     expect(() =>
-      tracedCondenserCone(system, brightRev, 0, { pupilSamples: PS, apertureFraction: 1 }),
+      aimCone(system, brightRev, 0, { pupilSamples: PS, apertureFraction: 1 }),
     ).toThrow(/TRUNCATED cone/);
     // With room to hold it, the same cone builds — and reaches past 1, which is
     // what the default could not have covered.
-    const wide = tracedCondenserCone(system, brightRev, 0, {
+    const wide = aimCone(system, brightRev, 0, {
       pupilSamples: PS,
       apertureFraction: 1,
       reach: 4,
@@ -993,7 +1028,7 @@ describe("§ 6ag.5b — the three readouts that had to respond, and one that had
     // `intensityCutoff` and `weakObjectTransferDisk` both take an S, and a panel
     // would hand them this field.
     const half = abbeCondenser({ numericalAperture: 0.05 });
-    const cone = tracedCondenserCone(system, reverseCondenser(half, L), 0, {
+    const cone = aimCone(system, reverseCondenser(half, L), 0, {
       pupilSamples: PS,
       apertureFraction: 0.8,
       reach: 0.8,
@@ -1003,7 +1038,7 @@ describe("§ 6ag.5b — the three readouts that had to respond, and one that had
     expect(cone.coherenceParameter).toBeCloseTo(0.398493, 6);
     // And on the matched pair the two DO coincide, which is why the fixture
     // could not have caught it.
-    const matched = tracedCondenserCone(system, rev, 0, {
+    const matched = aimCone(system, rev, 0, {
       pupilSamples: PS,
       apertureFraction: APERTURE,
     });
@@ -1014,11 +1049,11 @@ describe("§ 6ag.5b — the three readouts that had to respond, and one that had
     // Before quoting what an option costs, check the readout moves when it is
     // set. Asking for a verdict runs the whole build twice more, and a `traces`
     // that counted only the centre build would have said the verdict was free.
-    const bare = tracedCondenserCone(system, rev, 1, {
+    const bare = aimCone(system, rev, 1, {
       pupilSamples: PS,
       apertureFraction: APERTURE,
     });
-    const judged = tracedCondenserCone(system, rev, 1, {
+    const judged = aimCone(system, rev, 1, {
       pupilSamples: PS,
       apertureFraction: APERTURE,
       tileHalfWidthMm: tileAt(system, 1, PS).halfWidthMm,
@@ -1041,7 +1076,7 @@ describe("§ 6ag.6 — § 6p's cache SURVIVES the traced cone, which the deferra
     // So `abbeImage`'s `latticeOffset` precondition holds off axis, where
     // `translateSource` cannot make it hold at all.
     for (const h of [0, 0.5, 1, FIELD_EDGE]) {
-      const cone = tracedCondenserCone(system, rev, h, {
+      const cone = aimCone(system, rev, h, {
         pupilSamples: PS,
         apertureFraction: APERTURE,
       });
@@ -1062,7 +1097,7 @@ describe("§ 6ag.6 — § 6p's cache SURVIVES the traced cone, which the deferra
     // half-steps, and it is right to. This construction never needed it to be.
     const tile = tileAt(system, FIELD_EDGE);
     const opts = { pupilSamples: PS, scale: tile.frame.scale };
-    const cone = tracedCondenserCone(system, rev, tile.patch.objectHeightMm, {
+    const cone = aimCone(system, rev, tile.patch.objectHeightMm, {
       pupilSamples: PS,
       apertureFraction: APERTURE,
     });
@@ -1104,7 +1139,7 @@ describe("§ 6ag.6 — § 6p's cache SURVIVES the traced cone, which the deferra
     // shared `pupilLattice` field would otherwise imply the opposite.
     const tile = tileAt(system, 0);
     const opts = { pupilSamples: PS, scale: tile.frame.scale };
-    const cone = tracedCondenserCone(system, rev, 0, {
+    const cone = aimCone(system, rev, 0, {
       pupilSamples: PS,
       apertureFraction: APERTURE,
     });
@@ -1127,7 +1162,7 @@ describe("§ 6ag.7 — the seam, and the composition it must refuse", () => {
 
   it("a traced cone REPLACES the source, and reproduces `abbeImage` through it exactly", () => {
     const tile = tileAt(system, 1);
-    const cone = tracedCondenserCone(system, rev, tile.patch.objectHeightMm, {
+    const cone = aimCone(system, rev, tile.patch.objectHeightMm, {
       pupilSamples: PS,
       apertureFraction: APERTURE,
     });
@@ -1162,7 +1197,7 @@ describe("§ 6ag.7 — the seam, and the composition it must refuse", () => {
     // them again double-counts § 6x — and the result is a perfectly plausible
     // picture of the wrong illumination. Nothing downstream could see it.
     const tile = tileAt(system, 1);
-    const cone = tracedCondenserCone(system, rev, tile.patch.objectHeightMm, {
+    const cone = aimCone(system, rev, tile.patch.objectHeightMm, {
       pupilSamples: PS,
       apertureFraction: APERTURE,
     });
@@ -1259,7 +1294,7 @@ describe("§ 6ag.9 — composed on the traced objective", () => {
     const size = 128;
     const grating = cosineGratingObject({ size, cycles: 8, modulation: 0.6 });
     const tile = tileAt(system, 1, ps, size);
-    const cone = tracedCondenserCone(system, rev, tile.patch.objectHeightMm, {
+    const cone = aimCone(system, rev, tile.patch.objectHeightMm, {
       pupilSamples: ps,
       apertureFraction: APERTURE,
       tileHalfWidthMm: tile.halfWidthMm,
@@ -1285,9 +1320,88 @@ describe("§ 6ag.9 — composed on the traced objective", () => {
     expect(cone.fidelity.verdict).toBe("valid");
     expect(rendered.contributingPoints).toBe(cone.points.length);
     // The pupil the tile traced is the one that was used.
-    expect(tracedPupil(system, tile.patch.objectHeightMm, L).rmsWaves).toBeCloseTo(
+    expect(tracedPupil(system, tile.patch.objectHeightMm, L, AIM).rmsWaves).toBeCloseTo(
       tile.patch.rmsWaves,
       12,
     );
+  });
+});
+
+/* ── § 2s.2 — the spread on the axis is the coordinate's ─────────────────── */
+
+describe("§ 2s.2 — the cone's weights, in the sine the exit layout is linear in", () => {
+  const system = din4x();
+
+  /**
+   * The aim cone's spread, split into its coordinate's share and the rest.
+   *
+   * A lattice point's weight is the diaphragm's area per unit of pupil
+   * coordinate². On the aim layout that coordinate is a slope (p, q), and
+   * ∂(L, M)/∂(p, q) = N⁴ for direction cosines L, M, N — an identity, not a fit.
+   * So weight/N⁴ is the area per unit of direction sine², which an aplanatic
+   * condenser makes uniform; its spread is what is left of the condenser.
+   */
+  const split = (na: number, h: number, options: { pupilSamples: number; apertureFraction: number; stepMultiple?: number; reach?: number }) => {
+    const rev = reverseCondenser(abbeCondenser({ numericalAperture: na }), L);
+    const aim = aimCone(system, rev, h, options);
+    const slopes = pupilDirectionMap(system, h, L, AIM);
+    let nLo = Infinity;
+    let nHi = 0;
+    let rLo = Infinity;
+    let rHi = 0;
+    for (const p of aim.points) {
+      const [sx, sy] = slopes.slopesOf(p.sx, p.sy)!;
+      const n4 = (1 + sx * sx + sy * sy) ** -2;
+      nLo = Math.min(nLo, n4);
+      nHi = Math.max(nHi, n4);
+      rLo = Math.min(rLo, p.weight / n4);
+      rHi = Math.max(rHi, p.weight / n4);
+    }
+    const exit = tracedCondenserCone(system, rev, h, { ...options, layout: "exit" });
+    return { aim: aim.weightSpread, coordinate: nHi / nLo - 1, rest: rHi / rLo - 1, exit: exit.weightSpread };
+  };
+
+  it("on the axis the slope's 1/N⁴ − 1 is 98% of it, and what is left is the exit layout's", () => {
+    // On the axis both factors are radial and both are extreme at the centre and
+    // the rim, so the spreads multiply: (1 + 1.2984e-2)(1 + 2.43e-4) = 1 + 1.3230e-2.
+    const s = split(0.1, 0, { pupilSamples: PS, apertureFraction: APERTURE });
+    expect(s.aim).toBeCloseTo(1.3230e-2, 6);
+    expect(s.coordinate).toBeCloseTo(1.2984e-2, 6);
+    expect((1 + s.coordinate) * (1 + s.rest) - 1).toBeCloseTo(s.aim, 12);
+    expect(s.coordinate / s.aim).toBeGreaterThan(0.98);
+    // The rest IS the exit layout's reading, on a lattice that is not the same one.
+    expect(s.rest).toBeCloseTo(2.43e-4, 6);
+    expect(s.exit).toBeCloseTo(2.379e-4, 6);
+    expect(Math.abs(s.rest / s.exit - 1)).toBeLessThan(3e-2);
+  });
+
+  it("the control's NA² was the coordinate's: the condenser is 4.5e-4 at NA 0.10", () => {
+    const control = (na: number) =>
+      split(na, 0, { pupilSamples: 128, stepMultiple: 4, apertureFraction: 1, reach: 1.3 * (na / 0.1) });
+    const wide = control(0.1);
+    expect(wide.aim).toBeCloseTo(2.084e-2, 4);
+    expect(wide.coordinate).toBeCloseTo(2.038e-2, 4);
+    expect(wide.exit).toBeCloseTo(4.514e-4, 6);
+    expect(Math.abs(wide.rest / wide.exit - 1)).toBeLessThan(1e-2);
+    const half = control(0.05);
+    expect(half.exit).toBeCloseTo(7.46e-5, 6);
+    expect(Math.abs(half.rest / half.exit - 1)).toBeLessThan(5e-2);
+    // Two orders under the slope's own spread at both apertures.
+    expect(wide.coordinate / wide.exit).toBeGreaterThan(40);
+    expect(half.coordinate / half.exit).toBeGreaterThan(60);
+  });
+
+  it("off axis the taper is the condenser's: 10.6% of the field edge's 11.3% survives", () => {
+    // The coordinate's share stays ~1.3–1.4% at every field — the cone's own
+    // angular size — while the one-sided taper grows with h, so the finding
+    // § 6ag.4 is about survives the change of currency where it was measured.
+    const at1 = split(0.1, 1, { pupilSamples: PS, apertureFraction: APERTURE });
+    const edge = split(0.1, FIELD_EDGE, { pupilSamples: PS, apertureFraction: APERTURE });
+    expect(at1.exit).toBeCloseTo(4.822e-2, 5);
+    expect(edge.exit).toBeCloseTo(0.10572, 5);
+    expect(edge.coordinate).toBeLessThan(1.5e-2);
+    expect(edge.exit / edge.aim).toBeGreaterThan(0.93);
+    expect(Math.abs(edge.rest / edge.exit - 1)).toBeLessThan(2e-2);
+    expect(Math.abs(at1.rest / at1.exit - 1)).toBeLessThan(2e-2);
   });
 });

@@ -265,7 +265,9 @@ describe("§ 2n.2 — a direction sits at its optical sine", () => {
     expect(gap(r, 0.25) / gap(r, 0.01)).toBeGreaterThan(400);
     // …and against the aim coordinate it is 1/cos-ish wrong at FIRST order: the
     // oil's offset is 1.759× the aim's on the axis' doorstep.
-    expect(illuminationOffset(o, 1e-4, L, { layout: "exit" }) / illuminationOffset(o, 1e-4, L)).toBeCloseTo(1.759, 3);
+    expect(
+      illuminationOffset(o, 1e-4, L, { layout: "exit" }) / illuminationOffset(o, 1e-4, L, { layout: "aim" }),
+    ).toBeCloseTo(1.759, 3);
   });
 
   it("an object-space telecentric objective's offset is the f64 zero on both layouts", () => {

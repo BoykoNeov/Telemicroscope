@@ -40,6 +40,7 @@ whole ladder.
 | [2p](#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone) | Single-plane fluorescence flips by its frame: a plane's light is the emitter's collected cone, 2/(1 + cos u) of the paraxial share, to 3e-4 | `throughput-units` |
 | [2q](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout) | Stale cache; pixel peak; staircase rim; counted edge; ringless rim; flip; re-asked rim. Keyed; interpolated; resolved; located; slid; restated; laid once | `aperture-sine-key`, `band-limited-peak`, `edge-*`, `exit-density-rim` |
 | [2r](#step-2r--the-mosaic-chain-on-the-exit-layout) | Sweep rim per stage; mosaic chain flipped; field seam. Laid once; 28 reversed; the aim ruler's, 0 on exit | `sweep-plan`, `field-seam-zero` |
+| [2s](#step-2s--the-default-itself-for-finite-conjugates) | Mosaic drops its layout; condenser spread; exit fit's rim. Forwarded; the slope's 1/N⁴, not the condenser; four samples dropped (item 42) | `mosaic-layout`, `condenser-source`, `object-field` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -5394,6 +5395,123 @@ layout's, the same field to 0.8%.
 - **The default itself.** Every chain now names its layout; flipping
   `defaultPupilLayout` for finite conjugates is the run that finds what still
   reads it.
+
+## Step 2s — the default itself, for finite conjugates
+
+Source: engine change — `mosaicLayout`, `mosaicTileAt` and the spectral mosaic forward the `layout` they are asked for to their tile frames (`imaging/mosaic.ts`, `mosaic-spectrum.ts`)
+· Tests: § 2s.1 in `packages/core/test/mosaic-layout.test.ts`; § 2s.2 in `condenser-source.test.ts`; § 2s.3 in `object-field.test.ts`; the pins in the fourteen files named below and `packages/app/src/stage.ts`
+
+Register item 24's last entry: every chain now names its layout (§ 2r.3), so
+flipping `defaultPupilLayout` at a finite conjugate is the run that finds what
+still reads it. The trial flip, over the whole suite: **49 readings in 17 files**
+and both of the app's stage goldens moved; 4 042 others did not.
+
+**Hypothesis.** What moves is of two kinds: a reading that IS the aim layout's
+own ruler — a closed form in the paraxial R and r_exit, the telecentric pole,
+the ruler a tile reads at its own centre and what drifts with it, an offset
+written as h/R_ep — which is pinned to that layout by name, as § 2r.3 pinned the
+seam chain; and a reading of the optics, restated on the exit layout. **Refuted
+by** a reading pinned to the aim layout by name that still moves under the
+trial flip — it would be reading the default somewhere it was not asked — or a
+reading of the optics that only the aim layout's coordinate carried.
+
+Both happened, once each: § 2s.1 is the first, § 2s.2 the second.
+
+Pinned to the aim layout by name, each with its reason in the file and the
+exit layout's reading beside it where one was measured:
+
+| File | Readings | Why they are the aim layout's |
+|---|---|---|
+| `object-field` | § 6h, § 6m — every frame and tile | the ruler pupilSamples·λ·R/(4·n′·r_exit), a tile's own R, its drift and round trips |
+| `specimen` | § 6n — every frame and tile | the map read in tile pixels, which are the ruler's |
+| `mosaic` | § 6o.6–§ 6o.8 | pitch drift, seam, re-anchoring: a tile's own ruler, 0 on exit (§ 2r.3) |
+| `mosaic-spectrum` | § 6t.3 | a pixel ∝ λ is the paraxial ruler's; the exit one carries lateral colour (2.41e-3) |
+| `radial-map` | § 6s.2's tile | the rounding floor at that tile's radii (11.1 ulp on exit's) |
+| `condenser-source` | § 6ag, every cone and tile | the slope currency § 6ag.3 is about — and § 2s.2 |
+| `telecentric-illumination`, `-din` | § 6x.1, § 6ae.7 | h/R_ep is the aim coordinate's offset (0.2198/mm on exit, 0.21736 here) |
+| `telecentric-image` | § 6ak.5 | the reference sphere's pole and drift |
+| `telecentric-colour`, `-achromat`, `-apochromat` | § 6an, § 6ap, § 6aq.8 | the object-side ruler ∝ λ and its poles; the bands read on it |
+| `brightfield-spectrum`, `brightfield-exit-layout` | § 6r.9, § 2n.2 | an offset that is a slope over the aimer's span |
+| app `stage.ts` | the stage, both goldens | a mosaic needs the located rim on exit (§ 2r); not costed for the app |
+
+### § 2s.1 — a mosaic's tiles take the layout they are asked for
+
+With the fourteen files pinned, the trial flip was run again over them, and
+§ 6o.6–§ 6o.8, § 6t.3 and the app's stage still moved — three of them refused
+outright: *"the frame's ruler was read on the "exit" layout and this pupil asks
+for "aim"*. `mosaicLayout`, `mosaicTileAt` and `spectralMosaicGeometry` built
+their tile frames from a hand-written list of the caller's options, and `layout`
+was not on it. A frame carries its layout and every pupil laid on it follows the
+frame, so the option was dropped for the whole tile — the frame took the default,
+the render asked its pupils for the named layout, and `fieldPupilAt` refused the
+pair. The fluorescence mosaic spreads its options whole and never dropped it, so
+§ 2r.2's flip is unaffected; and no caller had asked a brightfield mosaic for a
+layout before § 2s's own pins, so no recorded reading was mislabelled by it.
+
+**Hypothesis.** Forward `layout` and a tile from either module, in either layout,
+IS `objectFieldTile` at its centre in that layout. **Refuted by** any bit of
+difference, or by the two layouts' frames agreeing (an empty identity).
+
+- **Bitwise**, frame, scale, pixel and object centre, on every tile of a 3×3, an
+  indexed tile, and both planes of a two-λ spectral tile, aim and exit; the two
+  layouts' pixels differ.
+- **Rendered** in either layout, mono and spectral, with no refusal.
+- With the two lines removed, all three rungs fail — the first two on the
+  layout (`'aim'` for `'exit'`), the third on the refusal above.
+
+### § 2s.2 — the condenser's spread on the axis was the slope's
+
+§ 6ag's cone weights are the diaphragm's area per unit of pupil coordinate², and
+on the aim layout that coordinate is a slope. For direction cosines L, M, N,
+∂(L, M)/∂(p, q) = N⁴ — an identity — and an aplanatic condenser lights the
+SINE uniformly, so in slopes its weights spread by 1/N⁴ − 1 across the cone
+whatever the condenser does. The exit layout's coordinate is the sine (§ 2n).
+
+**Hypothesis.** § 6ag.4's on-axis spread is that Jacobian, and weight/N⁴ over the
+aim cone's own points reads what the exit layout reads. **Refuted by** a residue
+that disagrees with the exit cone's spread by more than their two lattices do.
+
+| | aim | 1/N⁴ − 1 | weight/N⁴ | exit |
+|---|---|---|---|---|
+| on axis, NA 0.10 at 0.8 | 1.3230e-2 | 1.2984e-2 | 2.43e-4 | 2.379e-4 |
+| § 6ag.4's control, NA 0.10 | 2.084e-2 | 2.038e-2 | 4.50e-4 | 4.514e-4 |
+| control, NA 0.05 | 4.89e-3 | 4.82e-3 | 7.2e-5 | 7.46e-5 |
+| 1 mm | 4.954e-2 | 1.33e-2 | 4.86e-2 | 4.822e-2 |
+| field edge, 2.25 mm | 0.1130 | 1.39e-2 | 0.1067 | 0.10572 |
+
+On the axis the two factors are radial and extreme at the same points, so they
+multiply: (1 + 1.2984e-2)(1 + 2.43e-4) = 1 + 1.3230e-2 to 1e-12. **So § 6ag's
+"the condenser's aberration lands in the weights" is reversed on the axis** —
+98% of the 1.3% is the coordinate, the condenser's is 2.4e-4 — and so is § 6ag.4's
+control: what vanished as NA² was 1/N⁴ − 1 ≈ 2·NA², and its 4.26 and 4.70 per
+halving are where the lattice cuts each rim. **Off the axis the finding stands:**
+the coordinate's share stays the cone's own 1.3–1.4%, and 10.57% of the field
+edge's 11.3% is the condenser's one-sided taper on either currency. Struck in
+place in the file's header and at both rungs.
+
+### § 2s.3 — the exit layout's fit drops the rim off the axis
+
+Source: measurement only — no engine change
+
+The field laws § 6h.4 and § 6m.4 pinned, read on the exit layout. **Hypothesis:**
+they hold as they do on the aim layout — coma h¹, astigmatism and field
+curvature h², ×4 per doubling to 1e-3. **Refuted by** an order or a ratio outside
+those bounds.
+
+Refuted, and not by the optics. Field curvature read against the axial frame
+goes 3.886, 3.970, 3.993 per doubling on the rim member: a constant −3.248e-5
+waves under every off-axis tile, there at 1e-6 mm and at 0.8 mm alike, and 0 at
+1e-8. The traced samples are continuous through it (1e-6 waves of tilt at
+1e-6 mm). `fitZernike` keeps samples inside ρ ≤ 1 + 1e-9; the exit coordinate is
+read against the AXIAL aperture sine; and off the axis the traced rim stops being
+that circle, so four of the 313 samples land just outside (1.3e-9 out at 1e-6 mm,
+6.4e-4 at 0.8 mm) and leave the fit. The aim layout lays the rim at ρ = 1 exactly
+and never sees it. Read against a tile 1e-4 mm out, which has lost the same four,
+the law is back to ×4 inside § 6m.4's own bounds on both members. Register item 42.
+
+What is left weakened: coma 1.0020 and astigmatism 1.977 on the rim member (aim
+1.00002 and 2.000), not split between the coordinate and the dropped rim; the
+axis's odd-term margin 161× and 488× (aim 183× and 886×), still two orders.
 
 ## Step 3a — the standard observer and thermal sources
 

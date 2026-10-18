@@ -905,7 +905,10 @@ describe("§ 6ak.4 — the refusal that had nothing to redirect to now has the s
 
 describe("§ 6ak.5 — the frame: a size where there was none, and a ruler that does not drift", () => {
   it("reports a pixel scale and a half-extent instead of a frame with no size", () => {
-    const frame = objectFieldFrame(finiteAt(FFD), { size: 32, pupilSamples: 16 });
+    // § 2s: these frames are the aim layout's, by name — § 6ak.1's ruler is the
+    // reference sphere and its pole, and the drift below is that sphere's. The
+    // exit layout reads the traced aperture sine on the axis: 0.0038821 mm here.
+    const frame = objectFieldFrame(finiteAt(FFD), { size: 32, pupilSamples: 16, layout: "aim" });
     expect(frame.scale.exitRadius).toBe(Infinity);
     expect(frame.pixelScaleMm).toBeCloseTo(0.003889124954857188, 15);
     expect(frame.halfExtentMm).toBeCloseTo(0.06222599927771501, 15);
@@ -932,13 +935,13 @@ describe("§ 6ak.5 — the frame: a size where there was none, and a ruler that 
     // sphere at all, so the drifting member drops out and the ruler is exact.
     // That is the textbook reason to build image-space telecentric in the first
     // place, measured here rather than quoted.
-    const finiteFrame = objectFieldFrame(finiteAt(20), { size: 32, pupilSamples: 16 });
+    const finiteFrame = objectFieldFrame(finiteAt(20), { size: 32, pupilSamples: 16, layout: "aim" });
     const dFinite = scaleDrift(finiteAt(20), finiteFrame);
     expect(dFinite.exitRadius).toBe(0);
     expect(dFinite.referenceRadius).toBeCloseTo(4.709261842705814e-7, 12);
     expect(dFinite.pixelScale).toBeCloseTo(4.709261842705814e-7, 12);
 
-    const telFrame = objectFieldFrame(finiteAt(FFD), { size: 32, pupilSamples: 16 });
+    const telFrame = objectFieldFrame(finiteAt(FFD), { size: 32, pupilSamples: 16, layout: "aim" });
     const dTel = scaleDrift(finiteAt(FFD), telFrame);
     expect(dTel.exitRadius).toBe(0);
     expect(dTel.pixelScale).toBe(0);

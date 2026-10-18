@@ -364,6 +364,11 @@ function closedFormTail(nm: number, stopToVertex: number = FFD_D) {
   return { f, ffd: M[3]! * f, frontFocus, backFocus, exitZ: backFocus + (f * f) / frontFocus };
 }
 
+/**
+ * § 2s: on the aim layout, by name — § 6aq.8 is read against § 6ap.2's band,
+ * which is that layout's (telecentric-achromat.test.ts). On the exit layout the
+ * triplet's step at 470 nm reads 0.014381 rather than 0.0144281.
+ */
 const planeAt = (nm: number, system: OpticalSystem = TELECENTRIC) =>
   formBrightfieldPlane(
     system,
@@ -375,6 +380,7 @@ const planeAt = (nm: number, system: OpticalSystem = TELECENTRIC) =>
       samples: [{ nm, weight: 1 }],
       map: "uniform",
       patches: 1,
+      layout: "aim",
     },
     { nm, weight: 1 },
     ORIGIN,

@@ -289,12 +289,20 @@ const SECOND_TELECENTRIC_NM = PLACED.telecentricWavelengthsNm.find(
 const TURN_NM = PLACED.turningPointsNm[0]!;
 const FFD_TURN = PLACED_TURN.stopToVertexMm;
 
+/**
+ * § 2s: every tile and plane here is the aim layout's, by name — § 6an's ruler and
+ * its poles, which this step walks through twice, and the band § 6an measured on
+ * it. The exit layout's ruler has no pole (see telecentric-colour.test.ts).
+ */
+const AIM = { layout: "aim" } as const;
+
 const tileAt = (nm: number, system: OpticalSystem = TELECENTRIC) =>
   objectFieldTile(system, {
     size: SIZE,
     pupilSamples: PUPIL_SAMPLES,
     wavelengthNm: nm,
     centreMm: ORIGIN,
+    ...AIM,
   });
 
 const planeAt = (nm: number, system: OpticalSystem = TELECENTRIC) =>
@@ -308,6 +316,7 @@ const planeAt = (nm: number, system: OpticalSystem = TELECENTRIC) =>
       samples: [{ nm, weight: 1 }],
       map: "uniform",
       patches: 1,
+      ...AIM,
     },
     { nm, weight: 1 },
     ORIGIN,
@@ -320,6 +329,7 @@ const stackOver = (fromNm: number, toNm: number, count: number) =>
     samples: spectralSamples(() => 1, { count, fromNm, toNm }),
     map: "uniform",
     patches: 1,
+    ...AIM,
   });
 
 /** A traced 61-plane stack costs seconds, and two rungs read the same four. */
