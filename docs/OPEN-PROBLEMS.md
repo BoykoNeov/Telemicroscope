@@ -602,7 +602,7 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     Readings that moved INSIDE their tolerances under § 2m were not audited
     (§ 2j's follow-up did that for its own flip); one met while editing was the
     retinal Airy in APP.md, 1.384″ → 1.380″. Found
-    at § 2i. `PupilLayout` defaults to `"aim"`, whose ruler is the paraxial exit
+    at § 2i. `PupilLayout` defaulted to `"aim"` (`"exit"` since [§ 2s.4](VALIDATION.md#-2s4--the-flip)), whose ruler is the paraxial exit
     pupil's: 1.759× off on the oil 100×, and 0.2–1.2% off on the DIN dry
     objectives (4×/0.10 1.0075, 10×/0.2 0.9882, 20×/0.18 1.0074). Switched on as
     the default the exit layout moves **467 readings in 70 files**, and 417 of

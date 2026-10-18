@@ -4026,7 +4026,8 @@ field, the contrast merit's optimum moves, and ~~the layout costs 35% more trace
 — and register item 24 lists them.
 
 So `PupilLayout` defaults to `"aim"`, which is known to be wrong off the
-paraxial regime, and register item 24 carries the flip chain by chain. The
+paraxial regime, and register item 24 carries the flip chain by chain. *(The
+default is `"exit"` at every conjugate since [§ 2s.4](#-2s4--the-flip).)* The
 oil's absolute ring and its interior are pinned here on `"exit"`, and § 2h.5
 moved with them.
 
@@ -5519,7 +5520,9 @@ axis's odd-term margin 161× and 488× (aim 183× and 886×), still two orders.
 Source: engine change — `defaultPupilLayout` returns `"exit"` at a finite conjugate too (`wave/psf.ts`); the app's catalogue table names it (`packages/app/src/microscope.ts`)
 · Tests: `telescope-exit-layout.test.ts` (§ 2m.0, both conjugates), `optimize.test.ts` (§ 1.8.8), `packages/app/test/builder.test.ts` (§ 2s.4)
 
-With § 2s.1–§ 2s.3 in, the trial flip moved four things and nothing else: § 2m.0,
+With § 2s.1–§ 2s.3 in, the trial flip moved four things past a tolerance and
+nothing else did — readings that moved inside theirs were not audited, as at
+§ 2m: § 2m.0,
 which asserts the default; § 1.8.8, a concentric mirror at a 400 mm conjugate;
 and, unasserted anywhere, A1's catalogue table and D8's readout, which built
 their frame unasked. **Hypothesis:** those are the default's only readers.

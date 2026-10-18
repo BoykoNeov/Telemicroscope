@@ -192,7 +192,12 @@ no more, the grid `size` cancels out, and widening the view means raising
 
 (object-space span across the whole frame. § 6h pins the half-extent as
 `pupilSamples`·λ/(4·NA) and pins its departure from that closed form as the
-DIN 4×'s own violation of the sine condition.)
+DIN 4×'s own violation of the sine condition.) *These are the aim layout's
+frames, as measured when this was written. On the exit layout — every image
+panel's since § 2n and the default since [§ 2s](VALIDATION.md#step-2s--the-default-itself-for-finite-conjugates) — the ps = 32 spans are
+94.1 µm (DIN), 94.2 µm (infinity 4×) and 6.8 µm (oil 100×/1.40, against 2.6):
+the oil row's shortfall was the aim layout's ruler. The NA 0.10 spans below
+agree to 3e-4 there rather than being identical.*
 
 **The span is set by NA alone — magnification does not widen it.** Measured
 within one architecture, holding everything but one variable:
@@ -417,7 +422,10 @@ genuinely diffraction-limited, red ⇒ "not at this focus", not "not correctable
 
 **The `cells` column — span ÷ (λ/2·NA) — is § 6h's closed form checked on
 screen**, and it does not come out clean: it lands on `pupilSamples` to within a
-percent for every dry row and ~2.5× under it for the two immersion ones. It was
+percent for every dry row and ~2.5× under it for the two immersion ones *(on the
+aim layout's frame; on the exit layout's, since § 2s, the oil rows read 32.2 and
+the dry rows 29.7–32.1 — the DIN 4×/0.15 31.5 and the 4×/0.20 29.7, so not
+"within a percent for every dry row" any more)*. It was
 briefly dropped for reading like a bug, and that was the wrong call in this
 repo's terms — removing it left the "spans `pupilSamples` resolution cells" claim
 standing with nothing to check it against, honest in this doc and overclaiming on
