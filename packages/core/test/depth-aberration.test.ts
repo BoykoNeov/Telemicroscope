@@ -40,7 +40,7 @@ import {
   withDefocus,
   withObjectDefocus,
 } from "../src/imaging/volume";
-import { incoherentPsf, uniformEmitters } from "../src/imaging/fluorescence";
+import { edgePlan, incoherentPsf, uniformEmitters } from "../src/imaging/fluorescence";
 import { depthOfFocusMm, exactDepthOfFocusMm } from "../src/imaging/emission";
 import { fieldDefocusing } from "../src/imaging/field-volume";
 import { idealPupil } from "../src/illumination/transfer";
@@ -93,31 +93,122 @@ const mount = (numericalAperture: number, focusDepthMm = 0): MountSpec => ({
 
 const waterLayer = (depthMm: number) => [{ thicknessMm: depthMm, n: N_WATER }];
 
-const psf = (spec: MountSpec, depthMm: number, waves: number) =>
-  incoherentPsf(withDefocus(withMountAberration(idealPupil(), spec, depthMm), waves), {
-    size: SIZE,
-    pupilSamples: PUPIL_SAMPLES,
-  });
+/**
+ * The on-axis readings below are taken on the resolved, located rim (§ 2q.3,
+ * § 2q.4), laid out once (§ 2q.7): every pupil here is the unit disc with a phase
+ * on it — at these apertures the mount carries the whole cone — so one plan
+ * serves every depth and defocus. Point-sampled, the rim is a staircase, and
+ * § 6l.4's bisection read it: 4.736 µm at 32 samples against a grid-free 4.544
+ * (register item 37, closed at § 2q.8).
+ */
+const rimOptions = (pupilSamples: number) => {
+  const lattice = { size: 4 * pupilSamples, pupilSamples, edgeSamples: 8, edgeRule: "crossing" as const };
+  return { ...lattice, edgePlan: edgePlan(idealPupil(), lattice) };
+};
+const RIM = rimOptions(PUPIL_SAMPLES);
+type RimOptions = typeof RIM;
 
-/** Peak intensity at best focus, relative to an unaberrated pupil: the Strehl. */
-const bestStrehl = (spec: MountSpec, depthMm: number): number => {
-  const reference = incoherentPsf(idealPupil(), { size: SIZE, pupilSamples: PUPIL_SAMPLES })
-    .values[0]!;
+/**
+ * A point emitter's on-axis intensity, off a resolved kernel: the centre less
+ * the uniform floor the cut cells fold back. One emitter has no neighbours to
+ * return that light, and the floor grows with defocus, so a focus search that
+ * kept it would lean away from focus.
+ */
+const centre = (spec: MountSpec, depthMm: number, waves: number, rim: RimOptions = RIM): number => {
+  const kernel = incoherentPsf(withDefocus(withMountAberration(idealPupil(), spec, depthMm), waves), rim);
+  return kernel.values[0]! - kernel.edgeFloor!;
+};
+const idealCentre = (rim: RimOptions = RIM): number => {
+  const kernel = incoherentPsf(idealPupil(), rim);
+  return kernel.values[0]! - kernel.edgeFloor!;
+};
+
+/** The rung's focus search: a 0.05-wave scan over ±3 waves, then 0.005 about the best. */
+const bestOver = (at: (waves: number) => number): number => {
   let best = -1;
   let coarse = 0;
   for (let i = -60; i <= 60; i++) {
     const w = i * 0.05;
-    const v = psf(spec, depthMm, w).values[0]!;
+    const v = at(w);
     if (v > best) {
       best = v;
       coarse = w;
     }
   }
   for (let i = -20; i <= 20; i++) {
-    const v = psf(spec, depthMm, coarse + i * 0.005).values[0]!;
+    const v = at(coarse + i * 0.005);
     if (v > best) best = v;
   }
-  return best / reference;
+  return best;
+};
+
+/** Peak intensity at best focus, relative to an unaberrated pupil: the Strehl. */
+const bestStrehl = (spec: MountSpec, depthMm: number): number => {
+  const reference = idealCentre();
+  return bestOver((w) => centre(spec, depthMm, w)) / reference;
+};
+
+/**
+ * The referee: the same Strehl with no lattice at all. On axis a rotationally
+ * symmetric pupil's centre is |2∫₀¹ e^{2πi(W(ρ) + w·ρ²)} ρ dρ|², so the disc's
+ * Strehl is a radial integral of the engine's own wavefront — midpoint, 4000
+ * bins, 2e-4 of the ±1-wave ratio below from 16 000.
+ */
+const RADIAL_BINS = 4000;
+const radialCentre = (spec: MountSpec, depthMm: number) => {
+  const phase = new Float64Array(RADIAL_BINS);
+  for (let i = 0; i < RADIAL_BINS; i++) {
+    phase[i] = mountWavefrontWaves(spec, depthMm, (i + 0.5) / RADIAL_BINS);
+  }
+  return (waves: number): number => {
+    let re = 0;
+    let im = 0;
+    for (let i = 0; i < RADIAL_BINS; i++) {
+      const r = (i + 0.5) / RADIAL_BINS;
+      const p = 2 * Math.PI * (phase[i]! + waves * r * r);
+      re += Math.cos(p) * r;
+      im += Math.sin(p) * r;
+    }
+    return (2 * re / RADIAL_BINS) ** 2 + (2 * im / RADIAL_BINS) ** 2;
+  };
+};
+const radialStrehl = (spec: MountSpec, depthMm: number): number => bestOver(radialCentre(spec, depthMm));
+
+/** Maréchal's depth: where the best-focus Strehl crosses 0.8, bisected. */
+const bisectDepth = (strehl: (spec: MountSpec, depthMm: number) => number, NA: number): number => {
+  let lo = 1e-5;
+  let hi = 0.5;
+  for (let i = 0; i < 22; i++) {
+    const mid = 0.5 * (lo + hi);
+    if (strehl(mount(NA), mid) >= 0.8) lo = mid;
+    else hi = mid;
+  }
+  return lo;
+};
+
+/** A peak's position by golden section on [lo, hi] — for where best focus IS, not just how bright. */
+const peakAt = (f: (waves: number) => number, lo: number, hi: number): number => {
+  const g = (Math.sqrt(5) - 1) / 2;
+  let c = hi - g * (hi - lo);
+  let d = lo + g * (hi - lo);
+  let fc = f(c);
+  let fd = f(d);
+  for (let i = 0; i < 30; i++) {
+    if (fc > fd) {
+      hi = d;
+      d = c;
+      fd = fc;
+      c = hi - g * (hi - lo);
+      fc = f(c);
+    } else {
+      lo = c;
+      c = d;
+      fc = fd;
+      d = lo + g * (hi - lo);
+      fd = f(d);
+    }
+  }
+  return 0.5 * (lo + hi);
 };
 
 describe("§ 6l.1 — the literature's depth OPD is the engine's stack plus an EXACT refocus", () => {
@@ -323,31 +414,34 @@ describe("§ 6l.4 — the budget runs as 1/NA⁴, and stops being a bound sooner
     expect(ratio(N_SLIP, 1.2)).toBeCloseTo(2.4953, 3);
   });
 
-  it("so against a BISECTED Strehl the third-order budget over-reports 4.5× at NA 1.2", () => {
+  it("so against a BISECTED Strehl the third-order budget over-reports 4.7× at NA 1.2", () => {
     // § 6d's discipline — Maréchal reached by bisection on the real thing rather
     // than quoted off a coefficient. The departure is named rather than dressed
     // up, exactly as § 6s reports its map's error as an estimate and not a bound.
-    const bisectDepth = (NA: number): number => {
-      let lo = 1e-5;
-      let hi = 0.5;
-      for (let i = 0; i < 22; i++) {
-        const mid = 0.5 * (lo + hi);
-        if (bestStrehl(mount(NA), mid) >= 0.8) lo = mid;
-        else hi = mid;
-      }
-      return lo;
-    };
-    const measured = bisectDepth(1.2);
-    // 4.74 µm — the classic "an oil lens on an aqueous specimen is good for a few
-    // microns", produced rather than transcribed.
-    expect(measured * 1000).toBeCloseTo(4.74, 1);
+    const measured = bisectDepth(bestStrehl, 1.2);
+    // 4.54 µm — the classic "an oil lens on an aqueous specimen is good for a few
+    // microns", produced rather than transcribed. And checked against something
+    // the engine's lattice does not share: the same bisection on the radial
+    // integral reads 4.5444, and the resolved rim lands 0.006 µm short of it.
+    // Point-sampled this rung read 4.736 at 32 samples (4.590 at 64, 4.568 at
+    // 128) — the staircase, converging from above; resolved, 4.539, 4.554, 4.552.
+    const gridFree = bisectDepth(radialStrehl, 1.2);
+    expect(gridFree * 1000).toBeCloseTo(4.5444, 4);
+    expect(measured * 1000).toBeCloseTo(4.5387, 4);
+    expect(Math.abs(measured - gridFree) * 1000).toBeLessThan(0.01);
     const quoted = mountDepthTolerance(1.2, LAMBDA, N_WATER, N_OIL).marechalMm;
-    expect(quoted / measured).toBeCloseTo(4.51, 1);
+    expect(quoted / gridFree).toBeCloseTo(4.695, 3);
+    expect(quoted / measured).toBeCloseTo(4.701, 3);
     // And it is a real trend, not one bad point: the over-report shrinks toward
-    // the axis, where third-order theory is entitled to be right.
-    const low = bisectDepth(0.6);
-    expect(mountDepthTolerance(0.6, LAMBDA, N_WATER, N_OIL).marechalMm / low).toBeCloseTo(1.25, 1);
-  }, 60_000);
+    // the axis, where third-order theory is entitled to be right — 1.962× at
+    // NA 0.9 (grid-free 1.961) and 1.276× at 0.6 (1.276).
+    const over = (NA: number, depthMm: number) =>
+      mountDepthTolerance(NA, LAMBDA, N_WATER, N_OIL).marechalMm / depthMm;
+    expect(over(0.9, bisectDepth(bestStrehl, 0.9))).toBeCloseTo(1.9622, 4);
+    expect(over(0.9, bisectDepth(radialStrehl, 0.9))).toBeCloseTo(1.9613, 4);
+    expect(over(0.6, bisectDepth(bestStrehl, 0.6))).toBeCloseTo(1.2765, 4);
+    expect(over(0.6, bisectDepth(radialStrehl, 0.6))).toBeCloseTo(1.2763, 4);
+  }, 180_000);
 });
 
 describe("§ 6l.5 — the focus-knob scaling, and its spread across the aperture IS the aberration", () => {
@@ -440,30 +534,58 @@ describe("§ 6l.7 — a fixed depth makes the axial response ASYMMETRIC, where �
     for (const w of [0.5, 1, 2]) expect(at(w) / at(-w)).toBeCloseTo(1, 12);
   });
 
-  it("a mounted one is 19× brighter one side of focus than the other", () => {
-    const at = (w: number) => psf(spec, DEPTH, w).values[0]!;
-    expect(at(1) / at(-1)).toBeCloseTo(19.24, 1);
+  it("a mounted one is 16× brighter one side of focus than the other", () => {
+    // Read on the radial integral, because a ±1-wave ratio divides by the DIM
+    // side — here 0.0187 of an unaberrated peak — and 20 µm of water steps a
+    // 32-sample pupil 1.17 waves per sample at the rim. On the lattice the ratio
+    // read 19.24 point-sampled and 18.79 resolved at 32; 16.73 and 16.08 resolved
+    // at 64 and 128 (register item 38 is the app's line with the same exposure).
+    const exact = radialCentre(spec, DEPTH);
+    expect(exact(1) / exact(-1)).toBeCloseTo(16.27, 2);
+    // The engine is checked side by side, in the peak's own units, at a lattice
+    // that steps the rim 0.37 waves: both within 2.1e-4 of the integral. The
+    // ratio then follows to 1.1%, which is that error divided by the dim side.
+    const rim = rimOptions(128);
+    const reference = idealCentre(rim);
+    for (const w of [1, -1]) {
+      expect(Math.abs(centre(spec, DEPTH, w, rim) / reference - exact(w))).toBeLessThan(5e-4);
+    }
   });
 
   it("and its best focus MOVES, by the refocus the depth's paraxial part introduced", () => {
     // The sign is the diagnosis: water is RARER than oil, the depth aberration is
     // negative, and the compensating defocus is positive.
     expect(mountWavefrontWaves(spec, DEPTH, 1)).toBeLessThan(0);
-    let best = { w: 0, v: -1 };
-    for (let i = -60; i <= 60; i++) {
-      const w = i * 0.05;
-      const v = psf(spec, DEPTH, w).values[0]!;
-      if (v > best.v) best = { w, v };
-    }
-    expect(best.w).toBeCloseTo(1.11, 1);
+    const exact = peakAt(radialCentre(spec, DEPTH), 0.5, 1.6);
+    expect(exact).toBeCloseTo(1.0514, 4);
+    // The peak is flat, so its position is the lattice's most exposed reading:
+    // resolved it sits at 1.114 waves at 32 samples, 1.023 at 64 and 1.065 at
+    // 128 — the rung's old +1.11 was the coarsest of these.
+    const rim = rimOptions(128);
+    expect(Math.abs(peakAt((w) => centre(spec, DEPTH, w, rim), 0.5, 1.6) - exact)).toBeLessThan(0.02);
   });
 
   it("and refocusing recovers only part of it — the Strehl falls with depth anyway", () => {
     // Which is the whole difference between this and a defocus: a focus knob
-    // buys back the paraxial half and nothing more.
-    expect(bestStrehl(spec, 0.002)).toBeCloseTo(0.9606, 2);
-    expect(bestStrehl(spec, 0.005)).toBeCloseTo(0.7801, 2);
-    expect(bestStrehl(spec, 0.01)).toBeCloseTo(0.4386, 2);
+    // buys back the paraxial half and nothing more. Grid-free 0.9574 → 0.7639 →
+    // 0.4303 at 2, 5 and 10 µm, so Maréchal's 0.8 is crossed between 2 and 5 µm,
+    // where § 6l.4 bisects it. On the rung's 32-sample lattice the walk sits within
+    // 5e-4 of that to 5 µm; at 10 µm the rim steps 0.58 waves per sample and the
+    // lattice reads 5.2e-3 high (2.6e-3 at 64).
+    const walk = [
+      { depthMm: 0.002, exact: 0.9574, lattice: 0.9573, within: 1e-3 },
+      { depthMm: 0.005, exact: 0.7639, lattice: 0.7634, within: 1e-3 },
+      { depthMm: 0.01, exact: 0.4303, lattice: 0.4355, within: 1e-2 },
+    ];
+    for (const { depthMm, exact, lattice, within } of walk) {
+      const gridFree = radialStrehl(spec, depthMm);
+      const measured = bestStrehl(spec, depthMm);
+      expect(gridFree).toBeCloseTo(exact, 4);
+      expect(measured).toBeCloseTo(lattice, 4);
+      expect(Math.abs(measured - gridFree)).toBeLessThan(within);
+    }
+    expect(radialStrehl(spec, 0.002)).toBeGreaterThan(0.8);
+    expect(radialStrehl(spec, 0.005)).toBeLessThan(0.8);
   }, 60_000);
 });
 

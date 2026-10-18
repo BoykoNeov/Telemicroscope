@@ -1604,7 +1604,7 @@ export function axialResponse(request: AxialRequest): AxialResult {
  * below, and `memoizedPupil`. *[§ 2q.7: both were the point-sampled rim's. A
  * grid-free bisection of the same wavefront reads 4.544 µm (4.70×); resolved, this
  * job reads 4.539 at 32 bins and 4.555 at 64, point-sampled 4.736 and 4.590. The
- * rung sits on the staircase — register item 37.]*
+ * rung sat on the staircase; restated at § 2q.8, it reads 4.5387 resolved.]*
  */
 export interface DepthRequest {
   readonly spec: BuildSpec;

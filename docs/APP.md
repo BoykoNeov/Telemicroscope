@@ -1733,8 +1733,9 @@ best focus stays +0.84 waves.
 steps the 32-bin pupil 0.9–1.3 waves per sample, and at 20 µm under the 1.40 the
 ideal pupil's ratio is 3.5 point-sampled and 13.2 resolved at 32 bins, still 8.0 and
 7.7 at 256 — the wall's term is steep at any lattice (6.5 waves per sample at 128).
-The line carries no guard (register item 38). And § 6l.4's 4.74 µm rung is the
-staircase's: grid-free 4.544 µm (register item 37).
+The line carries no guard (register item 38). And ~~§ 6l.4's 4.74 µm rung is the
+staircase's: grid-free 4.544 µm (register item 37)~~ — restated at
+[§ 2q.8](VALIDATION.md#-2q8---6ls-depth-rungs-read-the-rim-not-its-staircase): 4.539 µm resolved against the integral's 4.544.
 
 #### The picture's rim cells are averaged, not point-sampled
 
@@ -4259,7 +4260,7 @@ then some: two of the three cannot be seen in a frame.
 are corrections to this section as it was written.
 
 - **The numbers this section quoted are § 6l's probe, not the panel's.** 19.24×,
-  +1.11 waves and 4.51× are all **NA 1.2 on an ideal pupil**, and no catalogue row
+  +1.11 waves and 4.51× (16.27×, +1.05 and 4.70× since § 2q.8 — a coarse lattice's) are all **NA 1.2 on an ideal pupil**, and no catalogue row
   is NA 1.2. The panel computes its own: on the **oil 100×/1.25 in water** the
   budget over-reports by ~~5.75×~~ **6.05×** (18.71 µm quoted against ~~3.25~~ **3.09 µm**
   bisected, § 2q.7's resolved rim), and at 10 µm of depth the axial response is
@@ -4330,7 +4331,8 @@ Run at § 6l.4's own probe it returns **4.735 µm and 4.51×**, the rung to the 
 at grid 64 — which is § 6k's measured grid-indifference for a DC readout being
 spent rather than re-argued. *[§ 2q.7: both point-sampled, and so is the rung. A
 grid-free bisection reads 4.544 µm (4.70×); resolved, the job reads 4.539 µm at 32
-bins — register item 37.]*
+bins — ~~register item 37~~, and the rung now reads 4.5387 resolved beside the integral
+([§ 2q.8](VALIDATION.md#-2q8---6ls-depth-rungs-read-the-rim-not-its-staircase)).]*
 
 **The over-report has a floor at 0.9501 and it is not the third-order form.**
 Maréchal's λ/14 is an *approximation* to Strehl 0.8 — exp(−(2πσ)²) there is

@@ -1654,8 +1654,8 @@ ruler (1.766× on its aperture), is the next one with a pin named.
    rather than estimated:** the exact wavefront outruns its own leading term as NA
    approaches the smallest index in the stack — which for a mount is the mount's —
    at 1.02, 1.94, 3.29, 5.79 over NA 0.2 → 1.3, so against a **bisected** Maréchal
-   depth the third-order form over-reports **4.51× at NA 1.2**, saying 21.3 µm where
-   the answer is **4.74 µm**. That is the classic "an oil lens on an aqueous
+   depth the third-order form over-reports ~~**4.51×**~~ **4.70× at NA 1.2**, saying 21.3 µm where
+   the answer is ~~**4.74 µm**~~ **4.54 µm** (restated on the resolved rim at § 2q.8). That is the classic "an oil lens on an aqueous
    specimen is good for a few microns", produced rather than transcribed. Also
    pinned: exact linearity in depth and a **hard zero** for a matched mount at every
    aperture (why water and glycerol objectives exist); the focus-knob scaling
@@ -1663,8 +1663,8 @@ ruler (1.766× on its aperture), is the next one with a pin named.
    departing at order q² — so the depth scaling and the depth aberration are **one**
    measurement; § 6k.1's flux invariance and § 6k.4's empty cone both surviving,
    because the SA is a pure phase and the truncation is depth-independent; and
-   § 6k's axial *symmetry* breaking **19.24×** for an emitter at a fixed depth, best
-   focus moved to +1.11 waves. § 6e.4's "the cover slip HELPS" finally gets a rate,
+   § 6k's axial *symmetry* breaking ~~**19.24×**~~ **16.27×** for an emitter at a fixed depth, best
+   focus moved to ~~+1.11~~ +1.05 waves (§ 2q.8: the old pair was a coarse lattice's). § 6e.4's "the cover slip HELPS" finally gets a rate,
    and the rate kills it as a trade: **33.28 µm of slip error per µm of depth**.
    **Open:** the chromatic half, correcting the objective *for* a depth
    (§ 6c's `targetS1Mm` route, which is what a collar physically does), § 6s's table

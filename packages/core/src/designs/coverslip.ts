@@ -769,9 +769,10 @@ export function coverslipTolerance(
  * only by NA 1.2, because 1.5254 is a long way from 1.2 and 1.3347 is not.
  *
  * What that costs is measured rather than estimated (§ 6l.4): against a Maréchal
- * depth **bisected on the traced Strehl**, this function over-reports by 1.25× at
- * NA 0.6, 1.91× at NA 0.9 and **4.51× at NA 1.2**, where it says 21.3 µm and the
- * real answer is 4.74 µm. It is kept in the third-order currency anyway — that is
+ * depth **bisected on the traced Strehl**, this function over-reports by 1.28× at
+ * NA 0.6, 1.96× at NA 0.9 and **4.70× at NA 1.2**, where it says 21.3 µm and the
+ * real answer is 4.54 µm (the resolved rim against a radial integral, § 2q.8 —
+ * 4.74 µm and 4.51× were the point-sampled rim's). It is kept in the third-order currency anyway — that is
  * the currency the literature's tolerances are quoted in and the one
  * `coverslipTolerance` uses, and a function that silently switched conventions
  * between the slip and the mount would be worse than one that names its own

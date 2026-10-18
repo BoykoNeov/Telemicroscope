@@ -4626,7 +4626,7 @@ objective's sine-condition residual (~3e-4 on the DIN 4×).
 ## Step 2q — the volume and focus-surface chain on the exit layout
 
 Source: engine fix — `exitApertureSine`'s cache key (`pupil/opd.ts`) names every field of the system the reading depends on; engine change — `bandLimitedPeak` (`math/band-limited-peak.ts`), opt-in to a focus sweep as `FocusSweepOptions.peak`; engine change — `incoherentPsf`'s `edgeSamples` (`imaging/fluorescence.ts`), opt-in, carried by `renderVolume`, `renderFieldVolume`, the spectral volume, `FocusSweepOptions`, `renderFluorescence` and `formEmitterPlane`; engine change — `EdgeRule` `"crossing"` (`imaging/fluorescence.ts`), opt-in beside `edgeSamples` and carried with it; engine fix — `exitDensity`'s derivative slides inward at sixth order, and the exit layout's throughput rides in the density's fit (`ExitDensity.transmitted`, `pupilFunctionFromOpd`'s `apodizationCarriesThroughput`); engine change — `edgePlan` (`imaging/fluorescence.ts`), the crossing rule's rim laid out once per outline and checked against every pupil it is handed, carried by `depthKernels` and `renderVolume`
-· Tests: § 2q.1 in `packages/core/test/aperture-sine-key.test.ts`; § 2q.2 in `band-limited-peak.test.ts`; § 2q.3 in `edge-resolved-kernel.test.ts`; § 2q.4 in `edge-crossing.test.ts`; § 2q.5 in `exit-density-rim.test.ts`; § 2q.7 in `edge-plan.test.ts` and, for the app panels, `packages/app/test/volume-mount`, `volume-cap`; § 2q.6's pins in `spectral-field-volume.test.ts` (§ 6be.2's reference sphere) and `spectral-volume.test.ts` (§ 6bb.2's `rimShape`), its restatements in the six volume and focus files and `packages/app/test/volume-cap`, `volume-mount`; § 6r.7 restated in `brightfield-spectrum.test.ts`
+· Tests: § 2q.1 in `packages/core/test/aperture-sine-key.test.ts`; § 2q.2 in `band-limited-peak.test.ts`; § 2q.3 in `edge-resolved-kernel.test.ts`; § 2q.4 in `edge-crossing.test.ts`; § 2q.5 in `exit-density-rim.test.ts`; § 2q.7 in `edge-plan.test.ts` and, for the app panels, `packages/app/test/volume-mount`, `volume-cap`; § 2q.6's pins in `spectral-field-volume.test.ts` (§ 6be.2's reference sphere) and `spectral-volume.test.ts` (§ 6bb.2's `rimShape`), its restatements in the six volume and focus files and `packages/app/test/volume-cap`, `volume-mount`; § 2q.8 (measurement only — no engine change) in `depth-aberration.test.ts`; § 6r.7 restated in `brightfield-spectrum.test.ts`
 
 Register item 24's last fluorescence chain, step 2 of the user's split: the
 volume and focus-surface pictures (§ 6k, § 6l's app panels, § 6az, § 6bb,
@@ -4667,6 +4667,8 @@ on a cloned prescription, which no earlier read can have touched.
 | **§ 2q.7 — the rim is laid out once per outline** | a kernel formed through a reused plan is bitwise the kernel formed without one: defocus sweeps at 24–64 samples, a truncating mount's depths on the ideal and the traced pupil, `depthKernels` and `renderVolume` | ✅ |
 | | through the plan the pupil is asked its amplitude on the lattice and the guard's probes only — 1 561 against 78 892 at 32 samples, 18 585 against 345 468 at 128 — and its phase exactly as often; an ellipse keeps πab to 2.5e-9 over a reused sweep | ✅ |
 | | refused on any other outline: a disc's rim moved by 0.5 down to 1e-4 of a cell either way, the apodization dropped, the traced rim at 2 mm on the axial plan; and on another lattice, sub-sampling or rule — the count is not laid out | ✅ |
+| **§ 2q.8 — § 6l's depth rungs read the rim, not its staircase** | § 6l.4's bisection at NA 1.2 on its 32-sample lattice, resolved: 4.5387 µm against the radial integral's 4.5444 (point-sampled 4.736); over-reported 4.70×, 1.96× at NA 0.9, 1.28× at 0.6 | ✅ |
+| | § 6l.7 on the integral: 16.27× either side of focus at 20 µm (19.24 point-sampled at 32), best focus +1.0514 waves; the engine at 128 samples within 2.1e-4 of the peak on each side | ✅ |
 
 § 6az.5's NaN was the lever — the DIN 4× with its stop on the front surface —
 reading the default objective's rim after § 6az.2 had read it, so its two
@@ -5138,9 +5140,63 @@ on-axis intensity is read with § 2q.3's floor taken off; the picture keeps it.
 | `volume-mount`: § 6l.14's quadrature on air | 60 cells at 2 µm | 0 at 2 µm, 28 at 5 µm | the cells the wall cuts are in the rim's mask; resolved kernels sit closer than point+quadrature to a 128-bin pupil on 12 of 12 cases, either way the reference is sampled |
 | `volume-cap`: exact-vs-paraboloid gap rising 32 → 48 → 64 | 0.2950, 0.3287, 0.3341 | 0.3019, 0.3371, 0.3359 (0.3427, 0.3467 at 96, 128) | 48 and 64 tie within the bead field's digits; 32 under both — **weakened** |
 
-Found beside it, and registered rather than fixed: § 6l.4's 4.74 µm rung is the
-staircase's — grid-free 4.544 µm (item 37); and the axial panel's asymmetry line
+Found beside it, and registered rather than fixed: ~~§ 6l.4's 4.74 µm rung is the
+staircase's — grid-free 4.544 µm (item 37)~~ — restated at [§ 2q.8](#-2q8---6ls-depth-rungs-read-the-rim-not-its-staircase); and the axial panel's asymmetry line
 has no guard and at depth reads the lattice (item 38).
+
+### § 2q.8 — § 6l's depth rungs read the rim, not its staircase
+
+Source: measurement only — no engine change
+
+Register item 37. § 2q.7's depth panel, resolved, put § 6l.4's own probe — an
+ideal NA 1.2 oil cone into water — at 4.539 µm, and a grid-free bisection of the
+same wavefront at 4.544, against the rung's 4.74. The rung was bisected on the
+point-sampled rim at 32 samples, and so was § 6l.7's Strehl walk beside it.
+
+**Hypothesis.** Both are the staircase's: on the resolved rim (§ 2q.3, located
+as § 2q.4, laid out once as § 2q.7) the rung's own bisection — the same lattice,
+the same focus scan — lands on the radial integral. On axis a rotationally
+symmetric pupil's centre is |2∫₀¹ e^{2πi(W + w·ρ²)} ρ dρ|², so the disc's Strehl
+needs no lattice at all. **Refuted by** a resolved bisection more than 0.01 µm
+from the integral's at 32 samples, or one that moves away from it at 64 and 128.
+
+| Lattice | Point-sampled | Resolved |
+|---|---|---|
+| 32 | 4.736 µm (4.51×) | **4.539** (4.70×) |
+| 64 | 4.590 | 4.554 |
+| 128 | 4.568 | 4.552 |
+| radial integral | 4.5444 (4.695×) | |
+
+Point-sampled, the staircase converges from above, 0.19 µm high at the rung's 32;
+resolved, the bisection sits within 0.01 µm of the integral at every lattice.
+Held: § 6l.4 is restated on the resolved rim, 4.5387 µm and 4.701×, beside the
+integral's own bisection in the same rung. The over-report shrinks toward the
+axis as it did, 1.962× at NA 0.9 (the doc's 1.91× had no assertion behind it)
+and 1.2765× at 0.6 (1.25×).
+
+**§ 6l.7, read the same way, moved further** — and not all of it is the rim:
+
+- **The walk.** Strehl at best focus 0.9574 → 0.7639 → 0.4303 at 2, 5 and 10 µm
+  on the integral (0.9606 → 0.7801 → 0.4386 before); the resolved 32-sample walk
+  within 5e-4 of it to 5 µm. At 10 µm the rim steps 0.58 waves per sample and the
+  lattice reads 5.2e-3 high, 2.6e-3 at 64 — a lattice reading, recorded. § 6l.7's
+  "Maréchal crossed between 5 and 10 µm" was wrong on either rim: 0.78 at 5 µm is
+  already under 0.8, and the crossing is between 2 and 5, where § 6l.4 bisects it.
+- **The asymmetry.** 20 µm of water steps a 32-sample pupil **1.17 waves per
+  sample** at the rim, so the ±1-wave ratio read the lattice whichever way the rim
+  was sampled: 19.24 point-sampled, 18.79 resolved; 16.73 and 16.08 resolved at 64
+  and 128. The integral reads **16.27**, and a direct sum over a 4000² lattice
+  16.270. The engine is checked side by side in the peak's own units at 128: both
+  sides within 2.1e-4 of the integral. The ratio then follows to 1.1% only because
+  the far side is 0.0187 of an unaberrated peak — the same near-null division
+  register item 38 records for the app's line.
+- **Best focus.** +1.0514 waves on the integral, and the most exposed reading of
+  the three: the peak is flat, and resolved its position reads 1.114 at 32, 1.023
+  at 64 and 1.065 at 128. The rung's +1.11 was the coarsest lattice's.
+
+So the rungs now assert the integral and check the engine against it, rather than
+asserting what one lattice read. The integral is a closed form of the engine's own
+wavefront, so this step adds a pin and does not count toward the stop rule.
 
 ## Step 3a — the standard observer and thermal sources
 
@@ -11712,7 +11768,7 @@ in a third place.
   Two of this step's own results survived it and one did not: § 6k.1's flux
   invariance and § 6k.4's empty cone both hold (the SA is a pure phase, and the
   mount's aperture truncation does not vary with depth), while § 6k.1's axial
-  *symmetry* breaks 19.24× for an emitter at a fixed depth.
+  *symmetry* breaks ~~19.24×~~ 16.27× for an emitter at a fixed depth (§ 2q.8).
 - **Deconvolution and confocal**, both named by the missing cone rather than
   built. Confocal is not a post-process: it needs a detection pinhole and an
   excitation PSF, which is the excitation path § 6j left open.
@@ -12004,12 +12060,12 @@ and `mountDepthTolerance` in `designs/coverslip`; `imaging/depth-aberration`
 | Pupil truncation is a lattice POINT COUNT converging on (n_s/NA)², < 1e-3 by 256 bins | § 6i.2, closed form | ✅ |
 | The depth budget is exactly 1/NA⁴ under both criteria, 24√5/14 apart | closed form | ✅ |
 | Exact/third-order = 1.0203, 1.9417, 3.2870, 5.7947 at NA 0.2, 1.0, 1.2, 1.3 | exact stack vs its own leading term | ✅ |
-| The third-order budget over-reports the BISECTED Maréchal depth by 4.51× at NA 1.2 (21.3 µm against 4.74 µm) and 1.25× at NA 0.6 | Strehl 0.8, bisected | ✅ |
+| The third-order budget over-reports the BISECTED Maréchal depth by ~~4.51×~~ **4.70×** at NA 1.2 (21.3 µm against ~~4.74~~ **4.54 µm**), 1.96× at 0.9 and ~~1.25×~~ 1.28× at NA 0.6 — the resolved rim, [§ 2q.8](#-2q8---6ls-depth-rungs-read-the-rim-not-its-staircase) | Strehl 0.8, bisected; the radial integral to 0.01 µm | ✅ |
 | Paraxial focus-knob scaling = n_i/n_s = 1.13709, reciprocal 0.87944 | closed form | ✅ |
 | The marginal ray's own depth ratio departs from it at order q² — ×4.00 per halving | third-order spherical | ✅ |
 | Every plane's throughput constant with depth to 1e-12; the missing cone stays under 1e-12 | § 6k.1 / § 6k.4 | ✅ |
-| A fixed depth makes the axial response 19.24× asymmetric where an unaberrated one is symmetric to 1e-12 | § 6k's sinc² control | ✅ |
-| Best focus moves to +1.11 waves; Strehl at best focus 0.9606 / 0.7801 / 0.4386 at 2 / 5 / 10 µm | measured | ✅ |
+| A fixed depth makes the axial response ~~19.24×~~ **16.27×** asymmetric where an unaberrated one is symmetric to 1e-12 — 19.24 was the 32-sample lattice's ([§ 2q.8](#-2q8---6ls-depth-rungs-read-the-rim-not-its-staircase)) | § 6k's sinc² control; the radial integral | ✅ |
+| Best focus moves to ~~+1.11~~ **+1.0514** waves; Strehl at best focus ~~0.9606 / 0.7801 / 0.4386~~ **0.9574 / 0.7639 / 0.4303** at 2 / 5 / 10 µm (§ 2q.8) | the radial integral; the engine checked against it | ✅ |
 | A rarer mount's W₀₄₀ opposes a denser slip's, at 33.28 µm of slip per µm of depth, summing to zero at the crossing | `stackW040Mm`'s sign rule | ✅ |
 | `mountVolumeOptions` emits the four coupled numbers and refuses each override, while letting an explicit `undefined` through | engine identity | ✅ |
 | Quoting the budget AT the mount's ceiling is refused — the cap is a supremum, not a maximum | sinθ_s < 1 strictly | ✅ |
@@ -12150,9 +12206,12 @@ long way from 1.2 and 1.3347 is not.
 
 What that costs is **measured, not estimated**. Against a Maréchal depth bisected
 on the traced Strehl (§ 6d's discipline), the third-order budget over-reports by
-1.25× at NA 0.6, 1.91× at NA 0.9 and **4.51× at NA 1.2** — where it says 21.3 µm
-and the answer is **4.74 µm**. That last number is the classic "an oil lens on an
+~~1.25×~~ **1.28×** at NA 0.6, ~~1.91×~~ **1.96×** at NA 0.9 and ~~**4.51×**~~ **4.70× at NA 1.2** — where it says 21.3 µm
+and the answer is ~~**4.74 µm**~~ **4.54 µm**. That last number is the classic "an oil lens on an
 aqueous specimen is good for a few microns", produced rather than transcribed.
+*[Restated at [§ 2q.8](#-2q8---6ls-depth-rungs-read-the-rim-not-its-staircase): the old figures were bisected on the point-sampled
+rim, 0.19 µm high at the rung's 32 samples. Resolved, the bisection reads 4.5387 µm
+against the radial integral's 4.5444, and the rung asserts both.]*
 
 The function is kept in the third-order currency anyway, and says so: that is the
 currency the literature's tolerances are quoted in and the one `coverslipTolerance`
@@ -12198,14 +12257,18 @@ question they are asking.
 
 § 6k's sinc²(π·w₂₀) is even in the defocus and the engine reproduces that to
 1e-12. Add 20 µm of water under an NA 1.2 oil cone and the axial response is
-**19.24× brighter one wave past focus than one wave before it**, and best focus
-moves to **+1.11 waves**. The sign is the diagnosis and it is the one the physics
+~~**19.24×**~~ **16.27× brighter one wave past focus than one wave before it**, and best focus
+moves to ~~**+1.11 waves**~~ **+1.0514 waves**. The sign is the diagnosis and it is the one the physics
 predicts: water is *rarer* than oil, the depth aberration is negative, and the
 compensating defocus is positive.
 
 Refocusing buys back the paraxial half and no more. Strehl at best focus falls
-**0.9606 → 0.7801 → 0.4386** at 2, 5 and 10 µm — Maréchal crossed between 5 and
-10 µm, consistent with 6l.4's bisected 4.74 µm.
+~~**0.9606 → 0.7801 → 0.4386**~~ **0.9574 → 0.7639 → 0.4303** at 2, 5 and 10 µm — Maréchal crossed between ~~5 and
+10 µm~~ 2 and 5 µm, consistent with 6l.4's bisected ~~4.74 µm~~ 4.54 µm.
+*[Restated at [§ 2q.8](#-2q8---6ls-depth-rungs-read-the-rim-not-its-staircase), all three on the radial integral with the engine
+checked against it. The 19.24× and +1.11 were the 32-sample lattice's: 20 µm of
+water steps it 1.17 waves per sample at the rim, and the ratio divides by a far
+side 0.0187 of the peak. The "between 5 and 10" was wrong on either rim.]*
 
 ### 6l.8 — a rarer mount opposes a too-thick slip, at a rate that kills the idea
 

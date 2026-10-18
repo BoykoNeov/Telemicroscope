@@ -825,7 +825,7 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     the wave branch was 1.4e-3 high as well. *What would pin it:* the histogram's
     fraction against the launches' as the pixel grid and the defocus change — an
     edge term falls with the radius in pixels, a bias in the ray weights does not.
-37. **§ 6l.4's bisected 4.74 µm is the point-sampled rim's.** Found at
+37. ~~**§ 6l.4's bisected 4.74 µm is the point-sampled rim's.** Found at
     [§ 2q.7](VALIDATION.md#-2q7--the-rim-laid-out-once), re-measuring the app's depth curve: a grid-free bisection of the
     same exact wavefront (NA 1.2 ideal, water under oil; the disc's Strehl as a
     radial integral, best defocus) crosses Strehl 0.8 at **4.544 µm**, so the
@@ -834,7 +834,18 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     § 6l.7's Strehl walk (0.9606 → 0.7801 → 0.4386) and its "Maréchal crossed between
     5 and 10 µm" were read on the same sampling. *What would pin it:* the rung's own
     brute-force bisection on the resolved rim, or against the radial integral
-    directly, landing within a few 1e-3 of 4.544.
+    directly, landing within a few 1e-3 of 4.544.~~
+
+    ✅ **CLOSED at [§ 2q.8](VALIDATION.md#-2q8---6ls-depth-rungs-read-the-rim-not-its-staircase)**, both ways the entry named: the rung's
+    own bisection on the resolved rim reads 4.5387 µm, and the radial integral's
+    4.5444 sits beside it in the same rung (4.70×; 1.96× at NA 0.9, 1.28× at 0.6).
+    § 6l.7's walk is 0.9574 → 0.7639 → 0.4303, so Maréchal falls between 2 and 5 µm,
+    not 5 and 10. It moved two readings the entry did not name, and neither was the
+    rim: § 6l.7's ±1-wave ratio is 16.27× on the integral, not 19.24×, and best focus
+    +1.0514 waves, not +1.11 — 20 µm of water steps a 32-sample pupil 1.17 waves at
+    the rim, and the ratio divides by a far side 0.0187 of the peak. Item 38's
+    exposure, met in the core; the rungs now assert the integral and check the
+    engine against it at 128 samples.
 38. **The axial panel's ±1-wave asymmetry has no lattice guard, and at depth it
     reads the lattice.** Found at [§ 2q.7](VALIDATION.md#-2q7--the-rim-laid-out-once). The ratio divides two
     near-null intensities, and below a few microns of mismatched mount the depth
@@ -1354,5 +1365,6 @@ radial-map nodes · § 6ba differential bleaching.
     [§ 2q.5](VALIDATION.md#-2q5--the-ring-that-was-not-there) with the throughput folded into the density's fit (items
     35 and 36 opened). Every exit chain's readings were restated there.
     The flip itself landed at [§ 2q.6](VALIDATION.md#-2q6--the-flip): three claims reversed and item
-    33 refuted as stated (a coupling inside the clip too). Next: the mosaic chain,
-    § 6bh on, then the seam chain.
+    33 refuted as stated (a coupling inside the clip too). § 2q.7 laid the rim out
+    once and put the app's volume panels on it (items 37 and 38 opened); item 37
+    closed at § 2q.8. Next: the mosaic chain, § 6bh on, then the seam chain.
