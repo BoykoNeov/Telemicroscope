@@ -11,6 +11,14 @@ import type { OpticalSystem } from "../src/trace/system";
 import type { EmitterSlabs } from "../src/imaging/emitter-volume";
 
 /**
+ * § 2r.3: every seam here is read on the aim layout, explicitly. A field scan's
+ * seam is the aim layout's per-tile ruler drift — on the exit layout every tile
+ * reads the anchor's ruler and the seam is exactly 0 (`field-seam-zero.test.ts`)
+ * — so this chain's readings are that layout's, kept as its own.
+ */
+const SEAM = { layout: "aim" } as const;
+
+/**
  * § 6bw — the drift is a hump, and § 6bs.7's ladder was holding two knobs.
  *
  * § 6bv located § 6bu's threshold to a quarter cell, found that it DRIFTS, and
@@ -141,6 +149,7 @@ function mosaicOptions(
     stageMm: FREE_STAGE,
     radialMapSeed: "magnification",
     centreMm: { x: 4, y: 0 },
+    ...SEAM,
     ...over,
   };
 }
@@ -322,7 +331,7 @@ describe("§ 6bw.1 — § 6bv's own brackets refuse every AFFINE law, not just t
 
 describe("§ 6bw.2 — the anchor is `pupilSamples` alone, and `size` cancels", () => {
   const half = (size: number, ps: number): number =>
-    objectFieldTile(LENS.s20, { size, pupilSamples: ps, wavelengthNm: DESIGN, centreMm: AXIS })
+    objectFieldTile(LENS.s20, { size, pupilSamples: ps, wavelengthNm: DESIGN, centreMm: AXIS, layout: "aim" })
       .halfExtentMm;
 
   it("the half extent is bit-identical across an 8x of frame, at every anchor", () => {
@@ -506,6 +515,7 @@ describe("§ 6bw.6 — the rungs between the four exist once the frame is untied
         pupilSamples: 48,
         wavelengthNm: DESIGN,
         centreMm: AXIS,
+        layout: "aim",
       }),
     ).toThrow(/frame size must be a power of two/);
     // § 6bv.7 read that refusal as a refusal of the ANCHOR. It is not: with a

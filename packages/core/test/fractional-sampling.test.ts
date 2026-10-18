@@ -15,6 +15,23 @@ import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/desi
 import type { OpticalSystem } from "../src/trace/system";
 
 /**
+ * § 2r.2: the exit layout, on the located rim (§ 2q.4). Every reading below is
+ * on it; where the aim layout's reading is kept beside it, it says so. The
+ * step's own header below quotes it as first published, on the aim layout;
+ * VALIDATION § 2r.2 lists what moved, and what reversed.
+ */
+const EXIT = { layout: "exit", edgeSamples: 8, edgeRule: "crossing" } as const;
+
+/**
+ * § 2r.3: the registration cost is a stage scan's seam over a FIELD scan's, and
+ * on the exit layout a field scan's seam is exactly 0 — every tile reads the
+ * anchor's ruler (§ 2i) — so the cost was the aim layout's per-tile ruler drift.
+ * It is kept as that layout's readout, on that layout: every seam shift here
+ * asks for it.
+ */
+const SEAM = { layout: "aim" } as const;
+
+/**
  * § 6cq — § 6bn's first interval, and the engine change that was not needed.
  *
  * § 6bo established that this branch's two levers each move two things — at a
@@ -145,6 +162,7 @@ function mosaicOptions(
     stageMm: () => 0,
     radialMapSeed: "magnification",
     centreMm: ANCHOR,
+    ...EXIT,
     ...over,
   } as FluorescenceMosaicOptions;
 }
@@ -158,8 +176,8 @@ interface Cost {
   readonly scanMm: number;
 }
 const cost = (sys: OpticalSystem, size: number, ps: number, guardCells = 4): Cost => {
-  const field = mosaicSeamShiftMm(sys, mosaicOptions(size, ps, guardCells));
-  const scan = mosaicSeamShiftMm(sys, mosaicOptions(size, ps, guardCells, { scan: "stage" }));
+  const field = mosaicSeamShiftMm(sys, mosaicOptions(size, ps, guardCells, SEAM));
+  const scan = mosaicSeamShiftMm(sys, mosaicOptions(size, ps, guardCells, { ...SEAM, scan: "stage" }));
   return {
     ratio: scan.mm / field.mm,
     aniso: scan.betweenRowsMm / scan.betweenColumnsMm,
@@ -168,12 +186,14 @@ const cost = (sys: OpticalSystem, size: number, ps: number, guardCells = 4): Cos
   };
 };
 
+/** § 2r.3: the frames the costs are read on — the aim layout's, as the seams are. */
 const extent = (sys: OpticalSystem, size: number, ps: number): number =>
   objectFieldTile(sys, {
     size,
     pupilSamples: ps,
     wavelengthNm: DESIGN,
     centreMm: { x: 0, y: 0 },
+    ...SEAM,
   }).halfExtentMm;
 
 /** § 6bm's and § 6bn's quotient, slow/lo, fast/lo, slow/hi, fast/hi. */
@@ -236,6 +256,7 @@ describe("§ 6cq.0 — a non-integer pupilSamples is not an engine change", () =
         pupilSamples: ps,
         wavelengthNm: DESIGN,
         centreMm: { x: 0, y: 0 },
+        ...SEAM,
       }).objectHalfExtentMm;
       return obj / ((ps * DESIGN * 1e-6) / (4 * na)) - 1;
     });
@@ -272,7 +293,7 @@ describe("§ 6cq.1 — and nothing distinguishes an integer sampling", () => {
   it("walks the render-free seam through 16 without a kink", () => {
     const seen = [15.6, 15.7, 15.8, 15.9, 16, 16.1, 16.2, 16.3, 16.4].map((ps) => ({
       ps,
-      mm: mosaicSeamShiftMm(T10, mosaicOptions(2 ** 20, ps, 0), 65).betweenRowsMm,
+      mm: mosaicSeamShiftMm(T10, mosaicOptions(2 ** 20, ps, 0, SEAM), 65).betweenRowsMm,
     }));
     // Strictly rising, and the second difference — which is where a kink at an
     // integer would show — drifts smoothly by 7% across the window with its
@@ -287,17 +308,26 @@ describe("§ 6cq.1 — and nothing distinguishes an integer sampling", () => {
     expect(rel(d2[d2.length - 1]!, 8.453e-5)).toBeLessThan(1e-3);
   }, 600000);
 
-  it("and puts the rendered plateau's nine integers all through the ranking", () => {
+  it("and the rendered plateau has no integer structure — but a period of 2 in the sampling", () => {
     // The plateau is the readout that could plausibly care — it is a three-point
     // second difference of a rendered peak, which § 6bf.5 already measures
-    // moving 0.34% over a 4× change of sweep step. It scatters about a percent
-    // here, and the scatter has no integer structure in it.
+    // moving 0.34% over a 4× change of sweep step.
     //
     // Run twice, because the sweep GRID is the obvious confound: pinned, so the
     // coarse pass cannot land differently at different samplings, and free, so
     // the pinned centre's own off-centring cannot be what produces the scatter.
-    // The vertex moves 7.0e-4 mm across the ladder — 0.14 of a sweep step — so
-    // this control is not a formality.
+    //
+    // On the aim layout it scattered about a percent, an integer held the top
+    // place and a fraction the bottom, and the vertex moved 7.0e-4 mm — 0.14 of
+    // a sweep step. § 2r.2 REVERSED in kind: on the exit layout's located rim
+    // the ladder spans 0.17%, and that is one class — every ps ≡ 1.5 (mod 2),
+    // 45.5 to 51.5, reads at least 0.073% above all thirteen others, its vertex
+    // 0.1 µm low. The other thirteen span 0.051% with their vertex inside
+    // 1.6e-5 mm, and in them integers and the other fractions (≡ 0.5) sit
+    // 0.012% apart in mean against 0.013–0.015% within either. So integrality
+    // is still invisible; a period of 2 is not, and it is untraced
+    // (OPEN-PROBLEMS item 24). The pinned centre is the aim layout's vertex;
+    // the exit layout's is 0.0633.
     const ALL: number[] = [];
     for (let ps = 44; ps <= 52.0001; ps += 0.5) ALL.push(ps);
     /** The free grid pays a coarse pass per point, so its control runs on a
@@ -307,6 +337,8 @@ describe("§ 6cq.1 — and nothing distinguishes an integer sampling", () => {
       const seen: { ps: number; d: number; focus: number; interior: boolean }[] = [];
       for (const ps of list) {
         const r = renderedBestFocus(T10, 430, 0, {
+          ...EXIT,
+          peak: "band-limited",
           size: SIZE,
           pupilSamples: ps,
           slabs: uniformSlabs(-0.008, 0.008, 3),
@@ -330,32 +362,31 @@ describe("§ 6cq.1 — and nothing distinguishes an integer sampling", () => {
     const free = ladder(undefined, SUBSET);
     for (const p of [...pinned, ...free]) expect(p.interior).toBe(true);
     const drift = Math.max(...pinned.map((p) => p.focus)) - Math.min(...pinned.map((p) => p.focus));
-    expect(rel(drift, 7.021e-4)).toBeLessThan(0.05);
+    expect(rel(drift, 1.1779e-4)).toBeLessThan(0.05);
     for (const p of pinned) expect(Math.abs(p.focus - 0.0637)).toBeLessThan(0.03 / 2);
 
-    for (const [name, seen] of [["pinned", pinned]] as const) {
-      const ints = seen.filter((p) => Number.isInteger(p.ps)).map((p) => p.d);
-      const fracs = seen.filter((p) => !Number.isInteger(p.ps)).map((p) => p.d);
-      expect(ints.length, name).toBe(9);
-      expect(fracs.length, name).toBe(8);
-      // The whole ladder spans about a percent, and the two groups' means sit
-      // well inside the scatter of either — a tenth of a percent apart against
-      // near three tenths within, so the separation to be found is smaller than
-      // the noise either group already carries.
-      const spread = Math.max(...seen.map((p) => p.d)) / Math.min(...seen.map((p) => p.d)) - 1;
-      expect(spread, name).toBeGreaterThan(9e-3);
-      expect(spread, name).toBeLessThan(1.1e-2);
-      expect(Math.abs(mean(ints) / mean(fracs) - 1), name).toBeLessThan(sd(ints) / mean(ints) / 2);
-      expect(sd(ints) / mean(ints), name).toBeGreaterThan(2.4e-3);
-      expect(sd(fracs) / mean(fracs), name).toBeGreaterThan(2.4e-3);
-      // And they interleave: an integer holds the top place and a fraction the
-      // bottom, which is what a scatter with no integer structure looks like.
-      const order = [...seen].sort((a, b) => a.d - b.d);
-      expect(Number.isInteger(order[order.length - 1]!.ps), name).toBe(true);
-      expect(Number.isInteger(order[0]!.ps), name).toBe(false);
-      expect(order.slice(0, 8).filter((p) => Number.isInteger(p.ps)).length, name)
-        .toBeGreaterThanOrEqual(3);
-    }
+    const spread = (v: readonly { d: number }[]): number =>
+      Math.max(...v.map((p) => p.d)) / Math.min(...v.map((p) => p.d)) - 1;
+    expect(spread(pinned)).toBeGreaterThan(1.6e-3);
+    expect(spread(pinned)).toBeLessThan(1.8e-3);
+
+    const high = pinned.filter((p) => p.ps % 2 === 1.5);
+    const rest = pinned.filter((p) => p.ps % 2 !== 1.5);
+    expect(high.map((p) => p.ps)).toEqual([45.5, 47.5, 49.5, 51.5]);
+    expect(Math.min(...high.map((p) => p.d)) / Math.max(...rest.map((p) => p.d)) - 1).toBeGreaterThan(7e-4);
+    expect(spread(rest)).toBeLessThan(5.5e-4);
+
+    const ints = rest.filter((p) => Number.isInteger(p.ps)).map((p) => p.d);
+    const halves = rest.filter((p) => !Number.isInteger(p.ps)).map((p) => p.d);
+    expect(ints.length).toBe(9);
+    expect(halves.length).toBe(4);
+    expect(Math.abs(mean(ints) / mean(halves) - 1)).toBeLessThan(sd(ints) / mean(ints));
+    expect(Math.abs(mean(ints) / mean(halves) - 1)).toBeLessThan(sd(halves) / mean(halves));
+    // And they interleave.
+    const order = [...rest].sort((x, y) => x.d - y.d);
+    expect(order.slice(0, 7).filter((p) => !Number.isInteger(p.ps)).length).toBeGreaterThanOrEqual(1);
+    expect(order.slice(-4).filter((p) => !Number.isInteger(p.ps)).length).toBeGreaterThanOrEqual(1);
+
     // And the two grids rank the ladder identically, which is the control: the
     // ordering is a property of the sampling and not of where the sweep sat.
     // Checked on the nine the free grid was run at, integers and fractions both.

@@ -7,6 +7,14 @@ import type { OpticalSystem } from "../src/trace/system";
 import type { EmitterSlabs } from "../src/imaging/emitter-volume";
 
 /**
+ * § 2r.3: every seam here is read on the aim layout, explicitly. A field scan's
+ * seam is the aim layout's per-tile ruler drift — on the exit layout every tile
+ * reads the anchor's ruler and the seam is exactly 0 (`field-seam-zero.test.ts`)
+ * — so this chain's readings are that layout's, kept as its own.
+ */
+const SEAM = { layout: "aim" } as const;
+
+/**
  * § 6bx — the cost falls where the anisotropy humps.
  *
  * § 6bw located the ANISOTROPY threshold on a frame-free lattice and found its
@@ -133,11 +141,13 @@ function mosaicOptions(
       { nm: DESIGN, weight: 1 },
       { nm: 656.2725, weight: 1 },
     ],
+    ...SEAM,
     tiles: 3,
     guardCells: 4,
     stageMm: FREE_STAGE,
     radialMapSeed: "magnification",
     centreMm: { x: 4, y: 0 },
+    ...SEAM,
     ...over,
   };
 }
@@ -174,6 +184,7 @@ const scans = (
     mosaicOptions(BIG, PS_AT(c, j), {
       guardCells: guardAt(j, i),
       centreMm: { x, y: 0 },
+      ...SEAM,
       ...over,
     });
   const field = mosaicSeamShiftMm(LENS[c], o({}), probes);
@@ -440,6 +451,7 @@ describe("§ 6bx.8 — the fall is monotone inside a window, and 4 mm cannot see
       pupilSamples: PS_AT("s20", j),
       wavelengthNm: DESIGN,
       centreMm: { x, y: 0 },
+      layout: "aim",
     }).halfExtentMm / x;
 
   it("the threshold JUMPS UP at 2 mm and at 3 mm, at the tile-to-offset ratio they share", () => {

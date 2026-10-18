@@ -30,6 +30,14 @@ import { boxcarBand } from "../src/imaging/emission";
 import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/designs/microscope";
 
 /**
+ * § 2r.2: the exit layout, on the located rim (§ 2q.4). Every reading below is
+ * on it; where the aim layout's reading is kept beside it, it says so. The
+ * step's own header below quotes it as first published, on the aim layout;
+ * VALIDATION § 2r.2 lists what moved, and what reversed.
+ */
+const EXIT = { layout: "exit", edgeSamples: 8, edgeRule: "crossing" } as const;
+
+/**
  * § 6bi — the flat field and the blend.
  *
  * § 6bh composed the tiles and closed with two things missing: nothing feathers
@@ -39,29 +47,33 @@ import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/desi
  * **The seam's biggest artifact is a brightness staircase, and § 6bh did not
  * measure it.** Every tile is formed through its own pupil at its own field
  * height and nothing normalizes that away, so a mosaic of a featureless specimen
- * steps 0.53% across a seam at 1 mm of field and 1.9e-6 on the axis, a ratio of
- * 2783 — even in field radius, for the third time on this ladder. And it is
+ * steps 0.65% across a seam at 1 mm of field and 4.1e-6 on the axis, a ratio of
+ * 1609 — even in field radius, for the third time on this ladder. And it is
  * barely the correction's business where § 6bh.4's escape was all of it:
- * abandoning the focus correction moves the escape 5.264× and moves this 4.06%,
+ * abandoning the focus correction moves the escape 4.31× and moves this 2.99%,
  * because a uniform object is uniform under any kernel.
+ *
+ * (Every figure here is on the exit layout's located rim since § 2r.2. On the
+ * aim layout's point-sampled rim they read 0.53%, 1.9e-6, 2783, 5.264×, 4.06%,
+ * 121×, 1193×, 11%, 1.6e-6, 1.7e-12 and 2.3%; each test keeps its own.)
  *
  * **A flat field is a division, so it removes the amplitude and cannot touch the
  * phase.** The free field — one scalar per tile off `patchThroughput` — takes
- * 121× off the seam at the field edge and nothing off it on the axis, because on
+ * 55× off the seam at the field edge and nothing off it on the axis, because on
  * the axis the residue is not the glass at all: it is the rasterizer's own
- * Jacobian, and the two terms swap rank by 1193×.
+ * Jacobian, and the two terms swap rank by 1218×.
  *
  * **And a real slide scanner's flat field is not merely useless here, it is
- * harmful** — it makes the seam 11% worse. A scanner holds the optics still and
+ * harmful** — it makes the seam 10% worse. A scanner holds the optics still and
  * moves the stage, so its vignetting repeats identically in every tile; this
  * mosaic moves the tile in the image plane, so the profile is one global even
  * function of field radius and a per-tile-repeating field carries none of it.
  *
  * **The blend's cost is the mixture and not the displacement.** The law of total
  * variance splits a blended pixel's second moment into the two tiles' own blurs
- * plus a cross term in their centroid separation; the cross term is 1.6e-6 of
- * the total at the field edge and 1.7e-12 on the axis, so what a blend really
- * costs is that half the light came from the worse-focused tile — 2.3% of the
+ * plus a cross term in their centroid separation; the cross term is 1.8e-6 of
+ * the total at the field edge and 2.1e-12 on the axis, so what a blend really
+ * costs is that half the light came from the worse-focused tile — 2.1% of the
  * second moment, and 37× less on the axis.
  *
  * External numbers: the law of total variance (an identity, held to 5e-15),
@@ -98,6 +110,8 @@ const SWEEP: FocusSweepOptions = {
   stepMm: 0.005,
   halfMm: 0.03,
   maxPlateauDepths: 1,
+  ...EXIT,
+  peak: "band-limited",
 };
 const SURFACE = focusSurface(SYSTEM, {
   ...SWEEP,
@@ -119,6 +133,7 @@ function mosaicOptions(over: Partial<FluorescenceMosaicOptions> = {}): Fluoresce
     tiles: 3,
     guardCells: 4,
     stageMm: surfaceStage(SURFACE),
+    ...EXIT,
     ...over,
   };
 }
@@ -205,16 +220,16 @@ describe("§ 6bi.2 — the seam's brightness step is a FIELD quantity", () => {
     // orders above it, and the recorded digits past that were the machine's,
     // not this engine's. `golden.ts` states the same fact about the image gate.
     // The edge reading cancels nothing and keeps its twelve.
-    expect(Math.abs(axis.acrossSeam / 1.9021064201870282e-6 - 1)).toBeLessThan(1e-7);
-    expect(edge.acrossSeam).toBeCloseTo(5.294321758048935e-3, 12);
-    expect(Math.abs(edge.acrossSeam / axis.acrossSeam / 2783.399341835122 - 1)).toBeLessThan(1e-7);
+    expect(Math.abs(axis.acrossSeam / 0.0000040635590401264205 - 1)).toBeLessThan(1e-7);
+    expect(edge.acrossSeam).toBeCloseTo(0.006537335922888002, 12);
+    expect(Math.abs(edge.acrossSeam / axis.acrossSeam / 1608.7709956552324 - 1)).toBeLessThan(1e-7);
   });
 
   it("and the whole picture is a staircase, not just its seams", () => {
     const axisField = renderedFlatField(SYSTEM, BLANK, AXIS_OPTIONS);
     const edgeField = renderedFlatField(SYSTEM, BLANK, EDGE_OPTIONS);
-    expect(axisField.span).toBeCloseTo(7.784684e-5, 10);
-    expect(edgeField.span).toBeCloseTo(1.387024e-2, 7);
+    expect(axisField.span).toBeCloseTo(0.00008182226211869574, 10);
+    expect(edgeField.span).toBeCloseTo(0.015120774699892207, 7);
   });
 
   it("and it is barely the focus correction's business, where the ESCAPE was all of it", () => {
@@ -229,8 +244,8 @@ describe("§ 6bi.2 — the seam's brightness step is a FIELD quantity", () => {
       stageMm: () => 0,
     });
     const step = mosaicSeamStep(flat.composed, EDGE_GEOMETRY);
-    expect(step.acrossSeam).toBeCloseTo(5.509192524069813e-3, 12);
-    expect(step.acrossSeam / edge.acrossSeam).toBeCloseTo(1.0405851355169737, 9);
+    expect(step.acrossSeam).toBeCloseTo(0.00673275877785757, 12);
+    expect(step.acrossSeam / edge.acrossSeam).toBeCloseTo(1.0298933475768575, 9);
   });
 });
 
@@ -241,31 +256,36 @@ describe("§ 6bi.3 — two flat fields, and the difference between them is the M
   const edgeThroughput = throughputFlatField(EDGE_BLANK);
 
   it("at the field edge the pupil is most of the field, and the map the rest", () => {
-    expect(edgeRendered.span).toBeCloseTo(1.387024e-2, 7);
-    expect(edgeThroughput.span).toBeCloseTo(1.183074e-2, 7);
-    expect(edgeRendered.span / edgeThroughput.span).toBeCloseTo(1.17239, 4);
+    expect(edgeRendered.span).toBeCloseTo(0.015120774699892207, 7);
+    expect(edgeThroughput.span).toBeCloseTo(0.012948745076020495, 7);
+    expect(edgeRendered.span / edgeThroughput.span).toBeCloseTo(1.1677405502324736, 4);
   });
 
   it("and on the AXIS the two swap rank — what is left there is the map alone", () => {
     // The throughput is even, so it is flat on axis; the radial map's local
     // scale is not, so a uniform density in the OBJECT is not uniform on the
-    // image grid. 1193× says the whole of an axial flat field is the rasterizer.
-    expect(axisRendered.span).toBeCloseTo(7.784684e-5, 10);
+    // image grid. 1218× says the whole of an axial flat field is the rasterizer
+    // (1193× on the aim layout, § 2r.2).
+    expect(axisRendered.span).toBeCloseTo(0.00008182226211869574, 10);
     // The axial throughput span is the flat profile's residue — 6.5e-8 out of a
     // throughput of order 1 — so the same few ulps are 1.5e-8 of it. Bound set
     // three orders above that floor, because the number of accumulated
     // operations behind a rendered span is not bounded tightly enough to claim
     // less; it still keeps five figures of a seven-figure reading.
-    expect(Math.abs(axisThroughput.span / 6.523349e-8 - 1)).toBeLessThan(1e-5);
+    expect(Math.abs(axisThroughput.span / 6.715483080722135e-8 - 1)).toBeLessThan(1e-5);
     // The ratio divides BY that residue, so it cannot be pinned tighter than the
     // residue is known: same bound, not the 4e-7 an absolute `toBeCloseTo` on
-    // 1193 would have implied. 1193× is the finding and five figures state it.
-    expect(Math.abs(axisRendered.span / axisThroughput.span / 1193.3667 - 1)).toBeLessThan(1e-5);
+    // 1218 would have implied. 1218× is the finding and five figures state it.
+    expect(Math.abs(axisRendered.span / axisThroughput.span / 1218.4121549435451 - 1)).toBeLessThan(1e-5);
   });
 
-  it("and the pupil's ratio between two tiles is ACHROMATIC — one slide, every channel", () => {
+  it("and the pupil's ratio between two tiles is nearly ACHROMATIC — one slide, every channel", () => {
     // § 6be.6's null, measured between TILES rather than between patches of one
-    // frame. It is why a real calibration gets away with one blank slide.
+    // frame. It is why a real calibration gets away with one blank slide. On the
+    // aim layout it was a null to 5e-8; on the exit layout the colours part by
+    // 5.5e-5 — § 2q.6's displaced bundle, whose share of the rim is a colour —
+    // which is under 1% of the 6.2e-3 the ratio itself departs from 1 by, so one
+    // slide still serves every channel, to that (§ 2r.2, WEAKENED).
     const n = EDGE_GEOMETRY.tilesPerAxis;
     const ratios = SAMPLES.map((_, p) => {
       const mean = (t: number): number => {
@@ -276,10 +296,11 @@ describe("§ 6bi.3 — two flat fields, and the difference between them is the M
       };
       return mean(n + 1) / mean(n);
     });
-    expect(ratios[0]!).toBeCloseTo(0.9921774331, 9);
+    expect(ratios[0]!).toBeCloseTo(0.9937511742525935, 9);
     const lo = Math.min(...ratios);
     const hi = Math.max(...ratios);
-    expect((hi - lo) / ((hi + lo) / 2)).toBeLessThan(5e-8);
+    expect(Math.abs((hi - lo) / ((hi + lo) / 2) / 5.480602467500697e-5 - 1)).toBeLessThan(1e-6);
+    expect((hi - lo) / ((hi + lo) / 2) / (1 - ratios[0]!)).toBeLessThan(0.01);
   });
 });
 
@@ -287,7 +308,9 @@ describe("§ 6bi.4 — division removes the amplitude and cannot touch the phase
   const edgeRendered = renderedFlatField(SYSTEM, BLANK, EDGE_OPTIONS);
   const before = mosaicSeamStep(EDGE_BLANK.composed, EDGE_GEOMETRY);
 
-  it("the free field takes 121× off the seam at the edge and nothing off it on axis", () => {
+  it("the free field takes 55× off the seam at the edge and nothing off it on axis", () => {
+    // 54.96× on the exit layout's located rim (§ 2r.2); 121.08× on the aim
+    // layout's point-sampled one, whose residue after division was 2.7× smaller.
     const edge = mosaicSeamStep(
       flatFieldCorrect(EDGE_BLANK.composed, throughputFlatField(EDGE_BLANK)),
       EDGE_GEOMETRY,
@@ -296,11 +319,11 @@ describe("§ 6bi.4 — division removes the amplitude and cannot touch the phase
       flatFieldCorrect(AXIS_BLANK.composed, throughputFlatField(AXIS_BLANK)),
       AXIS_GEOMETRY,
     );
-    expect(edge.acrossSeam).toBeCloseTo(4.372687e-5, 9);
-    expect(before.acrossSeam / edge.acrossSeam).toBeCloseTo(121.0771, 3);
+    expect(edge.acrossSeam).toBeCloseTo(0.00011895689035308689, 9);
+    expect(before.acrossSeam / edge.acrossSeam).toBeCloseTo(54.955504498175216, 3);
     // Nothing on the axis, and that is not a failure: there is no throughput
-    // gradient there to remove, so the 1.9e-6 that survives is § 6bi.3's map.
-    expect(axis.acrossSeam).toBeCloseTo(1.868698e-6, 11);
+    // gradient there to remove, so the 4.1e-6 that survives is § 6bi.3's map.
+    expect(axis.acrossSeam).toBeCloseTo(0.000004031021071697281, 11);
   });
 
   it("and the free field is EXACT for the pupil because it carries no defocus", () => {
@@ -326,15 +349,16 @@ describe("§ 6bi.4 — division removes the amplitude and cannot touch the phase
     const crossed = mosaicSeamStep(flatFieldCorrect(EDGE_BLANK.composed, other), EDGE_GEOMETRY);
     const native = mosaicSeamStep(flatFieldCorrect(EDGE_BLANK.composed, own), EDGE_GEOMETRY);
     expect(crossed.acrossSeam).toBeCloseTo(native.acrossSeam, 12);
-    expect(crossed.acrossSeam).toBeCloseTo(4.372687e-5, 9);
+    expect(crossed.acrossSeam).toBeCloseTo(0.00011895689034872586, 9);
   });
 
-  it("and a stage scanner's per-tile field makes it WORSE, by 11%", () => {
+  it("and a stage scanner's per-tile field makes it WORSE, by 10%", () => {
+    // 9.95% on the exit layout (§ 2r.2); 11.0% on the aim layout.
     // The correction a real slide scanner uses: one calibration frame, repeated
     // in every tile, because a scanner re-uses one part of the objective's field
     // for every tile. This mosaic moves the tile IN the field, so a repeating
     // field carries no between-tile information at all — and superimposes the
-    // anchor tile's own profile on every tile, which is the 11%.
+    // anchor tile's own profile on every tile, which is the 10%.
     const { keptPixels: k, guardPixels, pitchPixels, size, tilesPerAxis: n } = EDGE_GEOMETRY;
     const anchor = EDGE_BLANK.tiles[Math.floor(n / 2) * n + Math.floor(n / 2)]!;
     const planes = EDGE_BLANK.composed.planes.map((_, p) => {
@@ -366,8 +390,8 @@ describe("§ 6bi.4 — division removes the amplitude and cannot touch the phase
       span: 0,
     };
     const after = mosaicSeamStep(flatFieldCorrect(EDGE_BLANK.composed, repeating), EDGE_GEOMETRY);
-    expect(after.acrossSeam).toBeCloseTo(5.877290e-3, 8);
-    expect(after.acrossSeam / before.acrossSeam).toBeCloseTo(1.110112, 5);
+    expect(after.acrossSeam).toBeCloseTo(0.007187793943611532, 8);
+    expect(after.acrossSeam / before.acrossSeam).toBeCloseTo(1.0994989439729108, 5);
 
     // …where the mosaic-wide field of the same render removes it exactly.
     const exact = mosaicSeamStep(
@@ -382,7 +406,9 @@ describe("§ 6bi.4 — division removes the amplitude and cannot touch the phase
     expect(exact.acrossSeam).toBeLessThan(2.3e-16);
   });
 
-  it("and on a point emitter it moves the brightness 305× more than the WIDTH", () => {
+  it("and on a point emitter it moves the brightness 561× more than the WIDTH", () => {
+    // 560.8× on the exit layout's located rim (§ 2r.2); 304.7× on the aim
+    // layout's point-sampled one.
     // A flat field multiplies; a kernel convolves. So the correction reaches the
     // amplitude half of a seam and leaves the phase half exactly where § 6bh.5
     // measured it — § 6bd.6's split, one layer up.
@@ -391,6 +417,7 @@ describe("§ 6bi.4 — division removes the amplitude and cannot touch the phase
       pupilSamples: PS,
       wavelengthNm: 430,
       centreMm: { x: EDGE.x + EDGE_GEOMETRY.pitchMm, y: 0 },
+      layout: "exit",
     });
     const point: SpectralVolumeEmitterDensity = labelledVolumeEmitters([
       {
@@ -409,9 +436,9 @@ describe("§ 6bi.4 — division removes the amplitude and cannot touch the phase
     const fixed = moments(corrected.planes[0]!.intensity, EDGE_GEOMETRY.size);
     const brightness = (fixed.flux - raw.flux) / raw.flux;
     const width = (fixed.m2 - raw.m2) / raw.m2;
-    expect(brightness).toBeCloseTo(4.720947e-3, 9);
-    expect(width).toBeCloseTo(-1.549474e-5, 11);
-    expect(Math.abs(brightness / width)).toBeCloseTo(304.6805658817724, 9);
+    expect(brightness).toBeCloseTo(0.006992838821185283, 9);
+    expect(width).toBeCloseTo(-0.0000124697194213427, 11);
+    expect(Math.abs(brightness / width)).toBeCloseTo(560.7855793714655, 9);
   });
 });
 
@@ -448,8 +475,8 @@ describe("§ 6bi.5 — the ramp is a partition of unity, and it spreads what it 
     // overlap. What a blend changes is how fast a seam is crossed, not how far.
     for (const [overlapPixels, ratio] of [
       [2, 2.0009],
-      [8, 7.9781],
-      [24, 23.8549],
+      [8, 7.9881283268954855],
+      [24, 23.980699544001393],
     ] as const) {
       const options = mosaicOptions({ centreMm: EDGE, overlapPixels });
       const geometry = fluorescenceMosaicGeometry(SYSTEM, options);
@@ -489,6 +516,7 @@ describe("§ 6bi.6 — the blend's cost is the MIXTURE, not the displacement", (
         pupilSamples: PS,
         wavelengthNm: 430,
         centreMm: { x, y: 0 },
+        layout: "exit",
       });
     const here = frameOf(anchorX);
     const next = frameOf(anchorX + geometry.pitchMm);
@@ -508,6 +536,7 @@ describe("§ 6bi.6 — the blend's cost is the MIXTURE, not the displacement", (
     ]);
     const render = (focusMm: number): Float64Array =>
       fluorescenceSpectralVolume(SYSTEM, density, {
+        ...EXIT,
         size: SIZE,
         pupilSamples: PS,
         slabs: THIN,
@@ -551,12 +580,14 @@ describe("§ 6bi.6 — the blend's cost is the MIXTURE, not the displacement", (
     expect(Math.abs(edge.m2Mix - edge.predicted) / edge.predicted).toBeLessThan(1e-14);
   });
 
-  it("the cross term — the double image — is nothing, and a MILLION times less on axis", () => {
+  it("the cross term — the double image — is nothing, and 836 000 times less on axis", () => {
     // It goes as the square of the centroid separation, and § 6bg.6 measured
     // that separation to be an odd-order field quantity. So the term one would
-    // fear from blending two differently-focused pictures is 1.6e-6 of the spot
-    // where the focus step is worst, and 1.7e-12 where it is not.
-    expect(edge.crossShare).toBeCloseTo(1.633905e-6, 11);
+    // fear from blending two differently-focused pictures is 1.8e-6 of the spot
+    // where the focus step is worst, and 2.1e-12 where it is not (1.6e-6 and
+    // 1.7e-12, a million times apart, on the aim layout's point-sampled rim;
+    // 836 000 times on the exit layout's located one, § 2r.2).
+    expect(edge.crossShare).toBeCloseTo(0.0000017885748219140112, 11);
     // The axial cross share goes as the SQUARE of a separation that is itself a
     // cancellation (1.1e-7 mm against a spot of ~1e-3), so it carries twice that
     // loss. But the binding constraint here is not the conditioning — it is the
@@ -564,40 +595,42 @@ describe("§ 6bi.6 — the blend's cost is the MIXTURE, not the displacement", (
     // last digit is already 3e-7 of it, so no bound below that can be met by any
     // machine, this one included: the reading sits 1.6e-7 away because that is
     // where seven figures put it. A bound is never tighter than the rounding of
-    // the number it compares against. 1.7e-12 is what the sentence quotes and
-    // the 9e5 ratio below is the claim.
-    expect(Math.abs(axis.crossShare / 1.664182e-12 - 1)).toBeLessThan(1e-6);
-    expect(edge.crossShare / axis.crossShare).toBeGreaterThan(9e5);
-    expect(edge.separationMm).toBeCloseTo(1.131202e-4, 9);
-    expect(axis.separationMm).toBeCloseTo(1.118568e-7, 12);
+    // the number it compares against. 2.1e-12 is what the sentence quotes and
+    // the 8e5 ratio below is the claim.
+    expect(Math.abs(axis.crossShare / 2.13898340108464e-12 - 1)).toBeLessThan(1e-6);
+    expect(edge.crossShare / axis.crossShare).toBeGreaterThan(8e5);
+    expect(edge.separationMm).toBeCloseTo(0.00012485607111511877, 9);
+    expect(axis.separationMm).toBeCloseTo(1.3502934347115237e-7, 12);
   });
 
   it("what it DOES cost is that half the light came from the blurrier tile", () => {
     // The first two terms, not the third: a blended pixel is the average of the
     // two tiles' own blurs, so it is wider than the sharper of them by half
-    // their spread. 2.32% at the field edge and 0.06% on the axis.
-    expect(edge.m2A).toBeCloseTo(1.913491e-3, 9);
-    expect(edge.m2B).toBeCloseTo(2.002333e-3, 9);
-    expect((edge.m2Mix - edge.m2A) / edge.m2A).toBeCloseTo(2.3215038259920936e-2, 12);
+    // their spread. 2.07% at the field edge and 0.056% on the axis (2.32% and
+    // 0.062% on the aim layout's point-sampled rim, § 2r.2).
+    expect(edge.m2A).toBeCloseTo(0.0021348828309882685, 9);
+    expect(edge.m2B).toBeCloseTo(0.0022230640791017424, 9);
+    expect((edge.m2Mix - edge.m2A) / edge.m2A).toBeCloseTo(0.020653147919686393, 12);
     // The axial fraction is 6.2e-4 of a second moment — a difference of two
     // readings of order 1.9e-3 that agree to four figures — so a few ulps in
-    // them is ~2e-12 of the fraction. Bound three orders above that. 0.06% is
+    // them is ~2e-12 of the fraction. Bound three orders above that. 0.056% is
     // the claim and it is untouched.
-    expect(Math.abs((axis.m2Mix - axis.m2A) / axis.m2A / 6.240437551260635e-4 - 1)).toBeLessThan(1e-9);
+    expect(Math.abs((axis.m2Mix - axis.m2A) / axis.m2A / 0.0005584574461267664 - 1)).toBeLessThan(1e-9);
   });
 
   it("and its field dependence is § 6bh.5's, read off the PIXELS and not the stage", () => {
-    // The two tiles' own blurs differ 37.20× more at the edge than on the axis,
-    // beside § 6bh.5's 38.2× for the stage step that causes it. Suggestive and
+    // The two tiles' own blurs differ 36.98× more at the edge than on the axis,
+    // beside § 6bh.5's 38.5× for the stage step that causes it (37.20× and 38.2×
+    // on the aim layout, § 2r.2). Suggestive and
     // NOT pinned as an identity: a second moment is not linear in defocus, and
     // the two are read on different quantities.
     const spread = (r: { m2A: number; m2B: number }): number => (r.m2B - r.m2A) / r.m2A;
-    expect(spread(edge)).toBeCloseTo(4.6429044231642624e-2, 12);
+    expect(spread(edge)).toBeCloseTo(0.04130495914506629, 12);
     // Same cancellation as the fraction above — 1.2e-3 between two second
     // moments, so the same ~2e-12 floor — and the 37.20× divides by it, so it
     // is never pinned tighter than the quantity it divides by.
-    expect(Math.abs(spread(axis) / 1.2480889651578179e-3 - 1)).toBeLessThan(1e-9);
-    expect(Math.abs(spread(edge) / spread(axis) / 37.2001079472502 - 1)).toBeLessThan(1e-8);
+    expect(Math.abs(spread(axis) / 0.0011169164551806205 - 1)).toBeLessThan(1e-9);
+    expect(Math.abs(spread(edge) / spread(axis) / 36.98124327337152 - 1)).toBeLessThan(1e-8);
   });
 });
 
@@ -644,29 +677,52 @@ describe("§ 6bi.7 — the refusals", () => {
 });
 
 /** Flux, centroid and second moment of an image, in whatever unit `scale` is. */
+/**
+ * Flux, centroid and second moment, each sum compensated (Neumaier). § 6bi.6's
+ * identity is a statement about these sums, and over 128² pixels a plain sum's
+ * rounding is itself ~1e-14 of the moment — the size of the bound. On the aim
+ * layout's images plain sums happened to land under it; on the exit layout's
+ * they read 1.17e-14 (§ 2r.2). Compensated, the sums carry their operands' own
+ * rounding and nothing of the order they were added in.
+ */
 function moments(
   a: Float64Array,
   n: number,
   scale = 1,
 ): { flux: number; cx: number; cy: number; m2: number } {
-  let flux = 0;
-  let cx = 0;
-  let cy = 0;
+  const flux = new Compensated();
+  const sx = new Compensated();
+  const sy = new Compensated();
   for (let r = 0; r < n; r++) {
     for (let c = 0; c < n; c++) {
       const v = a[r * n + c]!;
-      flux += v;
-      cx += v * c;
-      cy += v * r;
+      flux.add(v);
+      sx.add(v * c);
+      sy.add(v * r);
     }
   }
-  cx /= flux;
-  cy /= flux;
-  let m2 = 0;
+  const total = flux.value();
+  const cx = sx.value() / total;
+  const cy = sy.value() / total;
+  const m2 = new Compensated();
   for (let r = 0; r < n; r++) {
     for (let c = 0; c < n; c++) {
-      m2 += a[r * n + c]! * ((c - cx) ** 2 + (r - cy) ** 2);
+      m2.add(a[r * n + c]! * ((c - cx) ** 2 + (r - cy) ** 2));
     }
   }
-  return { flux, cx: cx * scale, cy: cy * scale, m2: (m2 / flux) * scale * scale };
+  return { flux: total, cx: cx * scale, cy: cy * scale, m2: (m2.value() / total) * scale * scale };
+}
+
+/** Neumaier's compensated sum. */
+class Compensated {
+  private sum = 0;
+  private carry = 0;
+  add(x: number): void {
+    const t = this.sum + x;
+    this.carry += Math.abs(this.sum) >= Math.abs(x) ? this.sum - t + x : x - t + this.sum;
+    this.sum = t;
+  }
+  value(): number {
+    return this.sum + this.carry;
+  }
 }

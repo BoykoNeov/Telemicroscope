@@ -17,6 +17,14 @@ import {
 } from "./support/refusalSweep";
 
 /**
+ * § 2r.2: the exit layout, on the located rim (§ 2q.4). Every reading below is
+ * on it; where the aim layout's reading is kept beside it, it says so. The
+ * step's own header below quotes it as first published, on the aim layout;
+ * VALIDATION § 2r.2 lists what moved, and what reversed.
+ */
+const EXIT = { layout: "exit", edgeSamples: 8, edgeRule: "crossing" } as const;
+
+/**
  * § 6bq — the refusal boundary moves with magnification.
  *
  * `renderedBestFocus` refuses a sweep whose axial response is a PLATEAU — whose
@@ -71,8 +79,8 @@ import {
 describe("§ 6bq.1 — the branch column reproduces, and the 10× ceiling is where § 6bn.1 put it", () => {
   it("§ 6bo.5's seven plateau depths come back unchanged", () => {
     const published = [
-      0.37549919008843585, 0.428382059451484, 0.598546429418493, 1.0738808825086936,
-      1.2301646622060687, 1.4396321362837097, 1.5922927982930855,
+      0.3722815616422731, 0.42476740698848536, 0.6023875557712574, 1.1187669867217187,
+      1.2959870056577374, 1.5885913163297871, 2.3140296636294875,
     ];
     LADDER.forEach((na, i) => expect(D(20, na, 128, 48)).toBeCloseTo(published[i]!, 12));
   });
@@ -96,16 +104,16 @@ describe("§ 6bq.3 — the magnification lever moves the image, not the normalis
     expect(objectNumericalAperture(lens(20, 0.15), LAMBDA)).toBeCloseTo(0.1497662938978162, 12);
   });
 
-  it("so the whole 1.5364× gap is curvature, and the decomposition closes", () => {
+  it("so the whole 1.6202× gap is curvature, and the decomposition closes", () => {
     const slow = P(10, 0.15, 128, 48);
     const fast = P(20, 0.15, 64, 24);
-    expect(slow.curvature).toBeCloseTo(-0.00818917340339205, 12);
-    expect(fast.curvature).toBeCloseTo(-0.01933926197790433, 12);
+    expect(slow.curvature).toBeCloseTo(-0.007053938544264419, 12);
+    expect(fast.curvature).toBeCloseTo(-0.01852504738656639, 12);
 
     const depths = slow.plateauDepths / fast.plateauDepths;
     const fromCurvature = Math.sqrt(Math.abs(fast.curvature) / Math.abs(slow.curvature));
-    expect(depths).toBeCloseTo(1.5363592693670547, 12);
-    expect(fromCurvature).toBeCloseTo(1.536738297742829, 12);
+    expect(depths).toBeCloseTo(1.620155495716152, 12);
+    expect(fromCurvature).toBeCloseTo(1.6205551970869752, 12);
 
     // The residual between them is the depth-of-focus ratio and nothing else —
     // § 6bo.3's rule, that a ratio is decomposed before it is interpreted.
@@ -115,31 +123,40 @@ describe("§ 6bq.3 — the magnification lever moves the image, not the normalis
 
 describe("§ 6bq.4 — a finer ladder narrows § 6bo.5's bracket, and the ladder is not monotone", () => {
   it("three inserted apertures cut the 20× bracket from three steps to one", () => {
-    expect(D(20, 0.16, 128, 48)).toBeCloseTo(0.864083973044727, 12);
-    expect(D(20, 0.17, 128, 48)).toBeCloseTo(0.8650106305087123, 12);
-    expect(D(20, 0.19, 128, 48)).toBeCloseTo(1.1295605069917372, 12);
+    expect(D(20, 0.16, 128, 48)).toBeCloseTo(0.8870602039570573, 12);
+    expect(D(20, 0.17, 128, 48)).toBeCloseTo(0.8633348891438541, 12);
+    expect(D(20, 0.19, 128, 48)).toBeCloseTo(1.160058688584179, 12);
 
     // § 6bo.5 could say only "between 0.15 and 0.18". At this frame it is
     // between 0.17 and 0.18 — and § 6bq.6 shows that call is the frame's.
     expect(D(20, 0.17, 128, 48)).toBeLessThan(1);
     expect(D(20, 0.18, 128, 48)).toBeGreaterThan(1);
 
-    // 0.16 to 0.17 is a shelf: one aperture step apart and 0.107% apart.
-    expect(D(20, 0.17, 128, 48) / D(20, 0.16, 128, 48)).toBeCloseTo(1.0010724159837383, 12);
+    // 0.16 to 0.17 FALLS 2.7% — one aperture step, the wrong way. On the aim
+    // layout it was a shelf, 0.107% apart and rising (§ 2r.2).
+    expect(D(20, 0.17, 128, 48) / D(20, 0.16, 128, 48)).toBeCloseTo(0.9732539970710357, 12);
+    expect(D(20, 0.17, 128, 48)).toBeLessThan(D(20, 0.16, 128, 48));
   });
 
-  it("and at a matched field the ladder inverts between 0.19 and 0.20", () => {
-    expect(D(20, 0.19, 64, 24)).toBeCloseTo(1.175869511495674, 12);
-    expect(D(20, 0.2, 64, 24)).toBeCloseTo(1.1743129041760003, 12);
+  it("and at a matched field the ladder inverts between 0.16 and 0.17 — not between 0.19 and 0.20", () => {
+    // § 2r.2 REVERSED in place, kept in kind. On the aim layout the matched
+    // frame inverted between 0.19 and 0.20, by 0.13% (1.1759 against 1.1743).
+    // On the exit layout that step rises 11%, and the inversion is one step
+    // lower, where the larger frame's shelf now falls too: 9.5% at this frame.
+    expect(D(20, 0.19, 64, 24)).toBeCloseTo(1.2094004504471114, 12);
+    expect(D(20, 0.2, 64, 24)).toBeCloseTo(1.3431651971276746, 12);
+    expect(D(20, 0.2, 64, 24)).toBeGreaterThan(D(20, 0.19, 64, 24));
+    expect(D(20, 0.16, 64, 24)).toBeCloseTo(0.9270027796311074, 12);
+    expect(D(20, 0.17, 64, 24)).toBeCloseTo(0.8468994247028685, 12);
 
     // § 6bo.5 pinned the seven-point ladder monotone in aperture. It is, at its
-    // own frame and at its own steps; a finer ladder at a smaller frame is not.
-    expect(D(20, 0.2, 64, 24)).toBeLessThan(D(20, 0.19, 64, 24));
-    expect(D(20, 0.19, 64, 24) / D(20, 0.2, 64, 24)).toBeCloseTo(1.0013255473171914, 12);
+    // own frame and at its own steps; a finer ladder is not, at either frame.
+    expect(D(20, 0.17, 64, 24)).toBeLessThan(D(20, 0.16, 64, 24));
+    expect(D(20, 0.16, 64, 24) / D(20, 0.17, 64, 24)).toBeCloseTo(1.0945842594666337, 12);
 
-    // The inversion is 0.13% and both readings refuse, so it costs no verdict —
-    // it costs the WORD monotone, which § 6bo.5 used to order the ladder.
-    for (const na of [0.19, 0.2]) expect(D(20, na, 64, 24)).toBeGreaterThan(1);
+    // Both readings pass, so it costs no verdict — it costs the WORD monotone,
+    // which § 6bo.5 used to order the ladder.
+    for (const na of [0.16, 0.17]) expect(D(20, na, 64, 24)).toBeLessThan(1);
   });
 
   it("while the 10× ladder at its own frame is monotone across all eight", () => {
@@ -148,14 +165,14 @@ describe("§ 6bq.4 — a finer ladder narrows § 6bo.5's bracket, and the ladder
     // relative distances and not with `toEqual`. The monotonicity below is the
     // rung; these eight are what it was measured on.
     expectReproduces(ten, [
-      0.37898127424108746, 0.4666518221130638, 0.9111765858101702, 1.0019827640216046,
-      1.120776474567028, 1.288847552430416, 1.4412948647351145, 1.4594730176611368,
+      0.37615334937848366, 0.46654675712193866, 0.9817631998807098, 1.0419741268651355,
+      1.1386009379305801, 1.270064014967424, 1.4286062660796581, 2.018702331964637,
     ]);
     for (let i = 1; i < ten.length; i++) expect(ten[i]!).toBeGreaterThan(ten[i - 1]!);
   });
 });
 
-describe("§ 6bq.6 — the boundary is bracketed at 10×, refused at 0.18 at 20×, and it RISES with M", () => {
+describe("§ 6bq.6 — the boundary is bracketed at 10× and at 20×, and it RISES with M", () => {
   it("the three frames are one field ladder at one pixel pitch", () => {
     // Each frame is twice the extent of the last and has twice the pixels, so
     // the pitch is the same throughout — the ball is sampled identically and
@@ -175,8 +192,8 @@ describe("§ 6bq.6 — the boundary is bracketed at 10×, refused at 0.18 at 20�
   it("at 10× the crossing is (0.15, 0.16], and both sides are unanimous", () => {
     const passes = FRAMES.map(([size, ps]) => D(10, 0.15, size, ps));
     const refuses = FRAMES.map(([size, ps]) => D(10, 0.16, size, ps));
-    expectReproduces(passes, [0.8166675113166156, 0.9111765858101702, 0.9343833341118507]);
-    expectReproduces(refuses, [1.0401004800647329, 1.0019827640216046, 1.0287413883303664]);
+    expectReproduces(passes, [0.9088684851208501, 0.9817631998807098, 0.9455123714010261]);
+    expectReproduces(refuses, [1.0876226544988319, 1.0419741268651355, 1.0607371965792758]);
 
     for (const d of passes) expect(d).toBeLessThan(1);
     for (const d of refuses) expect(d).toBeGreaterThan(1);
@@ -184,20 +201,23 @@ describe("§ 6bq.6 — the boundary is bracketed at 10×, refused at 0.18 at 20�
     expect(straddlesOne(refuses)).toBe(false);
 
     // The tightest bracket on this branch: one aperture step, over a 4× range of
-    // frame extent, with the refusing band only 3.8% wide.
+    // frame extent, with the refusing band only 4.4% wide (3.8% on the aim layout).
     const [lo, hi] = band(refuses);
-    expect(hi / lo).toBeCloseTo(1.0380422871648383, 12);
+    expect(hi / lo).toBeCloseTo(1.0438096555919616, 12);
   });
 
-  it("at 20× NA 0.18 is REFUSED — which side of 1 it lands on is the frame's", () => {
-    const straddling = FRAMES.map(([size, ps]) => D(20, 0.18, size, ps));
-    expectReproduces(straddling, [0.9819748347956937, 1.0738808825086936, 1.073347606145244]);
-    expect(straddlesOne(straddling)).toBe(true);
+  it("at 20× NA 0.18 REFUSES at every frame — on the aim layout which side of 1 it fell was the frame's", () => {
+    // § 2r.2 REVERSED. On the aim layout the three frames read 0.982, 1.074 and
+    // 1.073: they straddled 1, so no verdict was stated at 0.18 — § 6bp.6's
+    // device. On the exit layout all three refuse, in a band 4.6% wide, so the
+    // 20× boundary is bracketed as the 10× one is: (0.17, 0.18], unanimous.
+    const refusing = FRAMES.map(([size, ps]) => D(20, 0.18, size, ps));
+    expectReproduces(refusing, [1.0696938554178719, 1.1187669867217187, 1.086151909417324]);
+    expect(straddlesOne(refusing)).toBe(false);
+    for (const d of refusing) expect(d).toBeGreaterThan(1);
 
-    // The band is 9.36% wide and the effect being asked about is which side of 1
-    // the reading falls on, so no verdict is stated at 0.18 — § 6bp.6's device.
-    const [lo, hi] = band(straddling);
-    expect(hi / lo).toBeCloseTo(1.0935930784133807, 12);
+    const [lo, hi] = band(refusing);
+    expect(hi / lo).toBeCloseTo(1.0458758653752167, 12);
 
     // The bracket that survives the refusal: 0.17 passes and 0.19 refuses, at
     // both frames each was measured on.
@@ -222,9 +242,9 @@ describe("§ 6bq.6 — the boundary is bracketed at 10×, refused at 0.18 at 20�
     for (const na of [0.12, 0.15, 0.16, 0.17, 0.18]) {
       expect(D(10, na, 128, 48)).toBeGreaterThan(D(20, na, 64, 24));
     }
-    expect(D(10, 0.15, 128, 48) / D(20, 0.15, 64, 24)).toBeCloseTo(1.5363592693670547, 12);
+    expect(D(10, 0.15, 128, 48) / D(20, 0.15, 64, 24)).toBeCloseTo(1.620155495716152, 12);
     // At 0.10 the two lenses agree to 0.18%, which is where the separation starts.
-    expect(D(10, 0.1, 128, 48) / D(20, 0.1, 64, 24)).toBeCloseTo(0.9981996381307058, 12);
+    expect(D(10, 0.1, 128, 48) / D(20, 0.1, 64, 24)).toBeCloseTo(1.0092142271549085, 12);
   });
 });
 
@@ -234,39 +254,47 @@ describe("§ 6bq.7 — § 6bo.5's field control sampled the flat apertures", () 
     // and at a uniform 2×, which only its NA 0.10 control was.
     const moved = LADDER.map((na) => D(20, na, 128, 48) / D(20, na, 64, 24));
     expectReproduces(moved, [
-      0.9890281687802007, 0.9902355703072833, 1.0092251812704462, 1.0935930784133807,
-      1.0475612231045512, 1.155498985910048, 1.0066235322450858,
+      0.9988262742778071, 0.9991892705494844, 0.9940905395032201, 1.0458758653752167,
+      0.9648753618908332, 0.705655266393562, 1.191674493985443,
     ]);
 
     // § 6bo.5's 0.10 reading, to twelve digits — the same lens, the same pair of
-    // frames, the same 1.10%. Its other two used 1.5× and a halving, so they are
-    // not this experiment and are not asserted against it.
-    expect(moved[0]!).toBeCloseTo(0.9890281687802007, 12);
+    // frames, the same 0.12% (1.10% on the aim layout). Its other two used 1.5×
+    // and a halving, so they are not this experiment and are not asserted
+    // against it.
+    expect(moved[0]!).toBeCloseTo(0.9988262742778071, 12);
 
     // Ranked by distance from 1: the two apertures the field moves most, 0.22 and
-    // 0.18, are exactly the two § 6bo.5 did not sample, and they are last.
+    // 0.25, are two § 6bo.5 did not sample, and they are last. (On the aim
+    // layout the two were 0.18 and 0.22 — also unsampled.)
     const ranked = LADDER.map((na, i) => ({ na, off: Math.abs(moved[i]! - 1) })).sort(
       (a, b) => a.off - b.off,
     );
-    expect(ranked.map((r) => r.na)).toEqual([0.25, 0.15, 0.12, 0.1, 0.2, 0.18, 0.22]);
-    expect(ranked.slice(-2).map((r) => r.na)).toEqual([0.18, 0.22]);
+    expect(ranked.map((r) => r.na)).toEqual([0.12, 0.1, 0.15, 0.2, 0.18, 0.25, 0.22]);
+    expect(ranked.slice(-2).map((r) => r.na)).toEqual([0.25, 0.22]);
   });
 
-  it("the generalisation fails: 0.66% to 15.55%, and 9.36% of it crosses the threshold", () => {
+  it("the generalisation fails: 0.08% to 29.4% — and, on this layout, none of it crosses the threshold", () => {
     const off = LADDER.map((na) => Math.abs(D(20, na, 128, 48) / D(20, na, 64, 24) - 1));
-    expect(Math.min(...off)).toBeCloseTo(0.006623532245085828, 12);
-    expect(Math.max(...off)).toBeCloseTo(0.15549898591004796, 12);
+    expect(Math.min(...off)).toBeCloseTo(0.0008107294505156348, 12);
+    expect(Math.max(...off)).toBeCloseTo(0.294344733606438, 12);
 
-    // "Under 3%" holds for four of the seven and fails for three — including
-    // NA 0.20, which § 6bo.5 measured at 2.64% by halving the field where this
+    // "Under 3%" holds for three of the seven and fails for four — including
+    // NA 0.20, which § 6bo.5 measured at 0.82% by halving the field where this
     // doubles it. The dependence is not monotone, so the two are both correct.
-    expect(off.filter((o) => o < 0.03).length).toBe(4);
-    expect(off.filter((o) => o >= 0.03).length).toBe(3);
+    // (Four and three on the aim layout, 0.66% to 15.55%.)
+    expect(off.filter((o) => o < 0.03).length).toBe(3);
+    expect(off.filter((o) => o >= 0.03).length).toBe(4);
 
-    // And the one that matters is at the crossing: the same lens, the same
-    // aperture, two frames, and two different answers to "does this refuse?".
-    expect(D(20, 0.18, 64, 24)).toBeLessThan(1);
+    // § 2r.2 REVERSED: on the aim layout the one that mattered was at the
+    // crossing — NA 0.18 at 20×, two frames, two different answers to "does
+    // this refuse?" (0.982 and 1.074). On the exit layout both refuse, and no
+    // aperture this file measures at two frames gets two answers.
+    expect(D(20, 0.18, 64, 24)).toBeGreaterThan(1);
     expect(D(20, 0.18, 128, 48)).toBeGreaterThan(1);
+    for (const na of LADDER) {
+      expect(D(20, na, 64, 24) > 1).toBe(D(20, na, 128, 48) > 1);
+    }
   });
 
   it("and the field dependence is not even monotone", () => {
@@ -275,16 +303,16 @@ describe("§ 6bq.7 — § 6bo.5's field control sampled the flat apertures", () 
     const across = FRAMES.map(([size, ps]) => D(10, 0.16, size, ps));
     expect(across[1]!).toBeLessThan(across[0]!);
     expect(across[2]!).toBeGreaterThan(across[1]!);
-    expect(across[0]! / across[1]!).toBeCloseTo(1.0380422871648383, 12);
-    expect(across[2]! / across[1]!).toBeCloseTo(1.0267056732606479, 12);
+    expect(across[0]! / across[1]!).toBeCloseTo(1.0438096555919616, 12);
+    expect(across[2]! / across[1]!).toBeCloseTo(1.018007231878771, 12);
   });
 });
 
 describe("§ 6bq.8 — both ceilings refuse, which closes § 6bn's above-the-ceiling item", () => {
   it("the highest aperture that builds at 10× refuses, as the 20× one does", () => {
     // § 6bn.1 raised the ceiling and § 6bn measured only the 20×/0.25 half.
-    expect(D(10, 0.22, 128, 48)).toBeCloseTo(1.4594730176611368, 12);
-    expect(D(20, 0.25, 128, 48)).toBeCloseTo(1.5922927982930855, 12);
+    expect(D(10, 0.22, 128, 48)).toBeCloseTo(2.018702331964637, 12);
+    expect(D(20, 0.25, 128, 48)).toBeCloseTo(2.3140296636294875, 12);
     for (const d of [D(10, 0.22, 128, 48), D(20, 0.25, 128, 48)]) expect(d).toBeGreaterThan(1);
   });
 
@@ -300,7 +328,7 @@ describe("§ 6bq.8 — both ceilings refuse, which closes § 6bn's above-the-cei
       refusal = (e as Error).message;
     }
     expect(refusal).toMatch(/plateau/);
-    expect(refusal).toMatch(/1\.0019/);
+    expect(refusal).toMatch(/1\.0419/); // 1.0019 on the aim layout
     expect(refusal).toMatch(/depths of focus/);
   });
 });

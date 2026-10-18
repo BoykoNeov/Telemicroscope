@@ -30,6 +30,23 @@ import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/desi
 import type { OpticalSystem } from "../src/trace/system";
 
 /**
+ * § 2r.2: the exit layout, on the located rim (§ 2q.4). Every reading below is
+ * on it; where the aim layout's reading is kept beside it, it says so. The
+ * step's own header below quotes it as first published, on the aim layout;
+ * VALIDATION § 2r.2 lists what moved, and what reversed.
+ */
+const EXIT = { layout: "exit", edgeSamples: 8, edgeRule: "crossing" } as const;
+
+/**
+ * § 2r.3: the registration cost is a stage scan's seam over a FIELD scan's, and
+ * on the exit layout a field scan's seam is exactly 0 — every tile reads the
+ * anchor's ruler (§ 2i) — so the cost was the aim layout's per-tile ruler drift.
+ * It is kept as that layout's readout, on that layout: every seam shift here
+ * asks for it.
+ */
+const SEAM = { layout: "aim" } as const;
+
+/**
  * § 6bn — the second interval, and not one interaction is a slope.
  *
  * § 6bm closed the 2×2 § 6bk had left as an L and found that the two levers —
@@ -196,6 +213,8 @@ const BALL: FocusProbe = (centreMm) =>
 
 /** § 6bk's, § 6bl's and § 6bm's sweep, unchanged — the lens is the only variable. */
 const SWEEP: FocusSweepOptions = {
+  ...EXIT,
+  peak: "band-limited",
   size: 128,
   pupilSamples: 48,
   slabs: uniformSlabs(-0.008, 0.008, 3),
@@ -220,6 +239,7 @@ const magOf = (system: OpticalSystem): number =>
     pupilSamples: PS,
     wavelengthNm: DESIGN,
     centreMm: { x: 0, y: 0 },
+    layout: "exit",
   }).magnification;
 
 /** § 6bk's matched ruler, seeded for § 6bk.8's reason. */
@@ -270,6 +290,7 @@ function mosaicOptions(
     guardCells: 4,
     stageMm,
     radialMapSeed: "magnification",
+    ...EXIT,
     ...over,
   };
 }
@@ -325,6 +346,7 @@ function escaped(
     },
   ]);
   const wide = fluorescenceSpectralVolume(system, source, {
+    ...EXIT,
     size: SIZE * 2,
     pupilSamples: PS,
     slabs: THIN,
@@ -353,10 +375,10 @@ function cost(
   system: OpticalSystem,
   stageMm: TileStageMm,
 ): { readonly ratio: number; readonly aniso: number } {
-  const field = mosaicSeamShiftMm(system, mosaicOptions(stageMm, { centreMm: EDGE }));
+  const field = mosaicSeamShiftMm(system, mosaicOptions(stageMm, { ...SEAM, centreMm: EDGE }));
   const scan = mosaicSeamShiftMm(
     system,
-    mosaicOptions(stageMm, { centreMm: EDGE, scan: "stage" }),
+    mosaicOptions(stageMm, { ...SEAM, centreMm: EDGE, scan: "stage" }),
   );
   return { ratio: scan.mm / field.mm, aniso: scan.betweenRowsMm / scan.betweenColumnsMm };
 }
@@ -389,10 +411,10 @@ const E20 = once(() => escaped(TWENTY, 430, H20, EDGE, AX20()));
 const E20F = once(() => escaped(TWENTY_FAST, 430, H20F, EDGE, AX20F()));
 
 /** § 6bk's and § 6bm's 4× and 10× cells, cited. */
-const PLATEAU_4 = 0.869607;
-const PLATEAU_4F = 1.804658;
-const PLATEAU_10 = 0.3789813;
-const PLATEAU_10F = 1.4412949;
+const PLATEAU_4 = 0.839354;
+const PLATEAU_4F = 2.656363;
+const PLATEAU_10 = 0.3761533;
+const PLATEAU_10F = 1.4286063;
 const COST_4 = 95.712993;
 const COST_4F = 132.8979;
 const COST_10 = 41.775694;
@@ -401,22 +423,22 @@ const ANISO_4 = 40.754313;
 const ANISO_4F = 81.766377;
 const ANISO_10 = 16.868779;
 const ANISO_10F = 33.290128;
-const ESC_4 = 0.054;
-const ESC_4F = 0.644789;
-const ESC_10 = 0.02238865;
-const ESC_10F = 0.4498281;
+const ESC_4 = 0.0644759;
+const ESC_4F = 0.614210;
+const ESC_10 = 0.02486551;
+const ESC_10F = 0.4758183;
 /** AXIAL stage, § 6bm's `F10_AXIS` — deliberately NOT § 6bk.5's corrected 1355.9474. */
-const ROF_AXIS_10 = 1355.9999;
-const ROF_AXIS_10F = 0.99948971;
-const ROF_EDGE_10 = 1.13546654;
-const ROF_EDGE_10F = 1.16816836;
+const ROF_AXIS_10 = 1549.0915;
+const ROF_AXIS_10F = 3.7985279;
+const ROF_EDGE_10 = 1.15512457;
+const ROF_EDGE_10F = 1.30209381;
 /** AXIAL stage, § 6bm's `F10_AXIS.freeGain` — not its corrected 0.9725286. */
-const FREE_AXIS_10 = 0.9722786;
+const FREE_AXIS_10 = 1.0264308;
 /** § 6bl.4's 20× cell, measured at a CORRECTED stage. */
 const COST_20 = 21.045983;
 const ANISO_20 = 8.874831;
 /** § 6bk.6's ceiling: a scanner's own calibration is never once better. */
-const SCANNER_CEILING = 1.2090451;
+const SCANNER_CEILING = 1.17607893;
 
 /** § 6bm's interaction: the aperture lever at the high M over the same at the low M. */
 const interact = (slowLo: number, fastLo: number, slowHi: number, fastHi: number): number =>
@@ -427,10 +449,10 @@ const departure = (x: number): number => (x < 1 ? 1 / x : x);
 /** § 6bm's six, cited. */
 const I1_ANISO = 1.0166451;
 const I1_COST = 1.1060587;
-const I1_AXIS = 1.1342887;
-const I1_ESC = 1.6826431;
-const I1_PLATEAU = 1.8325811;
-const I1_EDGE = 53.6497518;
+const I1_AXIS = 1.6114726;
+const I1_ESC = 2.0087426;
+const I1_PLATEAU = 1.2000662;
+const I1_EDGE = 1.4890386;
 
 const anisoI = once(() => interact(ANISO_10, ANISO_10F, G20().aniso, G20F().aniso));
 const costI = once(() => interact(COST_10, COST_10F, G20().ratio, G20F().ratio));
@@ -556,9 +578,9 @@ describe("§ 6bn.2 — the third aperture pair refuses too, and the width falls 
     // magnification at half the aperture certifies at the same threshold, here as
     // at 4× and 10×. (§ 6bl.5's 2×/0.10 refusal is the other route to the
     // estimator's floor and is untouched by this.)
-    expect(P20F().plateauDepths).toBeCloseTo(1.2301647, 6);
+    expect(P20F().plateauDepths).toBeCloseTo(1.2959870056577374, 6);
     expect(P20F().plateauDepths).toBeGreaterThan(1);
-    expect(P20().plateauDepths).toBeCloseTo(0.37549919, 7);
+    expect(P20().plateauDepths).toBeCloseTo(0.3722815616422731, 7);
     expect(P20().plateauDepths).toBeLessThan(1);
     // Caught once rather than through three `toThrow` calls: each one re-runs the
     // sweep, and this is the only rung in the file that spends a second on a
@@ -570,43 +592,47 @@ describe("§ 6bn.2 — the third aperture pair refuses too, and the width falls 
       refusal = (e as Error).message;
     }
     expect(refusal).toMatch(/plateau/);
-    expect(refusal).toMatch(/1\.2301/);
+    expect(refusal).toMatch(/1\.2959/); // 1.2301 on the aim layout
     expect(refusal).toMatch(/depths of focus/);
     expect(() => renderedBestFocus(TWENTY, 430, 0, SWEEP)).not.toThrow();
   });
 
-  it("the refusal narrows monotonically — 1.8047, 1.4413, 1.2302 — and is NOT extrapolated", () => {
+  it("the refusal narrows monotonically — 2.6564, 1.4286, 1.2960 — and is NOT extrapolated", () => {
     // Three points on the fast lever, monotone down, with the step shrinking:
-    // 1.2521× then 1.1716×. § 6bl.2's precedent governs what may be read off
+    // 1.8594× then 1.1023× (1.2521× then 1.1716× on the aim layout). § 6bl.2's precedent governs what may be read off
     // that, and it is: nothing. A series that flattens is exactly the series an
     // extrapolation to a crossing gets wrong, so where — or whether — this one
     // reaches 1 is unmeasured, and no magnification is named at which a fast lens
     // would certify.
     const step1 = PLATEAU_4F / PLATEAU_10F;
     const step2 = PLATEAU_10F / P20F().plateauDepths;
-    expect(step1).toBeCloseTo(1.2521088, 6);
-    expect(step2).toBeCloseTo(1.1716276, 6);
+    expect(step1).toBeCloseTo(1.859408711833344, 6);
+    expect(step2).toBeCloseTo(1.1023307284434969, 6);
     expect(step2).toBeLessThan(step1);
     expect(P20F().plateauDepths).toBeLessThan(PLATEAU_10F);
     expect(PLATEAU_10F).toBeLessThan(PLATEAU_4F);
   });
 
-  it("the slow aperture SATURATES, the fast one has not — the first constraint on the mechanism", () => {
+  it("the slow aperture SATURATES to 1.04%, the fast one has not — the first constraint on the mechanism", () => {
     // § 6bm eliminated three artefacts for this plateau (probe depth, sweep step,
     // frame size) and put nothing in their place. This does not name a mechanism
-    // either. It constrains one: at NA 0.10 the width falls 2.29× on the first
-    // interval and 1.009× on the second — flat to within a percent — while at
-    // NA 0.20 it is still falling. Whatever sets the plateau saturates in M at
-    // the slow aperture and has not saturated by 20× at the fast one.
+    // either. It constrains one: at NA 0.10 the width falls 2.23× on the first
+    // interval and 1.0104× on the second — flat to 1.04% — while at NA 0.20 it
+    // is still falling. Whatever sets the plateau saturates in M at the slow
+    // aperture and has not saturated by 20× at the fast one. § 2r.2 WEAKENED: on
+    // the aim layout the second step was 1.009×, inside a percent, and the fast
+    // lens's second step 15 times further from flat; on the exit layout 9.8 times.
     const slowStep1 = PLATEAU_4 / PLATEAU_10;
     const slowStep2 = PLATEAU_10 / P20().plateauDepths;
-    expect(slowStep1).toBeCloseTo(2.2945908, 6);
-    expect(slowStep2).toBeCloseTo(1.0092733, 6);
-    expect(Math.abs(slowStep2 - 1)).toBeLessThan(0.01);
-    // The fast lens's second step is an order of magnitude further from flat.
-    expect(Math.abs(1.1716276 - 1)).toBeGreaterThan(15 * Math.abs(slowStep2 - 1));
+    expect(slowStep1).toBeCloseTo(2.2314146918291025, 6);
+    expect(slowStep2).toBeCloseTo(1.0104000271747202, 6);
+    expect(Math.abs(slowStep2 - 1)).toBeLessThan(0.0105);
+    // The fast lens's second step is nearly an order of magnitude further from flat.
+    const fastStep2 = PLATEAU_10F / P20F().plateauDepths;
+    expect(Math.abs(fastStep2 - 1) / Math.abs(slowStep2 - 1)).toBeCloseTo(9.839467409492592, 4);
+    expect(Math.abs(fastStep2 - 1)).toBeGreaterThan(9 * Math.abs(slowStep2 - 1));
     // And the aperture's own cost at 20× — 2.0753× at 4×, 3.8031× at 10× (§ 6bm.2).
-    expect(P20F().plateauDepths / P20().plateauDepths).toBeCloseTo(3.2760781, 6);
+    expect(P20F().plateauDepths / P20().plateauDepths).toBeCloseTo(3.4812012, 6);
   });
 
   it("and the guard-band escape saturates in exactly the same pattern — two readouts, not one", () => {
@@ -621,10 +647,10 @@ describe("§ 6bn.2 — the third aperture pair refuses too, and the width falls 
     const escSlowStep2 = ESC_10 / E20();
     const escFastStep1 = ESC_4F / ESC_10F;
     const escFastStep2 = ESC_10F / E20F();
-    expect(escSlowStep1).toBeCloseTo(2.4119364, 6);
-    expect(escSlowStep2).toBeCloseTo(1.0195626, 6);
-    expect(escFastStep1).toBeCloseTo(1.4334120, 6);
-    expect(escFastStep2).toBeCloseTo(1.2385882, 6);
+    expect(escSlowStep1).toBeCloseTo(2.592985223307304, 6);
+    expect(escSlowStep2).toBeCloseTo(1.0068822356694167, 6);
+    expect(escFastStep1).toBeCloseTo(1.2908498895481741, 6);
+    expect(escFastStep2).toBeCloseTo(1.3404792851726814, 6);
     // Flat on the slow lens, still falling on the fast one — the plateau's shape.
     expect(Math.abs(escSlowStep2 - 1)).toBeLessThan(0.02);
     expect(Math.abs(escFastStep2 - 1)).toBeGreaterThan(10 * Math.abs(escSlowStep2 - 1));
@@ -639,14 +665,16 @@ describe("§ 6bn.3 — six interactions get a second interval, and § 6bm.4's or
   it("all six second-interval interactions, and not one of them separates either", () => {
     // The same six readouts, the same `interact`, one lever-step further along.
     // Every one would be 1 if the levers acted independently on THIS interval,
-    // and none of them is — but the whole set now spans 1.006 to 1.215 where the
-    // first interval spanned 1.017 to 53.65.
-    expect(departure(flatAxisI())).toBeCloseTo(1.0063300, 6);
-    expect(departure(flatEdgeI())).toBeCloseTo(1.0086001, 6);
+    // and none of them is. The set spans 1.023 to 1.589 where the first interval
+    // spanned 1.017 to 2.009. § 2r.2 WEAKENED: on the aim layout the second
+    // interval spanned 1.006 to 1.215 against the first's 1.017 to 53.65 — a
+    // collapse of fifty; on the exit layout it is 1.27×.
+    expect(departure(flatAxisI())).toBeCloseTo(1.5887549997515817, 6);
+    expect(departure(flatEdgeI())).toBeCloseTo(1.0297701741777654, 6);
     expect(departure(anisoI())).toBeCloseTo(1.0232693, 6);
     expect(departure(costI())).toBeCloseTo(1.0416581, 6);
-    expect(departure(plateauI())).toBeCloseTo(1.1608626, 6);
-    expect(departure(escI())).toBeCloseTo(1.2148231, 5);
+    expect(departure(plateauI())).toBeCloseTo(1.0909844604080559, 6);
+    expect(departure(escI())).toBeCloseTo(1.3313168488681058, 5);
 
     for (const i of [anisoI(), costI(), flatAxisI(), escI(), plateauI(), flatEdgeI()]) {
       expect(departure(i)).toBeGreaterThan(1.005);
@@ -654,79 +682,93 @@ describe("§ 6bn.3 — six interactions get a second interval, and § 6bm.4's or
     const ordered = [anisoI(), costI(), flatAxisI(), escI(), plateauI(), flatEdgeI()]
       .map(departure)
       .sort((a, b) => a - b);
-    expect(ordered[5]! / ordered[0]!).toBeCloseTo(1.2072, 3);
-    // § 6bm's six spanned fifty times that.
-    expect(I1_EDGE / I1_ANISO).toBeGreaterThan(40 * (ordered[5]! / ordered[0]!));
+    expect(ordered[5]! / ordered[0]!).toBeCloseTo(1.5526264754951005, 3);
+    // § 6bm's six spanned 1.27 times that (fifty on the aim layout).
+    const first = [I1_ANISO, I1_COST, I1_AXIS, I1_ESC, I1_PLATEAU, I1_EDGE];
+    const firstSpan = Math.max(...first) / Math.min(...first);
+    expect(firstSpan / (ordered[5]! / ordered[0]!)).toBeCloseTo(1.272588313191507, 4);
+    expect(firstSpan).toBeGreaterThan(ordered[5]! / ordered[0]!);
   });
 
-  it("§ 6bm.4's ordering assertion is FALSE on the very next interval", () => {
+  it("§ 6bm.4's ordering assertion is FALSE on the very next interval — by the edge split alone", () => {
     // § 6bm.4 pinned with `toBe` that the two readouts computed with no render at
-    // all sat at the bottom of the six. On the second interval both flat-field
-    // splits come in BELOW both render-free readouts — the reverse grouping — so
-    // that assertion does not survive its own next interval.
+    // all sat at the bottom of the six. On the aim layout both flat-field splits
+    // came in BELOW both render-free readouts on the second interval — the
+    // reverse grouping. § 2r.2 WEAKENED: on the exit layout the edge split comes
+    // in BETWEEN the two (1.0298 between 1.0233 and 1.0417) and the axial split
+    // is the largest of the six, so the assertion fails by one readout inside a
+    // band the hedge below calls no gap — the group does not change sides.
     //
     // § 6bm hedged it correctly and the hedge is what carries: it called the
     // grouping "CONSISTENT with ... NOT isolated by this data, 1.106 against
     // 1.134 being no gap at all". The same standard applies here, so what is
     // claimed is the GROUP changing sides and not the fine order — 1.0063 against
     // 1.0086 is no gap either, and neither is 1.0233 against 1.0417.
-    expect(departure(flatAxisI())).toBeLessThan(departure(anisoI()));
-    expect(departure(flatEdgeI())).toBeLessThan(departure(anisoI()));
-    expect(departure(flatAxisI())).toBeLessThan(departure(costI()));
-    expect(departure(flatEdgeI())).toBeLessThan(departure(costI()));
+    const ordered = [anisoI(), costI(), flatAxisI(), escI(), plateauI(), flatEdgeI()]
+      .map(departure)
+      .sort((a, b) => a - b);
+    expect(ordered[0]!).toBe(departure(anisoI()));
+    expect(ordered[1]!).toBe(departure(flatEdgeI()));
+    expect(ordered[2]!).toBe(departure(costI()));
+    expect(ordered[5]!).toBe(departure(flatAxisI()));
     // On § 6bm's interval the grouping was the other way round, both ways.
     expect(I1_ANISO).toBeLessThan(I1_AXIS);
     expect(I1_COST).toBeLessThan(I1_AXIS);
     expect(I1_COST).toBeLessThan(I1_EDGE);
     // And the gaps this step declines to read anything into.
-    expect(departure(flatEdgeI()) / departure(flatAxisI())).toBeCloseTo(1.00224, 4);
+    expect(departure(flatEdgeI()) / departure(anisoI())).toBeCloseTo(1.0063530433071386, 4);
     expect(departure(costI()) / departure(anisoI())).toBeCloseTo(1.01798, 4);
   });
 });
 
 describe("§ 6bn.4 — two interactions reverse, and the largest one vanishes", () => {
   it("the plateau and the escape both cross 1 — the amplifying lever becomes a damping one", () => {
-    // The step's headline. § 6bm measured 1.8326× and 1.6826×, both above 1, and
+    // The step's headline. § 6bm measured 1.2001× and 2.0087×, both above 1, and
     // called them the interaction of the two levers. One interval further along
-    // the same two quotients are 0.8614 and 0.8232 — BELOW 1. A quantity whose
+    // the same two quotients are 0.9166 and 0.7511 — BELOW 1. (On the aim layout
+    // 1.8326× and 1.6826× became 0.8614 and 0.8232.) A quantity whose
     // interaction changes sign in the exponent has no monotone dependence on
     // magnification at all, so neither of § 6bm's numbers was a slope and neither
     // may be carried to a lens outside the pair it was measured on.
-    expect(plateauI()).toBeCloseTo(0.8614284, 6);
-    expect(escI()).toBeCloseTo(0.8231651, 6);
+    expect(plateauI()).toBeCloseTo(0.9166033397267407, 6);
+    expect(escI()).toBeCloseTo(0.7511359905421512, 6);
     expect(plateauI()).toBeLessThan(1);
     expect(escI()).toBeLessThan(1);
     expect(I1_PLATEAU).toBeGreaterThan(1);
     expect(I1_ESC).toBeGreaterThan(1);
 
     // The guard band's own reading, for the record: § 6bk.4 found twice the
-    // aperture leaks MORE past a tile's frame — 11.94× at 4×, 20.09× at 10× — and
-    // at 20× it is 16.54×. The finding survives on a third pair; its growth does
+    // aperture leaks MORE past a tile's frame — 9.53× at 4×, 19.14× at 10× — and
+    // at 20× it is 14.37× (11.94×, 20.09× and 16.54× on the aim layout). The finding survives on a third pair; its growth does
     // not.
-    expect(E20()).toBeCloseTo(0.02195907, 7);
-    expect(E20F()).toBeCloseTo(0.36317810, 7);
-    expect(E20F() / E20()).toBeCloseTo(16.538862, 5);
-    expect(E20F() / E20()).toBeLessThan(20.091788);
-    expect(E20F() / E20()).toBeGreaterThan(11.940612);
+    expect(E20()).toBeCloseTo(0.024695549408981665, 7);
+    expect(E20F()).toBeCloseTo(0.3549613226128331, 7);
+    expect(E20F() / E20()).toBeCloseTo(14.373493649982745, 5);
+    expect(E20F() / E20()).toBeLessThan(19.135676);
+    expect(E20F() / E20()).toBeGreaterThan(9.5261959);
   });
 
-  it("the largest interaction in § 6bm's square is a 4× number: 53.65× becomes 1.0086×", () => {
-    // § 6bm's headline was that magnification moves the flat-field split at the
-    // EDGE by 55.38× once the aperture is doubled, against 1.03× at NA 0.10 — an
-    // interaction of 53.65, thirty times the next largest and the reason the
-    // square was said to span fifty. On the next interval the same construction
-    // gives 1.0086. The 53.65 belongs to the 4×→10× step and to nothing else.
-    expect(F20_EDGE().rendOverFree).toBeCloseTo(1.13666851, 7);
-    expect(F20F_EDGE().rendOverFree).toBeCloseTo(1.15943368, 7);
-    expect(ROF_EDGE_10F / F20F_EDGE().rendOverFree).toBeCloseTo(1.00752, 4);
-    expect(ROF_EDGE_10 / F20_EDGE().rendOverFree).toBeCloseTo(0.99894, 4);
-    // Its distance from 1 falls by more than three orders of magnitude.
-    expect((I1_EDGE - 1) / (departure(flatEdgeI()) - 1)).toBeGreaterThan(5000);
+  it("§ 6bm's edge interaction is a 4× number: 1.4890 becomes 1.0298 (53.65 and 1.0086 on the aim layout)", () => {
+    // § 6bm's headline, on the aim layout, was that magnification moved the
+    // flat-field split at the EDGE by 55.38× once the aperture was doubled,
+    // against 1.03× at NA 0.10 — an interaction of 53.65, thirty times the next
+    // largest — and on the next interval the same construction gave 1.0086.
+    // § 2r.2 WEAKENED: on the exit layout § 6bm's edge interaction is 1.489, not
+    // the square's largest, and its distance from 1 falls 16× on the next
+    // interval rather than by three orders.
+    expect(F20_EDGE().rendOverFree).toBeCloseTo(1.1533613206263844, 7);
+    expect(F20F_EDGE().rendOverFree).toBeCloseTo(1.262520755432355, 7);
+    expect(ROF_EDGE_10F / F20F_EDGE().rendOverFree).toBeCloseTo(1.0313444784154007, 4);
+    expect(ROF_EDGE_10 / F20_EDGE().rendOverFree).toBeCloseTo(1.0015287918383269, 4);
+    expect((I1_EDGE - 1) / (departure(flatEdgeI()) - 1)).toBeCloseTo(16.42713264221513, 6);
+    expect((I1_EDGE - 1) / (departure(flatEdgeI()) - 1)).toBeGreaterThan(15);
 
-    // The axis reading collapses the same way, from 1.1343× to 1.0063×.
-    expect(F20_AXIS().rendOverFree).toBeCloseTo(1414.4666, 3);
-    expect(F20F_AXIS().rendOverFree).toBeCloseTo(1.03602668, 7);
-    expect((I1_AXIS - 1) / (departure(flatAxisI()) - 1)).toBeGreaterThan(20);
+    // § 2r.2 REVERSED: on the aim layout the axis reading collapsed the same
+    // way, from 1.1343× to 1.0063×. On the exit layout it does not collapse:
+    // 1.6115 becomes 1.5888.
+    expect(F20_AXIS().rendOverFree).toBeCloseTo(1584.9522, 3);
+    expect(F20F_AXIS().rendOverFree).toBeCloseTo(2.446231178902068, 7);
+    expect((I1_AXIS - 1) / (departure(flatAxisI()) - 1)).toBeLessThan(1.1);
   });
 
   it("and the identity holds on the second interval too — the same number down the other lever", () => {
@@ -784,50 +826,59 @@ describe("§ 6bn.5 — the two readouts that continue, and they go opposite ways
 });
 
 describe("§ 6bn.6 — the free field on a fifth and sixth lens, in ONE convention", () => {
-  it("the axial free-field gain agrees to 2.7e-4 across the lever, in ONE convention", () => {
+  it("the axial free-field gain agrees to 1.25e-3 across the lever (2.7e-4 on the aim layout), in ONE convention", () => {
     // § 6bm.6 could not compare its 10× against § 6bl.6's 20×: one was a
     // corrected stage swept to OUTER = 1.25 and the other to 1.30, and the two
     // readings differed by less than the convention gap between them, so it
     // pinned the agreement and read nothing from it. The AXIAL readings are
-    // directly comparable — § 6bm pinned 0.9722866 at 10×, this is 0.9720218 at
-    // 20×, the same convention on the same readout — and they agree to 2.7e-4.
+    // directly comparable — § 6bm pinned 1.0264308 at 10×, this is 1.0277090 at
+    // 20×, the same convention on the same readout — and they agree to 1.25e-3.
+    // § 2r.2: both above 1 (both below it on the aim layout, 0.9722866 and
+    // 0.9720218, agreeing to 2.7e-4).
     //
     // What this still does NOT do is call two points a trend. There is no handle
     // on this readout's own reproducibility, which is why § 6bm declined; the
     // improvement is that the DECLINE is now about reproducibility alone and not
     // about a convention nobody had measured.
-    expect(F20_AXIS().freeGain).toBeCloseTo(0.97202182, 7);
-    expect(F20_AXIS().freeGain / FREE_AXIS_10).toBeCloseTo(0.99973590, 7);
-    expect(F20_AXIS().freeGain).toBeLessThan(1);
-    expect(FREE_AXIS_10).toBeLessThan(1);
-    // § 6bl.6's corrected-stage 0.972202 on the same lens, for the size of the gap.
-    expect(Math.abs(F20_AXIS().freeGain / 0.972202 - 1)).toBeLessThan(2e-4);
+    expect(F20_AXIS().freeGain).toBeCloseTo(1.02770904589213, 7);
+    expect(F20_AXIS().freeGain / FREE_AXIS_10).toBeCloseTo(1.001245330802749, 7);
+    expect(F20_AXIS().freeGain).toBeGreaterThan(1);
+    expect(FREE_AXIS_10).toBeGreaterThan(1);
+    // § 6bl.6's corrected-stage 1.028246 on the same lens, for the size of the
+    // gap: 5.2e-4 (under 2e-4 on the aim layout).
+    expect(Math.abs(F20_AXIS().freeGain / 1.028246 - 1)).toBeLessThan(5.5e-4);
   });
 
   it("a scanner's own calibration is never once better, on a fifth and sixth lens either", () => {
-    // § 6bk.6's ceiling, extended. Every one of the four new readings makes the
-    // seam worse than raw and none exceeds 1.2090451 — now nineteen readings
-    // across six lenses without a single exception.
+    // § 6bk.6's sign, extended. Every one of the four new readings makes the
+    // seam worse than raw — now nineteen readings across six lenses without a
+    // single exception. § 2r.2: on the aim layout none exceeded § 6bk.6's
+    // 1.2090451 ceiling; on the exit layout the slow 20× on the axis passes the
+    // exit ceiling, 1.17607893, as § 6bl.6's corrected-stage reading does.
     for (const f of [F20_AXIS(), F20_EDGE(), F20F_AXIS(), F20F_EDGE()]) {
       expect(f.scannerVsRaw).toBeGreaterThan(1);
+    }
+    for (const f of [F20_EDGE(), F20F_AXIS(), F20F_EDGE()]) {
       expect(f.scannerVsRaw).toBeLessThan(SCANNER_CEILING);
     }
-    expect(F20_AXIS().scannerVsRaw).toBeCloseTo(1.2037625, 6);
-    expect(F20_EDGE().scannerVsRaw).toBeCloseTo(1.0916247, 6);
-    expect(F20F_AXIS().scannerVsRaw).toBeCloseTo(1.0001726, 6);
-    expect(F20F_EDGE().scannerVsRaw).toBeCloseTo(1.0607808, 6);
+    expect(F20_AXIS().scannerVsRaw).toBeGreaterThan(SCANNER_CEILING);
+    expect(F20_AXIS().scannerVsRaw).toBeCloseTo(1.186482717283857, 6);
+    expect(F20_EDGE().scannerVsRaw).toBeCloseTo(1.0924108461426232, 6);
+    expect(F20F_AXIS().scannerVsRaw).toBeCloseTo(1.0046892508845982, 6);
+    expect(F20F_EDGE().scannerVsRaw).toBeCloseTo(1.1353413596896447, 6);
   });
 
-  it("§ 6bk.5's aperture role-swap is still the control's, and by a wider margin", () => {
-    // § 6bk.5 read the fast lens as better on the axis and worse at the edge, and
-    // § 6bm.6 showed the swap does not happen at 10×: the fast lens is 281.6×
-    // better on the axis AND 18.5× better at the edge, a ratio of 15.2 where a
-    // swap needs 100. At 20× the same ratio is 3.22 — further from a swap, not
-    // nearer.
-    expect(F20F_AXIS().freeGain).toBeCloseTo(66.117438, 5);
-    expect(F20F_EDGE().freeGain).toBeCloseTo(20.519043, 5);
-    expect(F20F_AXIS().freeGain / F20F_EDGE().freeGain).toBeCloseTo(3.2222477, 6);
-    expect(F20F_AXIS().freeGain / F20F_EDGE().freeGain).toBeLessThan(15.215778);
+  it("§ 6bk.5's aperture role-swap does not happen at 20× either", () => {
+    // § 6bk.5 read the fast lens as better on the axis and worse at the edge, on
+    // the aim layout, and § 6bm.6 showed the swap does not happen at 10×. At
+    // 20× the fast lens helps 3.14× on the axis and 11.95× at the edge — a ratio
+    // of 0.263 where a swap needs 100, beside the 10×'s 0.245. (On the aim
+    // layout 15.2 at 10× and 3.22 at 20×; on the exit layout there is no swap at
+    // 4× either, § 6bk.5.)
+    expect(F20F_AXIS().freeGain).toBeCloseTo(3.141176935981461, 5);
+    expect(F20F_EDGE().freeGain).toBeCloseTo(11.953939092637466, 5);
+    expect(F20F_AXIS().freeGain / F20F_EDGE().freeGain).toBeCloseTo(0.2627733763438814, 6);
+    expect(F20F_AXIS().freeGain / F20F_EDGE().freeGain).toBeLessThan(1);
     // The slow lens still splits the two field positions by more than a hundred.
     expect(F20_EDGE().freeGain / F20_AXIS().freeGain).toBeGreaterThan(100);
   });

@@ -39,7 +39,7 @@ whole ladder.
 | [2o](#step-2o--the-exit-layouts-orientation-the-geometrys-not-the-aims) | Past infinity the aim mirrors a telecentric pupil (531–587 nm, DIN 4×) and the exit layout copied it; signed by convergence, its centroid is the rays' | `exit-orientation` |
 | [2p](#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone) | Single-plane fluorescence flips by its frame: a plane's light is the emitter's collected cone, 2/(1 + cos u) of the paraxial share, to 3e-4 | `throughput-units` |
 | [2q](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout) | Stale cache; pixel peak; staircase rim; counted edge; ringless rim; flip; re-asked rim. Keyed; interpolated; resolved; located; slid; restated; laid once | `aperture-sine-key`, `band-limited-peak`, `edge-*`, `exit-density-rim` |
-| [2r](#step-2r--the-mosaic-chain-on-the-exit-layout) | A sweep re-laid one rim per stage. Laid once per sweep | `sweep-plan` |
+| [2r](#step-2r--the-mosaic-chain-on-the-exit-layout) | Sweep rim per stage; mosaic chain flipped; field seam. Laid once; 30 reversed; the aim ruler's, 0 on exit | `sweep-plan`, `field-seam-zero` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -5202,7 +5202,7 @@ wavefront, so this step adds a pin and does not count toward the stop rule.
 ## Step 2r — the mosaic chain on the exit layout
 
 Source: engine change — `renderFieldVolume` lays the crossing rule's rim out once per patch and keeps it in an optional book (`FieldVolumeOptions.edgePlans`), `formVolumePlane` carries a book, `renderedBestFocus` keeps one per sweep, `incoherentImage` carries `edgePlan` (`imaging/field-volume.ts`, `spectral-volume.ts`, `focus-surface.ts`, `fluorescence.ts`)
-· Tests: § 2r.1 in `packages/core/test/sweep-plan.test.ts`
+· Tests: § 2r.1 in `packages/core/test/sweep-plan.test.ts`; § 2r.2 in the sixteen mosaic-chain files it names; § 2r.3 in `field-seam-zero.test.ts` and the seam chain's files
 
 Register item 24's next chain: the fluorescence mosaic, § 6bh on, and the
 readings the seam chain (§ 6bk → § 6cq) takes from it. § 2q.6 flipped the volume
@@ -5263,6 +5263,129 @@ A mosaic render still lays one rim per tile and wavelength — every one a
 different outline — and pays 3.8× for it; nothing reuses those.
 
 Nothing moved: every image is bitwise what it was.
+
+### § 2r.2 — the flip
+
+Source: no engine change — every fixture in the mosaic chain's sixteen render
+files asks for `layout: "exit"` on the located rim (`edgeSamples: 8`,
+`edgeRule: "crossing"`), and every focus sweep for the band-limited peak
+· Tests: the files named below, each reading restated in place
+
+The fluorescence mosaic (§ 6bh–§ 6bj) and every rendered reading the chain
+§ 6bk → § 6cq takes from it go onto the exit layout, as § 2q.6 put the volume
+chain. The seams stay where § 2r.3 puts them.
+
+**Hypothesis.** What moves is the layout's and the rim's — where a tile's light
+lands, the ruler each lens reads, and which pupil zones a focus weighs — and no
+reading moves for want of a fixture that names its layout. **Refuted by** any
+chain reading that moves when the library's default layout is flipped under the
+restated files (it would be reading the default, not asking), or a restated
+value that does not come back on a second run. Neither happens: with the default
+forced to `"exit"` the 36 files read what they read with it at `"aim"`, and every
+file was re-run to a fixed point.
+
+About 600 pinned lines in sixteen files changed. Most re-record and say the same
+thing; **30 claims reversed and 14 weakened**, each marked in its own test as
+§ 2r.2 with the aim layout's reading kept beside it, and every file's header
+still quotes its step as first published. Three mechanisms carry most of it.
+
+- **Each lens reads its own ruler.** The aim layout's ruler was the paraxial
+  reference sphere, which scales with magnification and aperture apart; the
+  exit layout's is the traced aperture sine, and how far that falls short of the
+  design NA is a property of the lens. So § 6bo's "each lever's field factor is
+  pure" goes: the aperture doubling's field factor is 2.163 at 4×, 2.072 at 10×
+  and 2.051 at 20× (5.4% apart, was 1e-12), the slow 10×/20× pair's fields agree
+  to 1.4e-5 and the fast pair's to 1%. A "matched field" is now matched to those
+  figures, and § 6bo.3's 1.55% is 3.6% at 10× and 2.55% at 20×.
+- **The fast 4×/0.20's axial focus moves 13 depths of focus.** 0.2619 → 0.1208 mm
+  at 430 nm, its plateau 1.80 → 2.66 depths, so it is admitted at 3 and not 2
+  (§ 6bk.8). The rim is not what moves it (point-sampled 0.2619 → 0.1358,
+  located 0.2642 → 0.1208); its design-wavelength wavefront and paraxial foci
+  lie 19 mm apart, and where the peak sits follows how the layout weighs the
+  pupil's zones. Every NA 0.20 flat field and escape on the branch is read at
+  that stage.
+- **The rim stops cancelling between tiles** (§ 2r's trial): the brightness
+  step reads 6.733e-3 located against 1.3385e-2 point-sampled on the exit
+  layout, so the chain takes the located rim, which agrees across layouts to
+  0.9%.
+
+| Chain | Reading | Restated as |
+|---|---|---|
+| mosaic | § 6bh–§ 6bj, 93 readings | re-recorded; the escape 10.04% / 2.33%, 4.31×; § 6bi's free field 55× at the edge (121×), the cross ratio 836 180 |
+| mosaic | § 6bi: the achromatic ratio | 5.48e-5 — **weakened** |
+| mosaic | § 6bj.6: on the axis the stage scan's anchor is the best tile | the WORST of nine, 0.34088 against 0.33287–0.33344 — **reversed** (item 39) |
+| second objective | § 6bk.5: the NA 0.20 split coincides on the axis (0.99933) and is 64.7 at the edge | 1.857 and 1.960 — the edge inversion **reversed**, the axial collapse 657× not 1195× |
+| second objective | § 6bk.5: the free field's roles swap with aperture | the fast lens 2.76× / 2.52×, no swap — **reversed** |
+| second objective | § 6bk.8: forced through, the fast lens's field drop changes sign | monotone, −0.0176 and −0.0555 mm, interaction 1.58× the control's — **reversed**; the refusal rests on the plateau alone |
+| third magnification | § 6bl.5: the 4× at the 2×'s heights certifies | refuses at 2 mm, 1.235 depths, where the 2× passes — **reversed**, the confound stands |
+| third magnification | § 6bl.6: the free field's axial gain crosses below 1 at 20× | 1.0282, above the control's 1.0081 — **reversed**; § 6bm.6's crossing with it |
+| fourth corner | § 6bm.4: the edge split's interaction 53.65, the square spanning fifty | 1.489; the escape is the largest, the square spans two — **reversed** |
+| second interval | § 6bn.3–§ 6bn.4: the first interval spans 1.017–53.65, the second collapses fifty-fold | 1.017–2.009 against 1.023–1.589: 1.27× — **weakened**; the axial split does not collapse — **reversed** |
+| aperture and field | § 6bo.2: the field factors pure; the plateau survives at 0.89% | 5.4% apart; the plateau moves 11.6% while § 6bo.5's field control holds to 0.82% — both **reversed** (item 40) |
+| matched flat field | § 6bp.3–§ 6bp.7 | the axial split's distance from 1 shrinks (0.785×) — **reversed**; the edge's grows 1.19× not 15×; the free gain's crossing, both refusals and the margin-is-sampling all **reversed** |
+| refusal | § 6bq.4–§ 6bq.7 | 20× NA 0.18 refuses at all three frames (was the frame's call); the 32-pixel frame finds the same vertex 5–9% low; the 20× ladder at 32 pixels is monotone — **reversed** |
+| escape | § 6br.2: one aperture residual on both rows | 2.55% at 20×, 3.6% at 10× — **reversed** |
+| six, growth | § 6bs–§ 6bt | the tally 1 / 4 / 1 holds, but the unchanged row is the axial split, not the plateau; § 6bs.8's survivor and § 6bt.3's two neighbours **reversed**; the orderings agree at the bottom |
+| fractional sampling | § 6cq.1: the plateau scatters 0.98% with no integer structure | 0.17%, all of it one class: every ps ≡ 1.5 (mod 2) reads ≥ 0.073% high — **reversed in kind** (item 41) |
+
+What the flip does not split is the layout's share from the rim's on each
+reading; § 2q.6 ran the rim alone on the aim layout for that, and here it was
+measured on the three readings above only.
+
+### § 2r.3 — the field scan's seam was the aim layout's ruler
+
+Source: measurement only — no engine change
+· Tests: § 2r.3 in `packages/core/test/field-seam-zero.test.ts`; the seam chain's
+files pinned to the aim layout (`SEAM` in each)
+
+§ 6ci wrote a field scan's seam in closed form: with no overlap, the two tiles at
+a seam read one composed pixel at rendered offsets ±U, and their frames differ
+only in `pixelScaleMm`, so the seam is `U(s_a + s_b − 2 s_r)` along it and
+`(i − size/2)(s_a − s_b)` across it. On the aim layout a frame's scale is its
+paraxial reference sphere, which moves with field radius (§ 6ci.1). On the exit
+layout the ruler is the traced aperture sine read on the axis whatever the
+tile's centre (§ 2i), so every tile reads the anchor's scale.
+
+**Hypothesis.** On the exit layout a field scan's seam is 0: the closed form
+exactly, the live seam to the rounding of the tile centres, its pitch drift with
+it, while a stage scan's seam — the map's period restarting (§ 6bj.5) —
+survives. **Refuted by** a field-scan tile whose ruler differs from the anchor's
+in any bit, a live field-scan seam above 1e-15 mm (the aim layout's is ~1e-6 mm),
+or a stage seam that vanishes with it.
+
+- **Every tile reads the anchor's ruler, bitwise**: § 6ci's four cells, three
+  anchors, three wavelengths. The closed form is 0 on both axes.
+- **The live seam is rounding.** At some anchors the composed centres round to
+  8.4e-17 mm rather than 0 — 2e-14 of a pixel, nine orders under the aim
+  layout's seam at the same anchor. The pitch drift is under 1e-12 px. The same
+  at five tiles, a guard of 8 and an overlap of 6.
+- **The stage seam survives**, within 3% of the aim layout's on every cell and
+  over ten times the aim layout's field seam.
+
+So the trial flip's 69 readings with no value were this: § 6bo → § 6cl's guard
+sensitivities, axis constants and the registration cost — a stage seam over a
+field seam — divide by a seam the exit layout does not have. They measured the
+aim layout's per-tile ruler drift: real arithmetic about a ruler the exit layout
+does not use. They are kept as that layout's: each file in the chain asks for
+`layout: "aim"` on every seam and every ruler its seams are read against, and
+says why. The render readings those files take from § 6bk → § 6cc are the exit
+layout's (§ 2r.2), and where a seam-chain file tabulates them beside its costs
+it reads its frames on the exit layout too (`six-interactions`).
+
+### What it leaves
+
+- **Why the exit layout's axial tile reads the largest phase step** of § 6bj.6's
+  nine (register item 39) — the eight around it sit 0.13 mm out.
+- **What moves § 6bo.2's plateau interaction 11.6%** at a matched field when
+  § 6bo.5's own field control holds to 0.82% (item 40) — the reason § 6bo.2
+  gave, field-insensitivity, does not decide it.
+- **The plateau's period of 2 in `pupilSamples`** (item 41): every ps ≡ 1.5
+  (mod 2) reads ≥ 0.073% high on the located rim, untraced.
+- **The layout's and the rim's shares** of each moved reading, split only on the
+  three readings § 2r.2 names.
+- **The default itself.** Every chain now names its layout; flipping
+  `defaultPupilLayout` for finite conjugates is the run that finds what still
+  reads it.
 
 ## Step 3a — the standard observer and thermal sources
 
@@ -23721,6 +23844,8 @@ No pinned number moved, and § 6bg.1's two bitwise rungs are why none could have
 
 ## Step 6bh — the fluorescence mosaic
 
+> **On the exit layout since [§ 2r.2](#-2r2--the-flip):** this step's tests carry the exit layout's readings, the aim layout's beside them where a claim moved; the text below is the step as first published.
+
 Source: `packages/core/src/imaging/fluorescence-mosaic.ts` ·
 Tests: `packages/core/test/fluorescence-mosaic.test.ts`
 
@@ -23916,6 +24041,8 @@ without knowing it was in a mosaic.
 
 
 ## Step 6bi — the flat field and the blend
+
+> **On the exit layout since [§ 2r.2](#-2r2--the-flip):** this step's tests carry the exit layout's readings, the aim layout's beside them where a claim moved; the text below is the step as first published.
 
 Source: `packages/core/src/imaging/mosaic-flat-field.ts`,
 `packages/core/src/imaging/fluorescence-mosaic.ts` ·
@@ -24139,6 +24266,8 @@ in `keptPixels − 0`.
 
 
 ## Step 6bj — the stage-scanning mosaic
+
+> **Split at § 2r:** its rendered readings are the exit layout's since [§ 2r.2](#-2r2--the-flip), its seams the aim layout's, kept at [§ 2r.3](#-2r3--the-field-scans-seam-was-the-aim-layouts-ruler); the text below is the step as first published.
 
 Source: `packages/core/src/imaging/fluorescence-mosaic.ts`,
 `packages/core/src/imaging/focus-tiles.ts`,
@@ -24380,6 +24509,8 @@ lattice and a radial map are the same lattice at the origin.
 
 
 ## Step 6bk — the second objective
+
+> **On the exit layout since [§ 2r.2](#-2r2--the-flip):** this step's tests carry the exit layout's readings, the aim layout's beside them where a claim moved; the text below is the step as first published.
 
 Source: `packages/core/src/imaging/spectral-volume.ts`,
 `packages/core/src/imaging/radial-map.ts`,
@@ -24632,6 +24763,8 @@ stated correctly; what none of them could say is how far it reached.
 
 ## Step 6bl — the third magnification
 
+> **On the exit layout since [§ 2r.2](#-2r2--the-flip):** this step's tests carry the exit layout's readings, the aim layout's beside them where a claim moved; the text below is the step as first published.
+
 Source: measurement only — no engine change ·
 Tests: `packages/core/test/third-magnification.test.ts`
 
@@ -24797,6 +24930,8 @@ a 1/M law with a stated 10% error.
   and § 6bk.
 
 ## Step 6bm — the fourth corner
+
+> **On the exit layout since [§ 2r.2](#-2r2--the-flip):** this step's tests carry the exit layout's readings, the aim layout's beside them where a claim moved; the text below is the step as first published.
 
 Source: measurement only — no engine change ·
 Tests: `packages/core/test/fourth-corner.test.ts`
@@ -25011,6 +25146,8 @@ forced surface here; it exists to characterise the refusal.
   § 6bk and § 6bl.
 
 ## Step 6bn — the second interval
+
+> **On the exit layout since [§ 2r.2](#-2r2--the-flip):** this step's tests carry the exit layout's readings, the aim layout's beside them where a claim moved; the text below is the step as first published.
 
 Source: measurement only — no engine change ·
 Tests: `packages/core/test/second-interval.test.ts`
@@ -25239,6 +25376,8 @@ the axis interaction by about 1% of its distance from 1.
   § 6bk, § 6bl and § 6bm.
 
 ## Step 6bo — both levers were two levers
+
+> **Split at § 2r:** its rendered readings are the exit layout's since [§ 2r.2](#-2r2--the-flip), its seams the aim layout's, kept at [§ 2r.3](#-2r3--the-field-scans-seam-was-the-aim-layouts-ruler); the text below is the step as first published.
 
 Source: measurement only — no engine change ·
 Tests: `packages/core/test/aperture-and-field.test.ts`
@@ -25477,6 +25616,8 @@ lever, and this file does not attribute it.
 
 ## Step 6bp — the rendered flat field at a matched field
 
+> **On the exit layout since [§ 2r.2](#-2r2--the-flip):** this step's tests carry the exit layout's readings, the aim layout's beside them where a claim moved; the text below is the step as first published.
+
 Source: measurement only — no engine change ·
 Tests: `packages/core/test/matched-flat-field.test.ts`
 
@@ -25626,6 +25767,8 @@ travels and its size is not the optics'.
   form** — all inherited from § 6bi through § 6bo.
 
 ## Step 6bq — the refusal boundary moves with magnification
+
+> **On the exit layout since [§ 2r.2](#-2r2--the-flip):** this step's tests carry the exit layout's readings, the aim layout's beside them where a claim moved; the text below is the step as first published.
 
 Source: measurement only — no engine change ·
 Tests: `packages/core/test/refusal-boundary.test.ts`,
@@ -25794,6 +25937,8 @@ agree to 2%.
 
 ## Step 6br — the escape's interaction, at a matched field
 
+> **On the exit layout since [§ 2r.2](#-2r2--the-flip):** this step's tests carry the exit layout's readings, the aim layout's beside them where a claim moved; the text below is the step as first published.
+
 Source: measurement only — no engine change ·
 Tests: `packages/core/test/escape-interaction.test.ts`
 
@@ -25936,6 +26081,8 @@ disagreement at the seventh digit rather than papering over it. This is the trap
   **the guard band still has no closed form** — inherited from § 6bi onward.
 
 ## Step 6bs — the six in one table
+
+> **Split at § 2r:** its rendered readings are the exit layout's since [§ 2r.2](#-2r2--the-flip), its seams the aim layout's, kept at [§ 2r.3](#-2r3--the-field-scans-seam-was-the-aim-layouts-ruler); the text below is the step as first published.
 
 Source: measurement only — no engine change ·
 Tests: `packages/core/test/six-interactions.test.ts`
@@ -26174,6 +26321,8 @@ third instance of the same error this step exists to document.
 
 ## Step 6bt — the two growth measures, converted
 
+> **Split at § 2r:** its rendered readings are the exit layout's since [§ 2r.2](#-2r2--the-flip), its seams the aim layout's, kept at [§ 2r.3](#-2r3--the-field-scans-seam-was-the-aim-layouts-ruler); the text below is the step as first published.
+
 [§ 6bs.6](#step-6bs--the-six-in-one-table) found that § 6bn's six interactions
 had been re-measured in **two different measures** of "how much did the
 matched-field correction move this quotient", and that the two rank the four
@@ -26329,6 +26478,8 @@ work alone, and that the cost is the only one of the six that crosses.
   unreachable.
 
 ## Step 6bu — the guard's share, not the anchor
+
+> **Seams on the aim layout, kept at [§ 2r.3](#-2r3--the-field-scans-seam-was-the-aim-layouts-ruler):** a field scan's seam is that layout's per-tile ruler drift and is 0 on the exit layout; this step's seams ask for the aim layout.
 
 § 6bs.7 walked the registration cost and its anisotropy over four anchor fields,
 `size` and `pupilSamples` scaled together so the pixel pitch is held and the
@@ -26501,6 +26652,8 @@ above stops at 9 mm against the same limit reached from the other direction.
 
 ## Step 6bv — the threshold is not a share
 
+> **Seams on the aim layout, kept at [§ 2r.3](#-2r3--the-field-scans-seam-was-the-aim-layouts-ruler):** a field scan's seam is that layout's per-tile ruler drift and is 0 on the exit layout; this step's seams ask for the aim layout.
+
 § 6bu moved two of § 6bs.7's three misbehaviours off the anchor and onto the
 guard's share of the tile, and then described the lever it had found only
 halfway: "the cost crosses 1 between kept shares of about 0.90 and 0.94 at every
@@ -26650,6 +26803,8 @@ and the fourth" by any measurement in this family.
   two orderings still have no replacement.
 
 ## Step 6bw — the drift is a hump
+
+> **Seams on the aim layout, kept at [§ 2r.3](#-2r3--the-field-scans-seam-was-the-aim-layouts-ruler):** a field scan's seam is that layout's per-tile ruler drift and is 0 on the exit layout; this step's seams ask for the aim layout.
 
 § 6bv left three things open, and the first of them was the law: "the threshold
 guard grows by a factor in [4.75, 6.67] over 8× of anchor and that refuses both
@@ -26844,6 +26999,8 @@ mosaic's own offset across a 2.5× of it. It is NOT one half: 0.5115 is 2.3% fro
   orderings still have no replacement.
 
 ## Step 6bx — the cost does not hump
+
+> **Seams on the aim layout, kept at [§ 2r.3](#-2r3--the-field-scans-seam-was-the-aim-layouts-ruler):** a field scan's seam is that layout's per-tile ruler drift and is 0 on the exit layout; this step's seams ask for the aim layout.
 
 § 6bw found the anisotropy threshold's drift to be a single smooth hump and left
 the cost alone, with a reason: "its readout is quantised by the along-seam probe
@@ -27110,6 +27267,8 @@ similar threshold curves meeting a moving locus ([§ 6by](#step-6by--the-jump-is
 
 ## Step 6by — the jump is a handover
 
+> **Seams on the aim layout, kept at [§ 2r.3](#-2r3--the-field-scans-seam-was-the-aim-layouts-ruler):** a field scan's seam is that layout's per-tile ruler drift and is 0 on the exit layout; this step's seams ask for the aim layout.
+
 § 6bx.8 measured the cost threshold jumping up at 2 mm and at 3 mm once the tile
 half extent passes about 1.8 times the field offset, and closed with "No
 mechanism is offered. Which of the four cells or which probe supplies the jump
@@ -27335,6 +27494,8 @@ of different order, and the coincidence § 6bx.8 wondered about is not available
 
 ## Step 6bz — the hump is a shoulder
 
+> **Seams on the aim layout, kept at [§ 2r.3](#-2r3--the-field-scans-seam-was-the-aim-layouts-ruler):** a field scan's seam is that layout's per-tile ruler drift and is 0 on the exit layout; this step's seams ask for the aim layout.
+
 Source: measurement only — no engine change ·
 Tests: `packages/core/test/anisotropy-window.test.ts`
 
@@ -27542,6 +27703,8 @@ admit every fourth, every second and every point respectively — which is § 6b
 
 ## Step 6ca — the separation is one slope
 
+> **Seams on the aim layout, kept at [§ 2r.3](#-2r3--the-field-scans-seam-was-the-aim-layouts-ruler):** a field scan's seam is that layout's per-tile ruler drift and is 0 on the exit layout; this step's seams ask for the aim layout.
+
 Source: measurement only — no engine change ·
 Tests: `packages/core/test/branch-separation.test.ts`
 
@@ -27693,6 +27856,8 @@ argument, on the cost this time rather than on the anisotropy.
 
 ## Step 6cb — the turn is a fixed point
 
+> **Seams on the aim layout, kept at [§ 2r.3](#-2r3--the-field-scans-seam-was-the-aim-layouts-ruler):** a field scan's seam is that layout's per-tile ruler drift and is 0 on the exit layout; this step's seams ask for the aim layout.
+
 Source: measurement only — no engine change ·
 Tests: `packages/core/test/anisotropy-turn.test.ts`
 
@@ -27806,6 +27971,8 @@ second time it is the mechanism rather than the symptom.
   two orderings still have no replacement.
 
 ## Step 6cc — the escape runs dry
+
+> **On the exit layout since [§ 2r.2](#-2r2--the-flip):** this step's tests carry the exit layout's readings, the aim layout's beside them where a claim moved; the text below is the step as first published.
 
 Source: measurement only — no engine change ·
 Tests: `packages/core/test/escape-window.test.ts`
@@ -27934,6 +28101,8 @@ is what a ratio of ratios does when two of its four terms have run out.
   § 6bs.6's two orderings still have no replacement.
 
 ## Step 6cd — the seam is one corner
+
+> **Seams on the aim layout, kept at [§ 2r.3](#-2r3--the-field-scans-seam-was-the-aim-layouts-ruler):** a field scan's seam is that layout's per-tile ruler drift and is 0 on the exit layout; this step's seams ask for the aim layout.
 
 Source: measurement only — no engine change ·
 Tests: `packages/core/test/anisotropy-corner.test.ts`
@@ -28209,6 +28378,8 @@ for, and it is the whole of the 5-step gap between 66.3 and 61.7.
   asked.
 
 ## Step 6cf — the guard constant is two log slopes
+
+> **Seams on the aim layout, kept at [§ 2r.3](#-2r3--the-field-scans-seam-was-the-aim-layouts-ruler):** a field scan's seam is that layout's per-tile ruler drift and is 0 on the exit layout; this step's seams ask for the aim layout.
 
 Source: measurement only — no engine change ·
 Tests: `packages/core/test/guard-constant.test.ts`
@@ -28642,6 +28813,8 @@ nothing fitted (§ 6ch.4).
 
 ## Step 6ci — the field seam is the ruler's own curvature
 
+> **Seams on the aim layout, kept at [§ 2r.3](#-2r3--the-field-scans-seam-was-the-aim-layouts-ruler):** a field scan's seam is that layout's per-tile ruler drift and is 0 on the exit layout; this step's seams ask for the aim layout.
+
 Source: measurement only — no engine change ·
 Tests: `packages/core/test/field-seam.test.ts`
 
@@ -28819,6 +28992,8 @@ one § 6ca gave.
 
 ## Step 6cj — the field seam's edge is the map's distortion
 
+> **Seams on the aim layout, kept at [§ 2r.3](#-2r3--the-field-scans-seam-was-the-aim-layouts-ruler):** a field scan's seam is that layout's per-tile ruler drift and is 0 on the exit layout; this step's seams ask for the aim layout.
+
 Source: measurement only — no engine change ·
 Tests: `packages/core/test/field-seam-map.test.ts`
 
@@ -28949,6 +29124,8 @@ there. The ceiling leaves the domain before it is ever in danger (§ 6cj.4).
 
 ## Step 6ck — the map's coefficient is one Seidel sum
 
+> **Seams on the aim layout, kept at [§ 2r.3](#-2r3--the-field-scans-seam-was-the-aim-layouts-ruler):** a field scan's seam is that layout's per-tile ruler drift and is 0 on the exit layout; this step's seams ask for the aim layout.
+
 Source: measurement only — no engine change ·
 Tests: `packages/core/test/field-seam-seidel.test.ts`
 
@@ -29064,6 +29241,8 @@ and always will; the closed form's one free number no longer does.
   still a sampling question nobody has asked.
 
 ## Step 6cl — the guard sensitivity is the matched field's own arithmetic
+
+> **Seams on the aim layout, kept at [§ 2r.3](#-2r3--the-field-scans-seam-was-the-aim-layouts-ruler):** a field scan's seam is that layout's per-tile ruler drift and is 0 on the exit layout; this step's seams ask for the aim layout.
 
 Source: measurement only — no engine change ·
 Tests: `packages/core/test/field-seam-guard.test.ts`
@@ -29669,6 +29848,8 @@ conjugate; at the specimen plane it is −9.1066e-10.
 
 ## Step 6cp — the stage seam's guard sensitivity, one power down
 
+> **Seams on the aim layout, kept at [§ 2r.3](#-2r3--the-field-scans-seam-was-the-aim-layouts-ruler):** a field scan's seam is that layout's per-tile ruler drift and is 0 on the exit layout; this step's seams ask for the aim layout.
+
 Source: measurement only — no engine change ·
 Tests: `packages/core/test/stage-seam-guard.test.ts`
 
@@ -29806,6 +29987,8 @@ counted in cells because the wrap it exists to contain is.
   and why a coarser pupil puts light outside the box (§ 6cc.2).
 
 ## Step 6cq — the first interval, and the engine change that was not needed
+
+> **Split at § 2r:** its rendered readings are the exit layout's since [§ 2r.2](#-2r2--the-flip), its seams the aim layout's, kept at [§ 2r.3](#-2r3--the-field-scans-seam-was-the-aim-layouts-ruler); the text below is the step as first published.
 
 Source: measurement only — no engine change ·
 Tests: `packages/core/test/fractional-sampling.test.ts`

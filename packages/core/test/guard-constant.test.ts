@@ -11,6 +11,14 @@ import type { OpticalSystem } from "../src/trace/system";
 import type { EmitterSlabs } from "../src/imaging/emitter-volume";
 
 /**
+ * § 2r.3: every seam here is read on the aim layout, explicitly. A field scan's
+ * seam is the aim layout's per-tile ruler drift — on the exit layout every tile
+ * reads the anchor's ruler and the seam is exactly 0 (`field-seam-zero.test.ts`)
+ * — so this chain's readings are that layout's, kept as its own.
+ */
+const SEAM = { layout: "aim" } as const;
+
+/**
  * § 6cf — the guard constant is two log slopes, and it is not monotone.
  *
  * § 6ca left two bullets that § 6cb…§ 6ce did not touch: "**Why the stage seam
@@ -149,6 +157,7 @@ const optsFor = (c: Cell, j: number, i: number): FluorescenceMosaicOptions => ({
     { nm: DESIGN, weight: 1 },
     { nm: 656.2725, weight: 1 },
   ],
+  ...SEAM,
   tiles: 3,
   guardCells: (i * j) / 2 ** 24,
   stageMm: FREE_STAGE,
@@ -462,6 +471,7 @@ describe("§ 6cf.5 — § 6ca's collapse is § 6cd.1's domain edge, not this for
         pupilSamples: PS_AT("s20", j),
         wavelengthNm: nm,
         centreMm: { x: CX, y: 0 },
+        layout: "aim",
       }).halfExtentMm / CX;
     for (const j of [32, 64, 116]) {
       // "∝ λ exactly", to 8.2e-11 — the traced scale's own last few bits, and

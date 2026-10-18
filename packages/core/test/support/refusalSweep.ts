@@ -11,6 +11,12 @@ import { finiteConjugateMicroscope, finiteConjugateObjective } from "../../src/d
 import type { OpticalSystem } from "../../src/trace/system";
 
 /**
+ * § 2r.2: the exit layout, on the located rim (§ 2q.4). Every reading below is
+ * on it; where the aim layout's reading is kept beside it, it says so.
+ */
+const EXIT = { layout: "exit", edgeSamples: 8, edgeRule: "crossing" } as const;
+
+/**
  * § 6bq's sweep, shared by the two files that measure the refusal boundary.
  *
  * `refusal-boundary.test.ts` asks WHERE the boundary is and how it moves with
@@ -63,6 +69,8 @@ const BALL: FocusProbe = (centreMm) =>
  * threshold back, to check that the number is what gets reported.
  */
 export const sweep = (size: number, ps: number, maxPlateauDepths = 1e9): FocusSweepOptions => ({
+  ...EXIT,
+  peak: "band-limited",
   size,
   pupilSamples: ps,
   slabs: uniformSlabs(-0.008, 0.008, 3),
@@ -93,6 +101,7 @@ export const fieldOf = (M: number, na: number, size: number, ps: number): number
     pupilSamples: ps,
     wavelengthNm: DESIGN,
     centreMm: { x: 0, y: 0 },
+    layout: "exit",
   }).halfExtentMm;
 
 /** § 6bo.5's seven, at the sweep's own sampling. */

@@ -20,6 +20,23 @@ import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/desi
 import type { OpticalSystem } from "../src/trace/system";
 
 /**
+ * § 2r.2: the exit layout, on the located rim (§ 2q.4). Every reading below is
+ * on it; where the aim layout's reading is kept beside it, it says so. The
+ * step's own header below quotes it as first published, on the aim layout;
+ * VALIDATION § 2r.2 lists what moved, and what reversed.
+ */
+const EXIT = { layout: "exit", edgeSamples: 8, edgeRule: "crossing" } as const;
+
+/**
+ * § 2r.3: the registration cost is a stage scan's seam over a FIELD scan's, and
+ * on the exit layout a field scan's seam is exactly 0 — every tile reads the
+ * anchor's ruler (§ 2i) — so the cost was the aim layout's per-tile ruler drift.
+ * It is kept as that layout's readout, on that layout: every seam shift here
+ * asks for it.
+ */
+const SEAM = { layout: "aim" } as const;
+
+/**
  * § 6bo — both levers were two levers.
  *
  * § 6bk, § 6bl, § 6bm and § 6bn all pull the same two levers: build the same
@@ -168,6 +185,8 @@ const BALL: FocusProbe = (centreMm) =>
  * stage — and with `size`/`pupilSamples` exposed, which is the whole point here.
  */
 const sweep = (size: number, ps: number, maxPlateauDepths = 1e9): FocusSweepOptions => ({
+  ...EXIT,
+  peak: "band-limited",
   size,
   pupilSamples: ps,
   slabs: uniformSlabs(-0.008, 0.008, 3),
@@ -182,11 +201,17 @@ const sweep = (size: number, ps: number, maxPlateauDepths = 1e9): FocusSweepOpti
 const SWEEP_PS = 48;
 
 const extentOf = (system: OpticalSystem, size = SIZE, ps = PS): number =>
-  objectFieldTile(system, { size, pupilSamples: ps, wavelengthNm: DESIGN, centreMm: AXIS })
+  objectFieldTile(system, { size, pupilSamples: ps, wavelengthNm: DESIGN, centreMm: AXIS, layout: "exit" })
+    .halfExtentMm;
+
+/** § 2r.2: the aim layout's half extent, which § 6bo was written on — kept beside
+ *  the exit layout's where a claim was exact on the one and is not on the other. */
+const extentAim = (system: OpticalSystem, size = SIZE, ps = PS): number =>
+  objectFieldTile(system, { size, pupilSamples: ps, wavelengthNm: DESIGN, centreMm: AXIS, layout: "aim" })
     .halfExtentMm;
 
 const magOf = (system: OpticalSystem): number =>
-  objectFieldTile(system, { size: SIZE, pupilSamples: PS, wavelengthNm: DESIGN, centreMm: AXIS })
+  objectFieldTile(system, { size: SIZE, pupilSamples: PS, wavelengthNm: DESIGN, centreMm: AXIS, layout: "exit" })
     .magnification;
 
 const stage = (mm: number): TileStageMm => () => mm;
@@ -214,6 +239,7 @@ function mosaicOptions(
     stageMm: FREE_STAGE,
     radialMapSeed: "magnification",
     centreMm: EDGE,
+    ...EXIT,
     ...over,
   };
 }
@@ -229,8 +255,8 @@ interface Cost {
 
 /** § 6bj's registration cost and its anisotropy — geometry only, no render. */
 function cost(system: OpticalSystem, size = SIZE, ps = PS): Cost {
-  const field = mosaicSeamShiftMm(system, mosaicOptions(size, ps));
-  const scan = mosaicSeamShiftMm(system, mosaicOptions(size, ps, { scan: "stage" }));
+  const field = mosaicSeamShiftMm(system, mosaicOptions(size, ps, SEAM));
+  const scan = mosaicSeamShiftMm(system, mosaicOptions(size, ps, { ...SEAM, scan: "stage" }));
   return {
     ratio: scan.mm / field.mm,
     aniso: scan.betweenRowsMm / scan.betweenColumnsMm,
@@ -262,6 +288,7 @@ function escaped(
     },
   ]);
   const wide = fluorescenceSpectralVolume(system, source, {
+    ...EXIT,
     size: size * 2,
     pupilSamples: ps,
     slabs: THIN,
@@ -419,27 +446,27 @@ describe("§ 6bo.1 — the frame's half-extent goes as M / NA, and no step has s
   it("the tile's field of view shrinks 2.569× across a 2.5× aperture range", () => {
     const extents = LADDER.map((na) => extentOf(at(na)));
 
-    expect(extents[0]).toBeCloseTo(0.9353865752380071, 12);
-    expect(extents[1]).toBeCloseTo(0.7777546863840972, 12);
-    expect(extents[2]).toBeCloseTo(0.619641732090495, 12);
-    expect(extents[3]).toBeCloseTo(0.5137465991842989, 12);
-    expect(extents[4]).toBeCloseTo(0.4605525127523965, 12);
-    expect(extents[5]).toBeCloseTo(0.41684833498921176, 12);
-    expect(extents[6]).toBeCloseTo(0.3640987306028178, 12);
+    expect(extents[0]).toBeCloseTo(0.9429824228424396, 12);
+    expect(extents[1]).toBeCloseTo(0.7857644642787831, 12);
+    expect(extents[2]).toBeCloseTo(0.6268512597605432, 12);
+    expect(extents[3]).toBeCloseTo(0.5175247339693888, 12);
+    expect(extents[4]).toBeCloseTo(0.45977079682449407, 12);
+    expect(extents[5]).toBeCloseTo(0.4098310846832025, 12);
+    expect(extents[6]).toBeCloseTo(0.3446002459398144, 12);
 
     // Strictly falling: the aperture lever is a field lever throughout.
     for (let i = 1; i < extents.length; i++) expect(extents[i]!).toBeLessThan(extents[i - 1]!);
 
-    expect(extents[0]! / extents[6]!).toBeCloseTo(2.5690465157330817, 10);
+    expect(extents[0]! / extents[6]!).toBeCloseTo(2.736453133603203, 10);
   });
 
   it("it is 1/NA to 2.76%, the residual being the traced aperture, not the design one", () => {
     // halfExtent · NA would be exactly constant if the traced aperture were the
     // design NA. It is not: the product drifts DOWN across the ladder.
     const products = LADDER.map((na) => extentOf(at(na)) * na);
-    expect(products[0]).toBeCloseTo(0.09353865752380071, 12);
-    expect(products[6]).toBeCloseTo(0.09102468265070444, 12);
-    expect(products[0]! / products[6]!).toBeCloseTo(1.0276186062932329, 10);
+    expect(products[0]).toBeCloseTo(0.09429824228424397, 12);
+    expect(products[6]).toBeCloseTo(0.0861500614849536, 12);
+    expect(products[0]! / products[6]!).toBeCloseTo(1.0945812534412813, 10);
 
     // Monotone, so it is a drift and not noise.
     for (let i = 1; i < products.length; i++) expect(products[i]!).toBeLessThan(products[i - 1]!);
@@ -451,38 +478,63 @@ describe("§ 6bo.1 — the frame's half-extent goes as M / NA, and no step has s
     expect(extentOf(at(0.1)) / extentOf(at(0.2))).toBeGreaterThan(2);
   });
 
-  it("and every magnification step GREW it, in exact proportion", () => {
+  it("and every magnification step GREW it, in proportion to 1.4e-5 (exactly on the aim layout)", () => {
     // The other half of `halfExtent ∝ M / NA`, and the reason § 6bl.4's 1/M law
-    // is measuring something other than magnification.
-    expect(extentOf(FOUR)).toBeCloseTo(0.18707731504759492, 12);
-    expect(extentOf(TEN)).toBeCloseTo(0.46769328761898915, 12);
-    expect(extentOf(at(0.1))).toBeCloseTo(0.9353865752380071, 12);
+    // is measuring something other than magnification. § 2r.2 WEAKENED: on the
+    // aim layout the 20×/10× step was 2 to twelve digits; the exit layout's
+    // ruler is the traced aperture sine, and the two lenses' traced apertures
+    // differ in the fifth digit.
+    expect(extentOf(FOUR)).toBeCloseTo(0.1884803172649792, 12);
+    expect(extentOf(TEN)).toBeCloseTo(0.4714845165828236, 12);
+    expect(extentOf(at(0.1))).toBeCloseTo(0.9429824228424396, 12);
 
-    expect(extentOf(TEN) / extentOf(FOUR)).toBeCloseTo(2.5, 12);
-    expect(extentOf(at(0.1)) / extentOf(TEN)).toBeCloseTo(2, 12);
+    expect(extentOf(TEN) / extentOf(FOUR)).toBeCloseTo(2.50150532121599, 12);
+    expect(extentOf(at(0.1)) / extentOf(TEN)).toBeCloseTo(2.0000283989745613, 12);
+    expect(Math.abs(extentOf(at(0.1)) / extentOf(TEN) / 2 - 1)).toBeLessThan(2e-5);
+    expect(extentAim(at(0.1)) / extentAim(TEN)).toBeCloseTo(2, 12);
   });
 });
 
 describe("§ 6bo.2 — each lever's field factor is pure, and that is NOT enough", () => {
-  it("the field shrink per aperture doubling is magnification-free to 13 digits", () => {
+  it("the field shrink per aperture doubling is magnification-free to 13 digits on the aim layout — and 5.4% apart on the exit", () => {
+    // § 2r.2 REVERSED. On the aim layout the three ratios agreed to 1e-12: the
+    // paraxial reference sphere scales with M and the aperture apart. The exit
+    // layout's ruler is the traced aperture sine, and how far that falls short
+    // of the design NA depends on the lens — so the aperture lever's field
+    // factor is no longer magnification-free: 2.163 at 4×, 2.051 at 20×.
     const r4 = extentOf(build(4, 0.1)) / extentOf(build(4, 0.2));
     const r10 = extentOf(build(10, 0.1)) / extentOf(build(10, 0.2));
     const r20 = extentOf(at(0.1)) / extentOf(at(0.2));
 
-    expect(r4).toBeCloseTo(2.031009601158958, 12);
-    expect(r10).toBeCloseTo(2.031009601158958, 12);
-    expect(r20).toBeCloseTo(2.031009601158958, 12);
+    expect(r4).toBeCloseTo(2.162573847507722, 12);
+    expect(r10).toBeCloseTo(2.071950449702494, 12);
+    expect(r20).toBeCloseTo(2.0509837278821332, 12);
 
     const spread = Math.max(r4, r10, r20) / Math.min(r4, r10, r20);
-    expect(spread).toBeLessThan(1 + 1e-12);
+    expect(spread).toBeCloseTo(1.0544080960314677, 10);
+    expect(spread).toBeGreaterThan(1.05);
+
+    const aim = [
+      extentAim(build(4, 0.1)) / extentAim(build(4, 0.2)),
+      extentAim(build(10, 0.1)) / extentAim(build(10, 0.2)),
+      extentAim(at(0.1)) / extentAim(at(0.2)),
+    ];
+    expect(Math.max(...aim) / Math.min(...aim)).toBeLessThan(1 + 1e-12);
   });
 
-  it("and the field growth per magnification step is aperture-free, likewise", () => {
+  it("and the field growth per magnification step was aperture-free on the aim layout — 1% apart on the exit", () => {
+    // § 2r.2 REVERSED, as the aperture factor above: on the aim layout the step
+    // was 2 to twelve digits at both apertures. On the exit layout it is 2 to
+    // 1.4e-5 at NA 0.10 and 2.0205 at NA 0.20 — the fast lenses' traced
+    // apertures differ by 1% (§ 6br.2).
     const slow = extentOf(at(0.1)) / extentOf(build(10, 0.1));
     const fast = extentOf(at(0.2)) / extentOf(build(10, 0.2));
-    expect(slow).toBeCloseTo(2, 12);
-    expect(fast).toBeCloseTo(2, 12);
-    expect(Math.abs(slow / fast - 1)).toBeLessThan(1e-12);
+    expect(slow).toBeCloseTo(2.0000283989745613, 12);
+    expect(fast).toBeCloseTo(2.020474216512774, 12);
+    expect(Math.abs(slow / 2 - 1)).toBeLessThan(2e-5);
+    expect(fast / slow - 1).toBeGreaterThan(0.01);
+    expect(extentAim(at(0.1)) / extentAim(build(10, 0.1))).toBeCloseTo(2, 12);
+    expect(extentAim(at(0.2)) / extentAim(build(10, 0.2))).toBeCloseTo(2, 12);
   });
 
   it("so a quotient's confound is a COMMON factor — which would cancel if the readout separated", () => {
@@ -546,20 +598,24 @@ describe("§ 6bo.2 — each lever's field factor is pure, and that is NOT enough
     expect((departure(matched) - 1) / (departure(branch) - 1)).toBeGreaterThan(11.6);
   });
 
-  it("while the PLATEAU's interaction survives, to 0.89% — and § 6bo.5 says why", () => {
+  it("while the PLATEAU's interaction survived, to 0.89%, on the aim layout — and moves 11.6% on the exit", () => {
     const branch = interact(D_LO_SLOW(), D_LO_FAST(), DEPTHS()[0]!, DEPTHS()[4]!);
     const matched = interact(D_LO_SLOW(), D_LO_FAST_M(), D_HI_SLOW_M(), DEPTHS()[4]!);
 
-    expect(branch).toBeCloseTo(0.8614283392781017, 9);
-    expect(branch).toBeCloseTo(0.8614284, 6); // § 6bn's plateauI
-    expect(matched).toBeCloseTo(0.8691011729509641, 9);
-    expect(matched / branch).toBeCloseTo(1.0089071061665935, 8);
+    expect(branch).toBeCloseTo(0.9166034818148291, 9);
+    expect(branch).toBeCloseTo(0.9166034818148291, 6); // § 6bn's plateauI
+    expect(matched).toBeCloseTo(0.8106410585075915, 9);
+    expect(matched / branch).toBeCloseTo(0.8843966607049787, 8);
 
-    // The separation is not arbitrary: the plateau is the readout § 6bo.5
-    // measures to be field-independent to under 3%, and it is the one whose
-    // interaction survives. Purity of the field FACTOR is necessary; what
-    // decides the outcome is whether the READOUT is field-sensitive.
-    expect(Math.abs(matched / branch - 1)).toBeLessThan(0.01);
+    // On the aim layout the matched field moved it 0.89% (0.8614 → 0.8691),
+    // and the argument was: the plateau is the readout § 6bo.5 measures to be
+    // field-independent, so its interaction survives — what decides is whether
+    // the READOUT is field-sensitive. § 2r.2 REVERSED: on the exit layout
+    // § 6bo.5's field control holds tighter still (0.82%), and the interaction
+    // moves 11.6% anyway, so field-insensitivity does not decide it. What does
+    // is not traced here (OPEN-PROBLEMS item 24).
+    expect(Math.abs(matched / branch - 1)).toBeCloseTo(0.11560333929502131, 8);
+    expect(Math.abs(matched / branch - 1)).toBeGreaterThan(0.1);
     expect(matched).toBeLessThan(1);
     expect(branch).toBeLessThan(1);
   });
@@ -567,12 +623,16 @@ describe("§ 6bo.2 — each lever's field factor is pure, and that is NOT enough
 
 describe("§ 6bo.3 — at a matched field the registration cost's aperture dependence REVERSES", () => {
   it("the field is held to within 1.55% by doubling the sampling with the aperture", () => {
-    const mismatch = extentOf(at(0.1), 128, 32) / extentOf(at(0.2), 256, 64);
+    // § 2r.3: the costs below are read on the aim layout, so the field that
+    // licenses them is that layout's. The exit layout holds it to 2.55%
+    // (§ 6br.2), which is what the escape and plateau quartets are read at.
+    const mismatch = extentAim(at(0.1), 128, 32) / extentAim(at(0.2), 256, 64);
     expect(mismatch).toBeCloseTo(1.0155048005794858, 10);
     // The residual is § 6bo.1's traced-aperture drift and nothing else: the same
     // mismatch appears at all three field sizes, to the last digits.
-    expect(extentOf(at(0.1), 64, 16) / extentOf(at(0.2), 128, 32)).toBeCloseTo(mismatch, 12);
-    expect(extentOf(at(0.1), 256, 64) / extentOf(at(0.2), 512, 128)).toBeCloseTo(mismatch, 12);
+    expect(extentAim(at(0.1), 64, 16) / extentAim(at(0.2), 128, 32)).toBeCloseTo(mismatch, 12);
+    expect(extentAim(at(0.1), 256, 64) / extentAim(at(0.2), 512, 128)).toBeCloseTo(mismatch, 12);
+    expect(extentOf(at(0.1), 128, 32) / extentOf(at(0.2), 256, 64)).toBeCloseTo(1.0254918639410666, 10);
   });
 
   it("the branch's own path has the cost RISE 1.5997× as the aperture doubles", () => {
@@ -637,11 +697,14 @@ describe("§ 6bo.3 — at a matched field the registration cost's aperture depen
 });
 
 describe("§ 6bo.4 — the cost's MAGNIFICATION dependence reverses too, so § 6bl.4's budget has the wrong sign", () => {
-  it("the magnification pairs hold the field to thirteen digits, not to 1.55%", () => {
-    // NA is held, so `halfExtent ∝ M / NA` lets the sampling cancel M exactly.
-    // This is the cleaner of the two experiments in this file.
-    expect(extentOf(TEN, 256, 64) / extentOf(at(0.1), 128, 32)).toBeCloseTo(1, 12);
-    expect(extentOf(TEN, 128, 32) / extentOf(at(0.1), 128, 16)).toBeCloseTo(1, 12);
+  it("the magnification pairs hold the field to 1.4e-5 (thirteen digits on the aim layout), not to 1.55%", () => {
+    // NA is held, so `halfExtent ∝ M / NA` lets the sampling cancel M — exactly
+    // on the aim layout, to the two lenses' traced-aperture difference on the
+    // exit (§ 6bo.1). Still the cleaner of the two experiments in this file.
+    expect(extentOf(TEN, 256, 64) / extentOf(at(0.1), 128, 32)).toBeCloseTo(0.999985800714342, 12);
+    expect(extentOf(TEN, 128, 32) / extentOf(at(0.1), 128, 16)).toBeCloseTo(0.999985800714342, 12);
+    expect(extentAim(TEN, 256, 64) / extentAim(at(0.1), 128, 32)).toBeCloseTo(1, 12);
+    expect(extentAim(TEN, 128, 32) / extentAim(at(0.1), 128, 16)).toBeCloseTo(1, 12);
   });
 
   it("§ 6bl.4's own path reproduces its 1/M law, and § 6bj's control number with it", () => {
@@ -700,13 +763,13 @@ describe("§ 6bo.4 — the cost's MAGNIFICATION dependence reverses too, so § 6
 
 describe("§ 6bo.5 — the plateau is field-free, so the refusal boundary is real optics", () => {
   it("the seven-point ladder is monotone in aperture and brackets the threshold", () => {
-    expect(DEPTHS()[0]).toBeCloseTo(0.37549919008843585, 9);
-    expect(DEPTHS()[1]).toBeCloseTo(0.428382059451484, 9);
-    expect(DEPTHS()[2]).toBeCloseTo(0.598546429418493, 9);
-    expect(DEPTHS()[3]).toBeCloseTo(1.0738808825086936, 9);
-    expect(DEPTHS()[4]).toBeCloseTo(1.2301646622060687, 9);
-    expect(DEPTHS()[5]).toBeCloseTo(1.4396321362837097, 9);
-    expect(DEPTHS()[6]).toBeCloseTo(1.5922927982930855, 9);
+    expect(DEPTHS()[0]).toBeCloseTo(0.3722815616422731, 9);
+    expect(DEPTHS()[1]).toBeCloseTo(0.42476740698848536, 9);
+    expect(DEPTHS()[2]).toBeCloseTo(0.6023875557712574, 9);
+    expect(DEPTHS()[3]).toBeCloseTo(1.1187669867217187, 9);
+    expect(DEPTHS()[4]).toBeCloseTo(1.2959870056577374, 9);
+    expect(DEPTHS()[5]).toBeCloseTo(1.5885913163297871, 9);
+    expect(DEPTHS()[6]).toBeCloseTo(2.3140296636294875, 9);
 
     for (let i = 1; i < DEPTHS().length; i++) expect(DEPTHS()[i]!).toBeGreaterThan(DEPTHS()[i - 1]!);
 
@@ -727,15 +790,15 @@ describe("§ 6bo.5 — the plateau is field-free, so the refusal boundary is rea
       refusal = (e as Error).message;
     }
     expect(refusal).toMatch(/plateau/);
-    expect(refusal).toMatch(/1\.0738/);
+    expect(refusal).toMatch(/1\.1187/); // 1.0738 on the aim layout
     expect(refusal).toMatch(/depths of focus/);
   });
 
   it("doubling the FIELD alone moves the plateau by under 3%", () => {
     // Aperture held, field changed — the control the cost never had.
-    expect(P15_WIDER().plateauDepths / DEPTHS()[2]!).toBeCloseTo(1.0032087294584346, 9);
-    expect(DEPTHS()[0]! / P10_SMALLFIELD().plateauDepths).toBeCloseTo(0.9890281687802007, 9);
-    expect(DEPTHS()[4]! / P20_BIGFIELD().plateauDepths).toBeCloseTo(1.0264180489929309, 9);
+    expect(P15_WIDER().plateauDepths / DEPTHS()[2]!).toBeCloseTo(0.9982339370394199, 9);
+    expect(DEPTHS()[0]! / P10_SMALLFIELD().plateauDepths).toBeCloseTo(0.9988262742778071, 9);
+    expect(DEPTHS()[4]! / P20_BIGFIELD().plateauDepths).toBeCloseTo(0.9918185610828949, 9);
 
     for (const r of [
       P15_WIDER().plateauDepths / DEPTHS()[2]!,
@@ -751,15 +814,15 @@ describe("§ 6bo.5 — the plateau is field-free, so the refusal boundary is rea
     const matchedBig = P20_BIGFIELD().plateauDepths / P10_BIGFIELD().plateauDepths;
     const matchedSmall = DEPTHS()[4]! / P10_SMALLFIELD().plateauDepths;
 
-    expect(convention).toBeCloseTo(3.2760780706779844, 9);
-    expect(matchedBig).toBeCloseTo(3.191758050135912, 9);
-    expect(matchedSmall).toBeCloseTo(3.24013349502362, 9);
+    expect(convention).toBeCloseTo(3.4812011638198097, 9);
+    expect(matchedBig).toBeCloseTo(3.5099173381257742, 9);
+    expect(matchedSmall).toBeCloseTo(3.4771151884697065, 9);
 
     // The three span 2.64%, and the two matched-field ones span 1.52% — against
     // a readout whose SIGN flipped in § 6bo.3 under the same treatment.
     const all = [convention, matchedBig, matchedSmall];
-    expect(Math.max(...all) / Math.min(...all)).toBeCloseTo(1.026418048992931, 9);
-    expect(matchedSmall / matchedBig).toBeCloseTo(1.0151563633984249, 9);
+    expect(Math.max(...all) / Math.min(...all)).toBeCloseTo(1.0094337253378436, 9);
+    expect(matchedSmall / matchedBig).toBeCloseTo(0.9906544381260034, 9);
     expect(Math.max(...all) / Math.min(...all)).toBeLessThan(1.03);
     for (const r of all) expect(r).toBeGreaterThan(3);
   });
@@ -767,24 +830,25 @@ describe("§ 6bo.5 — the plateau is field-free, so the refusal boundary is rea
 
 describe("§ 6bo.6 — the escape keeps its sign and loses a quarter of its size", () => {
   it("the branch's path overstates the aperture's effect by 1.28×", () => {
-    expect(E20_A() / E10_A()).toBeCloseTo(17.728595484364245, 8);
-    expect(E20M_A() / E10_A()).toBeCloseTo(13.825737559547433, 8);
-    expect(E20_A() / E20M_A()).toBeCloseTo(1.2822893106430822, 9);
+    expect(E20_A() / E10_A()).toBeCloseTo(15.46390625180061, 8);
+    expect(E20M_A() / E10_A()).toBeCloseTo(11.80125052402479, 8);
+    expect(E20_A() / E20M_A()).toBeCloseTo(1.3103616621238103, 9);
 
-    expect(E20_B() / E10_B()).toBeCloseTo(16.472179594752625, 8);
-    expect(E20M_B() / E10_B()).toBeCloseTo(12.875925007744309, 8);
-    expect(E20_B() / E20M_B()).toBeCloseTo(1.2793006781916891, 9);
+    expect(E20_B() / E10_B()).toBeCloseTo(14.216035194744313, 8);
+    expect(E20M_B() / E10_B()).toBeCloseTo(10.668814556397116, 8);
+    expect(E20_B() / E20M_B()).toBeCloseTo(1.3324849841185262, 9);
   });
 
-  it("and that 1.28× carries a pixel-count term, which is 0.6% and not 28%", () => {
+  it("and that 1.31× carries a pixel-count term, which is under 0.82% and not 31%", () => {
     // `escaped` derives its frame size from `pupilSamples`, so the matched-field
     // render has four times the pixels as well as the held field. Isolated —
-    // same field, four times the pixels — the term is under 0.8%, so it is named
-    // rather than left implied, and the inflation is 1.2902× once it is removed.
-    expect(E20_A_FINE() / E20_A()).toBeCloseTo(1.00614051868777, 9);
-    expect(E10_A_FINE() / E10_A()).toBeCloseTo(1.0077336276723095, 9);
-    expect(E20_A_FINE() / E20M_A()).toBeCloseTo(1.2901632321182137, 9);
-    for (const t of [E20_A_FINE() / E20_A(), E10_A_FINE() / E10_A()]) expect(Math.abs(t - 1)).toBeLessThan(0.008);
+    // same field, four times the pixels — the term is under 0.82% (0.78% on the
+    // aim layout), so it is named rather than left implied, and the inflation is
+    // 1.318× once it is removed (1.2902× on the aim layout).
+    expect(E20_A_FINE() / E20_A()).toBeCloseTo(1.0058991875896057, 9);
+    expect(E10_A_FINE() / E10_A()).toBeCloseTo(1.0081251718032516, 9);
+    expect(E20_A_FINE() / E20M_A()).toBeCloseTo(1.3180917313789062, 9);
+    for (const t of [E20_A_FINE() / E20_A(), E10_A_FINE() / E10_A()]) expect(Math.abs(t - 1)).toBeLessThan(0.0082);
   });
 
   it("but the sign holds — unlike the two render-free readouts", () => {
@@ -798,13 +862,14 @@ describe("§ 6bo.6 — the escape keeps its sign and loses a quarter of its size
 
   it("and the readout's own stage sensitivity is smaller than either, but not nil", () => {
     // § 6bk.4, § 6bm and § 6bn all quote the escape with each lens at its OWN
-    // axial stage. Two stages a sweep step apart move one lens by 0.41% and the
-    // other by 6.7% — small against 13.8×, and the first bound anyone has put
-    // on that convention.
-    expect(Math.abs(E10_B() / E10_A() - 1)).toBeLessThan(0.01);
+    // axial stage. Two stages a sweep step apart move one lens by 1.1% and the
+    // other by under 8% (0.41% and 6.7% on the aim layout) — small against
+    // 15.5×, and the first bound anyone has put on that convention.
+    expect(Math.abs(E10_B() / E10_A() - 1)).toBeCloseTo(0.011076116025419358, 9);
+    expect(Math.abs(E10_B() / E10_A() - 1)).toBeLessThan(0.012);
     expect(Math.abs(E20_B() / E20_A() - 1)).toBeLessThan(0.08);
-    expect(E10_A()).toBeCloseTo(0.021959074296852288, 9);
-    expect(E20_A()).toBeCloseTo(0.38930354541999446, 9);
+    expect(E10_A()).toBeCloseTo(0.024695549408981665, 9);
+    expect(E20_A()).toBeCloseTo(0.38188966089720244, 9);
   });
 });
 

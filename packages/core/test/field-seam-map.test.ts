@@ -11,6 +11,14 @@ import type { OpticalSystem } from "../src/trace/system";
 import type { EmitterSlabs } from "../src/imaging/emitter-volume";
 
 /**
+ * § 2r.3: every seam here is read on the aim layout, explicitly. A field scan's
+ * seam is the aim layout's per-tile ruler drift — on the exit layout every tile
+ * reads the anchor's ruler and the seam is exactly 0 (`field-seam-zero.test.ts`)
+ * — so this chain's readings are that layout's, kept as its own.
+ */
+const SEAM = { layout: "aim" } as const;
+
+/**
  * § 6cj — the field seam's own edge, which § 6ci located and misnamed.
  *
  * § 6ci.3 measured a departure from its pure-geometry anisotropy that
@@ -99,6 +107,7 @@ const optionsAt = (c: Cell, j: number, i: number, cx: number): FluorescenceMosai
     { nm: DESIGN, weight: 1 },
     { nm: 656.2725, weight: 1 },
   ],
+  ...SEAM,
   tiles: 3,
   guardCells: guardAt(j, i),
   stageMm: FREE_STAGE,
@@ -156,7 +165,7 @@ function seam(
     const row = (k - col) / n;
     return { x: cx + (col - half) * g.pitchMm, y: (row - half) * g.pitchMm };
   };
-  const axis = objectFieldTile(system, { ...options, centreMm: { x: 0, y: 0 }, wavelengthNm: nm });
+  const axis = objectFieldTile(system, { ...options, centreMm: { x: 0, y: 0 }, wavelengthNm: nm, layout: "aim" });
   const s0 = axis.pixelScaleMm;
   const R0 = axis.scale.referenceRadius;
   const scales: Record<ScaleModel, number[]> = { traced: [], hypot: [], quad: [] };
@@ -165,7 +174,7 @@ function seam(
     const r2 = p.x * p.x + p.y * p.y;
     if (models.includes("traced")) {
       scales.traced.push(
-        objectFieldTile(system, { ...options, centreMm: p, wavelengthNm: nm }).pixelScaleMm,
+        objectFieldTile(system, { ...options, centreMm: p, wavelengthNm: nm, layout: "aim" }).pixelScaleMm,
       );
     }
     scales.hypot.push((s0 * Math.hypot(R0, Math.sqrt(r2))) / R0);

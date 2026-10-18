@@ -10,6 +10,14 @@ import type { OpticalSystem } from "../src/trace/system";
 import type { EmitterSlabs } from "../src/imaging/emitter-volume";
 
 /**
+ * § 2r.3: every seam here is read on the aim layout, explicitly. A field scan's
+ * seam is the aim layout's per-tile ruler drift — on the exit layout every tile
+ * reads the anchor's ruler and the seam is exactly 0 (`field-seam-zero.test.ts`)
+ * — so this chain's readings are that layout's, kept as its own.
+ */
+const SEAM = { layout: "aim" } as const;
+
+/**
  * § 6cl — why the guard's two ends are not one tile.
  *
  * § 6ci.5 measured the FIELD interact's guard sensitivity — § 6ca.1's own
@@ -101,6 +109,7 @@ function mosaicOptions(ps: number, over: Partial<FluorescenceMosaicOptions>) {
     stageMm: FREE_STAGE,
     radialMapSeed: "magnification" as const,
     centreMm: { x: 4, y: 0 },
+    ...SEAM,
     ...over,
   } as FluorescenceMosaicOptions;
 }

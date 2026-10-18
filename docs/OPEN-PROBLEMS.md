@@ -586,7 +586,12 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     flipped at [§ 2p](VALIDATION.md#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone), its absolute emitter units pinned to the collected cone, and
     the volume and focus-surface chain with the app's volume panels at
     [§ 2q.6](VALIDATION.md#-2q6--the-flip), 184 readings in eight files and three claims reversed —
-    the mosaic, the seam chain last.
+    ~~the mosaic, the seam chain last~~ — the mosaic chain at [§ 2r.2](VALIDATION.md#-2r2--the-flip),
+    some 600 pinned lines in sixteen files, 30 claims reversed and 14 weakened;
+    the seam chain at [§ 2r.3](VALIDATION.md#-2r3--the-field-scans-seam-was-the-aim-layouts-ruler), whose field-scan seam
+    was the aim layout's per-tile ruler and is 0 on the exit layout, so its
+    files keep the aim layout and ask for it. What is left is the default itself
+    (Suggested order 20).
     Readings that moved INSIDE their tolerances under § 2m were not audited
     (§ 2j's follow-up did that for its own flip); one met while editing was the
     retinal Airy in APP.md, 1.384″ → 1.380″. Found
@@ -598,9 +603,11 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     chain, ~~the telecentric scene~~ (flipped with brightfield at [§ 2n](VALIDATION.md#step-2n--brightfield-on-the-exit-layout-a-direction-at-its-optical-sine)) and `aperture-and-field`. **69 of them go to NaN
     or ∞:** the one traced is § 6bo's registration cost, whose field-scanned seam
     shift was the per-tile ruler's drift and is exactly 0 on an axial ruler; the
-    other 68 are in the same chain and untraced. So flipping the default is not a
+    other 68 are in the same chain ~~and untraced. So flipping the default is not a
     restatement: the seam chain's field-scan term has to be re-derived from the
-    pupil's traced shape first. **The other 50 move only with the layout**, and
+    pupil's traced shape first~~ — **traced at [§ 2r.3](VALIDATION.md#-2r3--the-field-scans-seam-was-the-aim-layouts-ruler)**:
+    every field-scan tile reads the anchor's ruler bitwise, so all 69 divide by
+    a seam the exit layout does not have. **The other 50 move only with the layout**, and
     they are not all its distortion: ~~§ 2f's vesica-area pin degrades from inside
     2e-4 to 5.4e-4 (the fitted inverse at a vignetted edge — trace the vignette
     boundary instead)~~ — the inverse was exact; the mirror is an off-axis segment
@@ -858,6 +865,26 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     kernels' own `maxGridPhaseStepWaves`, refusing past half a wave; or the ratio
     converging over lattices once § 6l.14's quadrature is applied to the ±1-wave
     kernels as it is to the picture.
+39. **On the exit layout a stage scan's axial anchor tile reads the largest phase
+    step of nine.** Found at [§ 2r.2](VALIDATION.md#-2r2--the-flip) (§ 6bj.6, reversed): 0.34088
+    waves against the eight around it at 0.33287–0.33344, where the aim layout
+    read it as the best. The eight sit 0.13 mm out and every tile reads the same
+    ruler, so it is not the ruler. *What would pin it:* the step's map across the
+    tile — which grid cell carries it on the axis and off.
+40. **§ 6bo.2's plateau interaction moves 11.6% at a matched field while its
+    field control moves 0.82%.** Found at [§ 2r.2](VALIDATION.md#-2r2--the-flip). § 6bo.2 read
+    the plateau's survival (0.89% on the aim layout) as the readout being
+    field-free; on the exit layout it is no less field-free and does not survive,
+    so field-insensitivity does not decide it. The matched cells move by
+    `pupilSamples` too, and each lens's ruler is now its own traced aperture.
+    *What would pin it:* the same quartet at one sampling and two fields, and at
+    one field and two samplings.
+41. **The rendered plateau has a period of 2 in `pupilSamples`.** Found at
+    [§ 2r.2](VALIDATION.md#-2r2--the-flip) (§ 6cq.1): on the located rim every ps ≡ 1.5 (mod 2)
+    from 45.5 to 51.5 reads ≥ 0.073% above all thirteen other samplings of
+    44–52 and its vertex 0.1 µm low; the other thirteen span 0.051% with no
+    integer structure. *What would pin it:* the pupil lattice's offset at the
+    two classes — a period of 2 in ps is a half-cell shift every other step.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;
@@ -983,6 +1010,11 @@ number and land the day one arrives.
 
 ## C. The fluorescence-mosaic chain, § 6bk → § 6cq
 
+*Since § 2r the chain's rendered readings are the exit layout's ([§ 2r.2](VALIDATION.md#-2r2--the-flip),
+30 claims reversed — the list is there) and its seams the aim layout's, kept
+([§ 2r.3](VALIDATION.md#-2r3--the-field-scans-seam-was-the-aim-layouts-ruler)). What follows is as the chain left it on the aim
+layout; an item a reversal answers says so.*
+
 Twenty-eight steps: twenty-one carry *Source: measurement only — no engine
 change*, six more (§ 6bt–§ 6by) name no source at all, and one (§ 6bk) is an
 engine change. None of the chain's open items is pinned to an external number.
@@ -1028,6 +1060,8 @@ problems:
 - **Why the rendered plateau scatters 0.98% in the sampling** (§ 6cq.1). Not the
   coarse pass, which is pinned, and not integrality; larger than the 0.34%
   § 6bf.5 measured over a 4× change of sweep step, on a lever § 6bf never varied.
+  *On the exit layout's located rim ([§ 2r.2](VALIDATION.md#-2r2--the-flip)) the scatter is 0.17%
+  and all of it one class — item 41.*
 - **The stage form's row split changes sign near w ≈ 1.05** (§ 6cp.4), a little
   past § 6cd.1's edge at 1, and whether the offset is the map's `ε` or the moved
   argmax is unmeasured — the same unwritten form § 6cd, § 6ce and § 6cf all
@@ -1367,4 +1401,10 @@ radial-map nodes · § 6ba differential bleaching.
     The flip itself landed at [§ 2q.6](VALIDATION.md#-2q6--the-flip): three claims reversed and item
     33 refuted as stated (a coupling inside the clip too). § 2q.7 laid the rim out
     once and put the app's volume panels on it (items 37 and 38 opened); item 37
-    closed at § 2q.8. Next: the mosaic chain, § 6bh on, then the seam chain.
+    closed at § 2q.8. ~~Next: the mosaic chain, § 6bh on, then the seam chain.~~
+    The mosaic chain flipped at [§ 2r.2](VALIDATION.md#-2r2--the-flip) (items 39–41 opened; a
+    focus sweep lays its rim out once since § 2r.1), and the seam chain's field
+    term is the aim layout's ruler, 0 on the exit layout — kept on the aim
+    layout at [§ 2r.3](VALIDATION.md#-2r3--the-field-scans-seam-was-the-aim-layouts-ruler). Next: the default itself, for finite
+    conjugates — every chain now names its layout, so what still moves is what
+    reads the default.

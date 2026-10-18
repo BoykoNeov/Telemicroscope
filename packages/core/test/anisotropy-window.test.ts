@@ -7,6 +7,14 @@ import type { OpticalSystem } from "../src/trace/system";
 import type { EmitterSlabs } from "../src/imaging/emitter-volume";
 
 /**
+ * § 2r.3: every seam here is read on the aim layout, explicitly. A field scan's
+ * seam is the aim layout's per-tile ruler drift — on the exit layout every tile
+ * reads the anchor's ruler and the seam is exactly 0 (`field-seam-zero.test.ts`)
+ * — so this chain's readings are that layout's, kept as its own.
+ */
+const SEAM = { layout: "aim" } as const;
+
+/**
  * § 6bz — the anisotropy's law outside the window, and the hump is a shoulder.
  *
  * § 6bw located the anisotropy threshold across k = 1…8 at 4 mm off axis and
@@ -93,6 +101,7 @@ function mosaicOptions(
     stageMm: FREE_STAGE,
     radialMapSeed: "magnification",
     centreMm: { x: 4, y: 0 },
+    ...SEAM,
     ...over,
   };
 }
@@ -153,6 +162,7 @@ const ratioOfHalf = (j: number, x: number): number =>
     pupilSamples: PS_AT("s20", j),
     wavelengthNm: DESIGN,
     centreMm: { x, y: 0 },
+    layout: "aim",
   }).halfExtentMm / x;
 
 /** `i` is the threshold: at it the interact still exceeds the branch value, at

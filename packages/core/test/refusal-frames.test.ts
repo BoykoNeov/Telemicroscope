@@ -2,6 +2,14 @@ import { describe, it, expect } from "vitest";
 import { D, FRAMES, P, band, expectReproduces, fieldOf } from "./support/refusalSweep";
 
 /**
+ * § 2r.2: the exit layout, on the located rim (§ 2q.4). Every reading below is
+ * on it; where the aim layout's reading is kept beside it, it says so. The
+ * step's own header below quotes it as first published, on the aim layout;
+ * VALIDATION § 2r.2 lists what moved, and what reversed.
+ */
+const EXIT = { layout: "exit", edgeSamples: 8, edgeRule: "crossing" } as const;
+
+/**
  * § 6bq — what the frame does to the refusal reading.
  *
  * The other half of § 6bq. `refusal-boundary.test.ts` measures WHERE
@@ -56,62 +64,72 @@ describe("§ 6bq.2 — this readout has no pixel-pitch family, so a matched fiel
   });
 
   it("and the plateau comes back to twelve digits at half the pitch", () => {
-    expect(D(20, 0.15, 256, 48)).toBeCloseTo(0.5985464294184988, 12);
-    expect(D(20, 0.18, 256, 48)).toBeCloseTo(1.0738808825086998, 12);
-    expect(D(10, 0.18, 256, 48)).toBeCloseTo(1.288847552430459, 12);
+    expect(D(20, 0.15, 256, 48)).toBeCloseTo(0.6023875557712532, 12);
+    expect(D(20, 0.18, 256, 48)).toBeCloseTo(1.1187669867217527, 12);
+    expect(D(10, 0.18, 256, 48)).toBeCloseTo(1.2700640149674243, 12);
 
     expect(D(20, 0.15, 256, 48)).toBeCloseTo(D(20, 0.15, 128, 48), 12);
     expect(D(20, 0.18, 256, 48)).toBeCloseTo(D(20, 0.18, 128, 48), 12);
     expect(D(10, 0.18, 256, 48)).toBeCloseTo(D(10, 0.18, 128, 48), 12);
 
     // The same at the smaller frame, where the pitch is halved the other way.
-    expect(D(20, 0.18, 128, 24)).toBeCloseTo(0.9819748349292025, 9);
+    expect(D(20, 0.18, 128, 24)).toBeCloseTo(1.0696938554220883, 9);
     expect(D(20, 0.18, 128, 24)).toBeCloseTo(D(20, 0.18, 64, 24), 9);
   });
 });
 
-describe("§ 6bq.5 — the 32-pixel frame finds a different vertex, and is excluded by measurement", () => {
-  it("its best focus is 2.09× and 1.84× from the other two frames', on one lens", () => {
-    expect(P(10, 0.18, 32, 12).focusMm).toBeCloseTo(0.12206135782997773, 12);
-    expect(P(10, 0.18, 64, 24).focusMm).toBeCloseTo(0.05838824606511346, 12);
-    expect(P(10, 0.18, 128, 48).focusMm).toBeCloseTo(0.06634114381918149, 12);
+describe("§ 6bq.5 — the 32-pixel frame found a different vertex (aim layout), reads the same one low (exit), and is excluded by measurement", () => {
+  it("its best focus was 2.09× and 1.84× from the other two frames' on the aim layout — and is 5% and 9% on the exit", () => {
+    expect(P(10, 0.18, 32, 12).focusMm).toBeCloseTo(0.0602238436639875, 12);
+    expect(P(10, 0.18, 64, 24).focusMm).toBeCloseTo(0.06329678274463982, 12);
+    expect(P(10, 0.18, 128, 48).focusMm).toBeCloseTo(0.06632298298429813, 12);
 
     const odd = P(10, 0.18, 32, 12).focusMm;
-    expect(odd / P(10, 0.18, 64, 24).focusMm).toBeCloseTo(2.0905124927687884, 12);
-    expect(odd / P(10, 0.18, 128, 48).focusMm).toBeCloseTo(1.8399043309031042, 12);
+    expect(odd / P(10, 0.18, 64, 24).focusMm).toBeCloseTo(0.9514518914326251, 12);
+    expect(odd / P(10, 0.18, 128, 48).focusMm).toBeCloseTo(0.9080388268761285, 12);
 
-    // Not a drift — a different maximum. The fine sweep is ±0.03 mm, and the odd
-    // vertex is outside the interval either of the others swept.
+    // § 2r.2 REVERSED. On the aim layout it was not a drift but a different
+    // maximum: the odd vertex sat outside the ±0.03 mm either of the others
+    // swept. On the exit layout it is inside both, 3.1 µm and 6.1 µm off — the
+    // same maximum, read 5% and 9% low. That is still further than the kept
+    // frames sit from each other (under 3.8%, below), which is what the
+    // exclusion now rests on, with the 10× ladder that follows.
     for (const [size, ps] of [
       [64, 24],
       [128, 48],
     ] as const) {
-      expect(Math.abs(odd - P(10, 0.18, size, ps).focusMm)).toBeGreaterThan(0.03);
+      expect(Math.abs(odd - P(10, 0.18, size, ps).focusMm)).toBeLessThan(0.03 / 4);
     }
+    expect(odd / P(10, 0.18, 128, 48).focusMm).toBeLessThan(1 / 1.038);
   });
 
-  it("and its ladder is non-monotone by 40% where every larger frame's is not", () => {
+  it("and its 10× ladder is non-monotone by 23% where every larger frame's is not", () => {
     const small = [0.15, 0.16, 0.17].map((na) => D(10, na, 32, 12));
     // Recorded readings — `expectReproduces` carries why they are compared as
     // relative distances. The 40% the rung is about is eleven orders above it.
-    expectReproduces(small, [1.1153338101745813, 0.7966335638880051, 0.8411895076626353]);
-    expect(small[1]!).toBeLessThan(small[0]!);
-    expect(Math.abs(small[0]! / small[1]! / 1.4000587732346421 - 1)).toBeLessThan(1e-12);
+    // On the aim layout it fell 40% from 0.15 to 0.16; on the exit layout it
+    // rises 52% and falls back 23% at 0.17 — non-monotone still, the other way.
+    expectReproduces(small, [1.0312741794667688, 1.572434267179877, 1.276518282978113]);
+    expect(small[2]!).toBeLessThan(small[1]!);
+    expect(Math.abs(small[1]! / small[2]! / 1.2318149204345064 - 1)).toBeLessThan(1e-12);
 
     // The same three apertures at the next frame up are monotone increasing.
     const next = [0.15, 0.16, 0.17].map((na) => D(10, na, 64, 24));
     for (let i = 1; i < next.length; i++) expect(next[i]!).toBeGreaterThan(next[i - 1]!);
 
-    // And it is not a 10× quirk: the 20× ladder at the same frame jumps 1.86×
-    // over one aperture step and comes back down over the next.
-    expect(D(20, 0.17, 32, 12)).toBeCloseTo(0.8075386145350787, 12);
-    expect(D(20, 0.18, 32, 12)).toBeCloseTo(1.4983651975976182, 12);
-    expect(D(20, 0.19, 32, 12)).toBeCloseTo(1.0568796047568005, 12);
-    expect(D(20, 0.18, 32, 12) / D(20, 0.17, 32, 12)).toBeCloseTo(1.8554718878183512, 12);
-    expect(D(20, 0.19, 32, 12)).toBeLessThan(D(20, 0.18, 32, 12));
+    // § 2r.2 REVERSED: on the aim layout it was not a 10× quirk — the 20×
+    // ladder at the same frame jumped 1.86× over one aperture step and came back
+    // down over the next (0.808, 1.498, 1.057). On the exit layout the 20×
+    // ladder at 32 pixels is monotone, so here it is the 10×'s alone.
+    expect(D(20, 0.17, 32, 12)).toBeCloseTo(0.9738277217467931, 12);
+    expect(D(20, 0.18, 32, 12)).toBeCloseTo(1.1043744475777761, 12);
+    expect(D(20, 0.19, 32, 12)).toBeCloseTo(1.6802847446047768, 12);
+    expect(D(20, 0.18, 32, 12) / D(20, 0.17, 32, 12)).toBeCloseTo(1.134055257327052, 12);
+    expect(D(20, 0.19, 32, 12)).toBeGreaterThan(D(20, 0.18, 32, 12));
+    expect(D(20, 0.18, 32, 12)).toBeGreaterThan(D(20, 0.17, 32, 12));
   });
 
-  it("whereas the three frames the bands ARE taken over agree on the vertex to 2%", () => {
+  it("whereas the three frames the bands ARE taken over agree on the vertex to 3.8%", () => {
     // The check the exclusion is made on, applied to the frames kept.
     for (const [M, na] of [
       [10, 0.15],
@@ -123,11 +141,11 @@ describe("§ 6bq.5 — the 32-pixel frame finds a different vertex, and is exclu
       expect(hi / lo).toBeLessThan(1.06);
     }
     expect(P(10, 0.15, 256, 96).focusMm / P(10, 0.15, 128, 48).focusMm).toBeCloseTo(
-      0.9976342036647008,
+      0.9992341188081676,
       12,
     );
     expect(P(20, 0.18, 256, 96).focusMm / P(20, 0.18, 128, 48).focusMm).toBeCloseTo(
-      0.9906896073656232,
+      1.0062617375196756,
       12,
     );
   });

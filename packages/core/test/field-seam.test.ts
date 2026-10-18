@@ -15,6 +15,14 @@ import type { OpticalSystem } from "../src/trace/system";
 import type { EmitterSlabs } from "../src/imaging/emitter-volume";
 
 /**
+ * § 2r.3: every seam here is read on the aim layout, explicitly. A field scan's
+ * seam is the aim layout's per-tile ruler drift — on the exit layout every tile
+ * reads the anchor's ruler and the seam is exactly 0 (`field-seam-zero.test.ts`)
+ * — so this chain's readings are that layout's, kept as its own.
+ */
+const SEAM = { layout: "aim" } as const;
+
+/**
  * § 6ci — the field scan's seam, which nothing had measured.
  *
  * § 6ca.1 read the FIELD interact's guard sensitivity on each axis, found
@@ -107,6 +115,7 @@ function mosaicOptions(
     stageMm: FREE_STAGE,
     radialMapSeed: "magnification",
     centreMm: { x: 4, y: 0 },
+    ...SEAM,
     ...over,
   };
 }
@@ -146,6 +155,7 @@ const optionsAt = (
   mosaicOptions(BIG, PS_AT(c, j), {
     guardCells: guardAt(j, i),
     centreMm: { x: cx, y: 0 },
+    ...SEAM,
     ...over,
   });
 
@@ -205,7 +215,7 @@ function closedForm(
   const S = Array.from(
     { length: n * n },
     (_, k) =>
-      objectFieldTile(system, { ...options, centreMm: centre(k), wavelengthNm: nm }).pixelScaleMm,
+      objectFieldTile(system, { ...options, centreMm: centre(k), wavelengthNm: nm, layout: "aim" }).pixelScaleMm,
   );
   const map = (p: { x: number; y: number }): { x: number; y: number } => {
     const r = Math.hypot(p.x, p.y);
@@ -328,7 +338,7 @@ describe("§ 6ci.1 — and a frame's scale is one traced number per field radius
   it("is the reference radius alone, and the exit radius does not move at all", () => {
     for (const c of CELLS) {
       const system = LENS[c];
-      const base = objectFieldFrame(system, { size: 256, pupilSamples: 64, wavelengthNm: 430 });
+      const base = objectFieldFrame(system, { size: 256, pupilSamples: 64, wavelengthNm: 430, layout: "aim" });
       const R0 = base.scale.referenceRadius;
       for (const r of [0.5, 1, 2, 4, 8, 12]) {
         const f = objectFieldTile(system, {
@@ -336,6 +346,7 @@ describe("§ 6ci.1 — and a frame's scale is one traced number per field radius
           pupilSamples: 64,
           wavelengthNm: 430,
           centreMm: { x: r, y: 0 },
+          layout: "aim",
         });
         // Bitwise: `pixelScaleMm ∝ referenceRadius / exitRadius` and the exit
         // radius is the same number at every field angle, so the scale IS the
@@ -350,12 +361,14 @@ describe("§ 6ci.1 — and a frame's scale is one traced number per field radius
         pupilSamples: 64,
         wavelengthNm: 430,
         centreMm: { x: 3, y: 4 },
+        layout: "aim",
       });
       const on = objectFieldTile(system, {
         size: 256,
         pupilSamples: 64,
         wavelengthNm: 430,
         centreMm: { x: 5, y: 0 },
+        layout: "aim",
       });
       expect(off.pixelScaleMm).toBe(on.pixelScaleMm);
     }
@@ -363,7 +376,7 @@ describe("§ 6ci.1 — and a frame's scale is one traced number per field radius
 
   it("and § 6m.3's hypot carries it, departing as the fourth power", () => {
     const system = LENS.s20;
-    const base = objectFieldFrame(system, { size: 256, pupilSamples: 64, wavelengthNm: 430 });
+    const base = objectFieldFrame(system, { size: 256, pupilSamples: 64, wavelengthNm: 430, layout: "aim" });
     const R0 = base.scale.referenceRadius;
     const departure = (r: number): number => {
       const f = objectFieldTile(system, {
@@ -371,6 +384,7 @@ describe("§ 6ci.1 — and a frame's scale is one traced number per field radius
         pupilSamples: 64,
         wavelengthNm: 430,
         centreMm: { x: r, y: 0 },
+        layout: "aim",
       });
       return f.pixelScaleMm / base.pixelScaleMm / (Math.hypot(R0, r) / R0) - 1;
     };
