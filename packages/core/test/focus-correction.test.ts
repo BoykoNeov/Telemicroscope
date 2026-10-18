@@ -358,8 +358,8 @@ describe("§ 6bg — the correction applied", () => {
       }
       const worstEven = Math.max(...errors.map((e) => Math.abs(e.even)));
       const worstOdd = Math.max(...errors.map((e) => Math.abs(e.odd)));
-      expect(worstEven).toBeCloseTo(1.737682e-4, 9);
-      expect(worstOdd).toBeCloseTo(1.454115e-3, 8);
+      expect(worstEven).toBeCloseTo(1.290419e-4, 9);
+      expect(worstOdd).toBeCloseTo(1.409926e-3, 8);
       // The floor that decides it is the estimator's, and it has moved twice.
       // Point-sampled, § 6be.2 read 1.2e-3 mm and the odd variable landed ON it.
       // Resolved on the aim layout the interaction inside the pupil clip was a
@@ -367,9 +367,10 @@ describe("§ 6bg — the correction applied", () => {
       // odd one (1.330695e-3) 15× over, 40× the even. On the exit layout (§ 2q.6)
       // that interaction is a coupling, not a floor — 6–9e-4 mm, one sign on four
       // lattices — and what is left of a floor is its scatter across them, 3e-4.
-      // The even variable lands under that and the odd one 4.8× over it, 8.4× the
-      // even: h² still wins, and h is still a measurable error, by a margin a
-      // fifth of the aim layout's.
+      // The even variable lands under that and the odd one 4.7× over it, 10.9× the
+      // even (4.8× and 8.4× while the fit dropped the off-axis rim, § 2t): h²
+      // still wins, and h is still a measurable error, by a margin a quarter of
+      // the aim layout's.
       const floor = 3e-4;
       expect(worstEven).toBeLessThan(floor);
       expect(worstOdd).toBeGreaterThan(4 * floor);
@@ -571,8 +572,8 @@ describe("§ 6bg — the correction applied", () => {
 
       // Off the axis one channel's own refocus walks its own image sideways.
       // -1.426154e-3 and 1.172581e-4 on the aim layout (§ 2q.6)
-      expect(field.blue).toBeCloseTo(-1.536563e-3, 7);
-      expect(field.red).toBeCloseTo(1.197301e-4, 7);
+      expect(field.blue).toBeCloseTo(-1.537118e-3, 7);
+      expect(field.red).toBeCloseTo(1.196344e-4, 7);
       // On the axis the same stage moves do essentially nothing — 3.02e-6 mm,
       // under a thousandth of a pixel against over 0.4 of one off the axis. A
       // field-INDEPENDENT mechanism would show here too, and this is the rung that
@@ -651,7 +652,7 @@ describe("§ 6bg — the correction applied", () => {
       expect(series.tiles).toHaveLength(3);
       expect(series.exposures).toBe(9);
       // 0.225204 on the aim layout (§ 2q.6)
-      expect(series.stageSpreadMm).toBeCloseTo(0.223489, 5);
+      expect(series.stageSpreadMm).toBeCloseTo(0.223482, 5);
       for (const tile of series.tiles) {
         expect(tile.exposures).toBe(3);
         expect(tile.focusMm).toHaveLength(3);
@@ -711,9 +712,9 @@ describe("§ 6bg — the correction applied", () => {
           predictedFocusMm(SURFACE, 430, 1.0 - halfObjectMm),
       );
       // On the exit layout (§ 2q.6); the aim layout read 0.0134142 and 0.3103.
-      expect(across).toBeCloseTo(0.0133714, 6);
+      expect(across).toBeCloseTo(0.0133724, 6);
       expect(across / DOF430).toBeCloseTo(0.3094, 3);
-      // § 6be.7 reads 0.388 of a depth of focus across a frame at 1.1 mm (0.392
+      // § 6be.7 reads 0.389 of a depth of focus across a frame at 1.1 mm (0.392
       // on the aim layout, 0.409 point-sampled); this is the same quantity one
       // tile further in, and no patch count removes it. The figure is this
       // lattice's FRAME: a frame is pupilSamples·λ/(2·NA) wide, so on the aim

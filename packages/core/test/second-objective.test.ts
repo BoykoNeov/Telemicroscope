@@ -464,14 +464,14 @@ describe("§ 6bk.1 — the seed reaches the render, and the control does not mov
 
   it("and the fixture reproduces § 6bi and § 6bj on the control, so the lens is the only variable", () => {
     // Six digits against § 6bi.3's two spans and § 6bi.4's free-field gain…
-    expect(F4_CORR_EDGE().rendered).toBeCloseTo(0.015120823123271628, 7);
+    expect(F4_CORR_EDGE().rendered).toBeCloseTo(0.015120893109409818, 7);
     expect(F4_CORR_EDGE().free).toBeCloseTo(0.012948745076016089, 7);
     expect(F4_CORR_EDGE().rendOverFree).toBeCloseTo(1.1677442898523582, 4);
-    expect(F4_CORR_AXIS().rendOverFree).toBeCloseTo(1218.411748232601, 3);
-    expect(F4_CORR_EDGE().freeGain).toBeCloseTo(54.96411159065406, 1);
+    expect(F4_CORR_AXIS().rendOverFree).toBeCloseTo(1218.3883087414065, 3);
+    expect(F4_CORR_EDGE().freeGain).toBeCloseTo(55.02939054528365, 1);
     expect(F4_CORR_AXIS().freeGain).toBeCloseTo(1.0080719878230333, 4);
     // …and § 6bi's headline that a scanner's own calibration makes it 11% WORSE.
-    expect(F4_CORR_EDGE().scannerVsRaw).toBeCloseTo(1.0995011990122863, 5);
+    expect(F4_CORR_EDGE().scannerVsRaw).toBeCloseTo(1.0995244139390026, 5);
 
     // And § 6bj.5's registration figures, to every digit that step pinned.
     const field = mosaicSeamShiftMm(FOUR, mosaicOptions(AXIAL_4, { ...SEAM, centreMm: EDGE }));
@@ -544,12 +544,12 @@ describe("§ 6bk.3 — the RULER decides which focus term dominates", () => {
     // same answer on both lenses — colour dominates, by about two and a half.
     expect(colour4()).toBeCloseTo(0.16081172033414903, 7);
     expect(colour10()).toBeCloseTo(0.05493782316659187, 7);
-    expect(field4()).toBeCloseTo(0.060182859980624115, 7);
-    expect(field10()).toBeCloseTo(0.02592948253747817, 7);
+    expect(field4()).toBeCloseTo(0.06013442900749552, 7);
+    expect(field10()).toBeCloseTo(0.025931110614440034, 7);
 
-    expect(colour4() / field4()).toBeCloseTo(2.6720518165125817, 5);
-    expect(colour10() / field10()).toBeCloseTo(2.1187396658296356, 5);
-    expect(colour4() / field4() / (colour10() / field10())).toBeCloseTo(1.261151551371124, 5);
+    expect(colour4() / field4()).toBeCloseTo(2.6742038294585697, 5);
+    expect(colour10() / field10()).toBeCloseTo(2.118606641398503, 5);
+    expect(colour4() / field4() / (colour10() / field10())).toBeCloseTo(1.2622465054170293, 5);
     expect(colour4() / field4()).toBeGreaterThan(1);
     expect(colour10() / field10()).toBeGreaterThan(1);
   });
@@ -577,9 +577,9 @@ describe("§ 6bk.3 — the RULER decides which focus term dominates", () => {
     // 10× reads 3.03× the control's floor, and at a matched image radius it reads
     // 3.16× BETTER than it. One lens cannot be both, and the ruler is the only
     // thing that changed.
-    expect(SURF4().interactionMm).toBeCloseTo(0.008729477405000755, 8);
-    expect(SURF10().interactionMm).toBeCloseTo(0.001009979295292486, 8);
-    expect(SURF4().interactionMm / SURF10().interactionMm).toBeCloseTo(8.643224119235763, 5);
+    expect(SURF4().interactionMm).toBeCloseTo(0.008782488635683483, 8);
+    expect(SURF10().interactionMm).toBeCloseTo(0.0010104607615383024, 8);
+    expect(SURF4().interactionMm / SURF10().interactionMm).toBeCloseTo(8.691568213211191, 5);
   });
 });
 
@@ -593,9 +593,9 @@ describe("§ 6bk.4 — the guard band is APERTURE's, and the prediction was back
     // read this on one lens and could not have seen which of the two it was.
     const slow = escaped(FOUR, 430, H4, EDGE, SURF4().colourMm[0]!);
     const fast = escaped(FAST, 430, H20, EDGE, AX20);
-    expect(slow).toBeCloseTo(0.06447589569918666, 7);
+    expect(slow).toBeCloseTo(0.06443157661795051, 7);
     expect(fast).toBeCloseTo(0.6142100101700547, 7);
-    expect(fast / slow).toBeCloseTo(9.526195852100473, 5);
+    expect(fast / slow).toBeCloseTo(9.532748419490591, 5);
     expect(fast).toBeGreaterThan(slow);
   });
 
@@ -608,15 +608,15 @@ describe("§ 6bk.4 — the guard band is APERTURE's, and the prediction was back
     // to 1.15× leaves the escape 4.21× apart.
     const four = escaped(FOUR, 430, H4, EDGE, predictedFocusMm(SURF4(), 430, H4));
     const ten = escaped(TEN, 430, H10, EDGE, predictedFocusMm(SURF10(), 430, H10));
-    expect(four).toBeCloseTo(0.11059857040391319, 7);
-    expect(ten).toBeCloseTo(0.026191871333252625, 7);
-    expect(four / ten).toBeCloseTo(4.222629570705766, 5);
+    expect(four).toBeCloseTo(0.11051389272596401, 7);
+    expect(ten).toBeCloseTo(0.026190151012319807, 7);
+    expect(four / ten).toBeCloseTo(4.219673749646516, 5);
   });
 
   it("and § 6bg's correction still buys the most where the escape is largest", () => {
     // The one thing about the guard band that DOES travel: correcting the stage
     // always helps, on every lens. § 6bh measured 4.31× on the control at its
-    // own anchor; here the same readout at a matched radius reads 2.67×, 1.20×
+    // own anchor; here the same readout at a matched radius reads 2.68×, 1.20×
     // and 1.05×. On the aim layout it read 3.14×, 1.15× and 1.19×, ordered by
     // how far each lens's nominal stage sat from its best focus; § 2r.2: that
     // ordering does not survive — the fast lens's axial focus is 0.121 mm out
@@ -624,15 +624,15 @@ describe("§ 6bk.4 — the guard band is APERTURE's, and the prediction was back
     const nominal4 = escaped(FOUR, 430, H4, EDGE, 0);
     const nominal10 = escaped(TEN, 430, H10, EDGE, 0);
     const nominal20 = escaped(FAST, 430, H20, EDGE, 0);
-    expect(nominal4).toBeCloseTo(0.29574536531422035, 7);
-    expect(nominal10).toBeCloseTo(0.03141491683013764, 7);
+    expect(nominal4).toBeCloseTo(0.29565502631807605, 7);
+    expect(nominal10).toBeCloseTo(0.03141035627302369, 7);
     expect(nominal20).toBeCloseTo(0.6472564072999717, 7);
 
     const corrected4 = escaped(FOUR, 430, H4, EDGE, predictedFocusMm(SURF4(), 430, H4));
     const corrected10 = escaped(TEN, 430, H10, EDGE, predictedFocusMm(SURF10(), 430, H10));
     const corrected20 = escaped(FAST, 430, H20, EDGE, AX20);
-    expect(nominal4 / corrected4).toBeCloseTo(2.6740432921884887, 5);
-    expect(nominal10 / corrected10).toBeCloseTo(1.1994147508755493, 5);
+    expect(nominal4 / corrected4).toBeCloseTo(2.6752747462366346, 5);
+    expect(nominal10 / corrected10).toBeCloseTo(1.1993194028643936, 5);
     expect(nominal20 / corrected20).toBeCloseTo(1.0538030910970786, 5);
     for (const gain of [
       nominal4 / corrected4,
@@ -651,7 +651,7 @@ describe("§ 6bk.5 — the flat field's two shares are the APERTURE's, and § 6b
     // with a magnification-lever number (measured at `corrected`). Everything
     // below moves by factors; the convention moves nothing by more than 0.2%.
     expect(F4_AX_AXIS().rendOverFree / F4_CORR_AXIS().rendOverFree).toBeCloseTo(1.001389553686291, 5);
-    expect(F4_AX_EDGE().rendOverFree / F4_CORR_EDGE().rendOverFree).toBeCloseTo(0.9998038359412099, 7);
+    expect(F4_AX_EDGE().rendOverFree / F4_CORR_EDGE().rendOverFree).toBeCloseTo(0.9998014271451009, 7);
     expect(Math.abs(F4_AX_AXIS().rendOverFree / F4_CORR_AXIS().rendOverFree - 1)).toBeLessThan(2e-3);
     expect(Math.abs(F4_AX_EDGE().rendOverFree / F4_CORR_EDGE().rendOverFree - 1)).toBeLessThan(2e-3);
   });
@@ -668,7 +668,7 @@ describe("§ 6bk.5 — the flat field's two shares are the APERTURE's, and § 6b
     // two fields coincided, a 1195× collapse. On the exit layout it is 1.857:
     // the aperture still collapses the split 657×, and the two fields no longer
     // land on top of each other.
-    expect(F4_AX_AXIS().rendOverFree).toBeCloseTo(1220.1047967687778, 3);
+    expect(F4_AX_AXIS().rendOverFree).toBeCloseTo(1220.0857988257933, 3);
     expect(F20_AX_AXIS().rendOverFree).toBeCloseTo(1.8565748394754216, 7);
     expect(F4_AX_AXIS().rendOverFree / F20_AX_AXIS().rendOverFree).toBeGreaterThan(600);
     expect(F20_AX_AXIS().rendOverFree).toBeGreaterThan(1.8);
@@ -682,7 +682,7 @@ describe("§ 6bk.5 — the flat field's two shares are the APERTURE's, and § 6b
     // on the exit layout the fast lens's split is 1.86 on the axis and 1.96 at
     // the edge — the same at both — so the aperture collapses the axial split
     // and leaves the edge one within 1.7× of the slow lens's.
-    expect(F4_AX_EDGE().rendOverFree).toBeCloseTo(1.1675152203928318, 6);
+    expect(F4_AX_EDGE().rendOverFree).toBeCloseTo(1.1675135979980493, 6);
     expect(F20_AX_EDGE().rendOverFree).toBeCloseTo(1.959665508742682, 5);
     expect(F20_AX_EDGE().rendOverFree / F4_AX_EDGE().rendOverFree).toBeCloseTo(1.6784924723151076, 5);
     expect(F20_AX_EDGE().rendOverFree / F20_AX_AXIS().rendOverFree).toBeLessThan(1.1);
@@ -692,8 +692,8 @@ describe("§ 6bk.5 — the flat field's two shares are the APERTURE's, and § 6b
     // Against the aperture's thousandfold, on the same readout at the same field
     // positions. This is what § 6bk.2's separation buys: the split is a property
     // of the aperture and not of the objective's power.
-    expect(F10_CORR_AXIS().rendOverFree).toBeCloseTo(1549.313598921061, 3);
-    expect(F10_CORR_AXIS().rendOverFree / F4_CORR_AXIS().rendOverFree).toBeCloseTo(1.2715845863834276, 5);
+    expect(F10_CORR_AXIS().rendOverFree).toBeCloseTo(1549.3119212703598, 3);
+    expect(F10_CORR_AXIS().rendOverFree / F4_CORR_AXIS().rendOverFree).toBeCloseTo(1.271607672328042, 5);
     expect(F10_CORR_EDGE().rendOverFree).toBeCloseTo(1.1547558095010866, 6);
   });
 
@@ -708,8 +708,8 @@ describe("§ 6bk.5 — the flat field's two shares are the APERTURE's, and § 6b
     // on the axis and 2.52× at the edge: it helps everywhere and about equally,
     // so there is no swap — the control's split is an edge-of-field one and the
     // fast lens's is not split at all.
-    expect(F4_AX_AXIS().freeGain).toBeCloseTo(1.0080440213156112, 6);
-    expect(F4_AX_EDGE().freeGain).toBeCloseTo(71.90128796046679, 4);
+    expect(F4_AX_AXIS().freeGain).toBeCloseTo(1.0080396436760424, 6);
+    expect(F4_AX_EDGE().freeGain).toBeCloseTo(71.87236552278816, 4);
     expect(F20_AX_AXIS().freeGain).toBeCloseTo(2.757728181440865, 3);
     expect(F20_AX_EDGE().freeGain).toBeCloseTo(2.518093358319762, 6);
     expect(F4_AX_EDGE().freeGain / F4_AX_AXIS().freeGain).toBeGreaterThan(70);
@@ -741,10 +741,10 @@ describe("§ 6bk.6 — the scanner verdict's SIGN travels and its size does not"
     // The size is another matter entirely: from doing nothing at all to 21% worse.
     expect(F20_AX_AXIS().scannerVsRaw).toBeCloseTo(1.0013218516741842, 6);
     expect(F20_AX_EDGE().scannerVsRaw).toBeCloseTo(1.1628294715805367, 6);
-    expect(F10_CORR_AXIS().scannerVsRaw).toBeCloseTo(1.1760789273013568, 6);
+    expect(F10_CORR_AXIS().scannerVsRaw).toBeCloseTo(1.1760679602605462, 6);
     expect(F10_CORR_EDGE().scannerVsRaw).toBeCloseTo(1.0960895892787776, 6);
     const sizes = all.map((f) => f.scannerVsRaw);
-    expect(Math.max(...sizes) / Math.min(...sizes)).toBeCloseTo(1.1745263776426962, 5);
+    expect(Math.max(...sizes) / Math.min(...sizes)).toBeCloseTo(1.1745154250795495, 5);
   });
 
   it("and § 6bj's registration cost is the lens's — 41.8× to 132.9× over the three", () => {
@@ -898,7 +898,7 @@ describe("§ 6bk.8 — the refusals, and the one that did not name its own fix",
     //
     // § 2r.2 REVERSED. On the exit layout, at 3, the forced surface is a curve:
     // its drops are monotone and negative, −0.0176 and −0.0555 mm, and its
-    // interaction term is 1.58× the control's and a quarter of the field drop —
+    // interaction term is 1.57× the control's and a quarter of the field drop —
     // § 6bm.7's corner's signature (0.213), not this lens's old one. So on this
     // layout the refusal rests on the plateau's width alone.
     const forced = focusSurface(FAST, {
@@ -912,7 +912,7 @@ describe("§ 6bk.8 — the refusals, and the one that did not name its own fix",
     expect(drops[2]!).toBeCloseTo(-0.05554763289575872, 9);
     expect(drops[1]!).toBeLessThan(0);
     expect(drops[2]!).toBeLessThan(drops[1]!);
-    expect(forced.interactionMm / SURF4().interactionMm).toBeCloseTo(1.579617027952038, 5);
+    expect(forced.interactionMm / SURF4().interactionMm).toBeCloseTo(1.570082436319445, 5);
     expect(forced.interactionMm).toBeLessThan(2 * SURF4().interactionMm);
     expect(forced.interactionMm / Math.abs(drops[2]!)).toBeCloseTo(0.2482415619750851, 4);
   });

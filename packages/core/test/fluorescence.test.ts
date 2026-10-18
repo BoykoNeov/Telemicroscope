@@ -500,15 +500,17 @@ describe("§ 6i.5 — a traced objective, and why beads are the first specimen",
     // **Restated at § 2p.** On the aim layout this rung read the corner 0.66%
     // BELOW the axis on the rim stop and asserted that direction. On the exit
     // layout, where the same traced samples sit where their rays went, the corner
-    // is 0.033% ABOVE it, so the 0.66% is layout-dependent; its mechanism is not
-    // traced. The wavefront it is read on is not flat: at this frame's image plane
-    // every kernel here carries ~0.13 waves rms of defocus and 0.056 of spherical
-    // (the peak is half the aberration-free one). Split, on the exit layout:
+    // is 0.0086% ABOVE it (0.033% before § 2t), so the 0.66% is layout-dependent;
+    // its mechanism is not traced. The wavefront it is read on is not flat: at
+    // this frame's image plane every kernel here carries ~0.13 waves rms of
+    // defocus and 0.056 of spherical (the peak is half the aberration-free one).
+    // Split, on the exit layout:
     //  - the SUPPORT — the corner's exit cone laid on the axial ruler — is 0.25%
     //    smaller and lowers the corner by that, on both members alike;
-    //  - the WAVEFRONT raises it, 0.28% here and 1.29% on the telecentric member,
-    //    with less defocus at the corner (Z4 0.12767 → 0.12692 on the telecentric)
-    //    among the cause, not traced to the whole of it.
+    //  - the WAVEFRONT raises it, 0.26% here and 1.27% on the telecentric member
+    //    (0.28% and 1.29% while the fit dropped the corner's rim, § 2t), with less
+    //    defocus at the corner (Z4 0.12767 → 0.12692 on the telecentric, read
+    //    before § 2t) among the cause, not traced to the whole of it.
     // So over 47 µm the axis and the corner are one kernel to about 1%, and which
     // way the difference points is set by defocus, not by the corner's coma.
     const split = (u: number, v: number) => {
@@ -523,7 +525,7 @@ describe("§ 6i.5 — a traced objective, and why beads are the first specimen",
     const corner = split(1, 1);
     // 3.2787e-4 and 1.0375e-2 before § 2q.5's rim densities; the support's split
     // did not move.
-    expect(corner.full / axis.full - 1).toBeCloseTo(3.2938e-4, 7);
+    expect(corner.full / axis.full - 1).toBeCloseTo(8.5864e-5, 7);
     expect(corner.supportOnly / axis.supportOnly - 1).toBeCloseTo(-2.5094e-3, 7);
     expect(Math.abs(frame.objectHalfExtentMm * 1000 - 47.3121)).toBeLessThan(0.01);
 
@@ -532,7 +534,7 @@ describe("§ 6i.5 — a traced objective, and why beads are the first specimen",
     const telecentricPeakAt = (u: number, v: number): number =>
       peakOf(fieldPupilAt(telecentric, telecentricFrame, u, v).pupil);
     const telecentricRatio = telecentricPeakAt(1, 1) / telecentricPeakAt(0.5, 0.5);
-    expect(telecentricRatio - 1).toBeCloseTo(1.03804e-2, 6);
+    expect(telecentricRatio - 1).toBeCloseTo(1.02043e-2, 6);
   });
 
   it("a bead field renders through the traced pupils, and holds the light they passed", () => {

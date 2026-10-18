@@ -830,12 +830,12 @@ describe("§ 6bo.5 — the plateau is field-free, so the refusal boundary is rea
 
 describe("§ 6bo.6 — the escape keeps its sign and loses a quarter of its size", () => {
   it("the branch's path overstates the aperture's effect by 1.28×", () => {
-    expect(E20_A() / E10_A()).toBeCloseTo(15.46390625180061, 8);
-    expect(E20M_A() / E10_A()).toBeCloseTo(11.80125052402479, 8);
+    expect(E20_A() / E10_A()).toBeCloseTo(15.46388866370067, 8);
+    expect(E20M_A() / E10_A()).toBeCloseTo(11.80123710169991, 8);
     expect(E20_A() / E20M_A()).toBeCloseTo(1.3103616621238103, 9);
 
-    expect(E20_B() / E10_B()).toBeCloseTo(14.216035194744313, 8);
-    expect(E20M_B() / E10_B()).toBeCloseTo(10.668814556397116, 8);
+    expect(E20_B() / E10_B()).toBeCloseTo(14.215830316092383, 8);
+    expect(E20M_B() / E10_B()).toBeCloseTo(10.668660799578563, 8);
     expect(E20_B() / E20M_B()).toBeCloseTo(1.3324849841185262, 9);
   });
 
@@ -846,7 +846,7 @@ describe("§ 6bo.6 — the escape keeps its sign and loses a quarter of its size
     // aim layout), so it is named rather than left implied, and the inflation is
     // 1.318× once it is removed (1.2902× on the aim layout).
     expect(E20_A_FINE() / E20_A()).toBeCloseTo(1.0058991875896057, 9);
-    expect(E10_A_FINE() / E10_A()).toBeCloseTo(1.0081251718032516, 9);
+    expect(E10_A_FINE() / E10_A()).toBeCloseTo(1.0081253809374655, 9);
     expect(E20_A_FINE() / E20M_A()).toBeCloseTo(1.3180917313789062, 9);
     for (const t of [E20_A_FINE() / E20_A(), E10_A_FINE() / E10_A()]) expect(Math.abs(t - 1)).toBeLessThan(0.0082);
   });
@@ -865,10 +865,10 @@ describe("§ 6bo.6 — the escape keeps its sign and loses a quarter of its size
     // axial stage. Two stages a sweep step apart move one lens by 1.1% and the
     // other by under 8% (0.41% and 6.7% on the aim layout) — small against
     // 15.5×, and the first bound anyone has put on that convention.
-    expect(Math.abs(E10_B() / E10_A() - 1)).toBeCloseTo(0.011076116025419358, 9);
+    expect(Math.abs(E10_B() / E10_A() - 1)).toBeCloseTo(0.01108953768311971, 9);
     expect(Math.abs(E10_B() / E10_A() - 1)).toBeLessThan(0.012);
     expect(Math.abs(E20_B() / E20_A() - 1)).toBeLessThan(0.08);
-    expect(E10_A()).toBeCloseTo(0.024695549408981665, 9);
+    expect(E10_A()).toBeCloseTo(0.024695577496857912, 9);
     expect(E20_A()).toBeCloseTo(0.38188966089720244, 9);
   });
 });

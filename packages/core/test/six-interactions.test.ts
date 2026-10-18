@@ -272,18 +272,18 @@ const KS = [1, 2, 4, 8] as const;
  * ------------------------------------------------------------------ */
 
 /** § 6bp.3, `rendOverFree` on the axis and at the edge, branch and Q6BO. */
-const SPLIT_AXIS_BRANCH = 0.629423671;
-const SPLIT_AXIS_MATCHED = 0.683910164;
-const SPLIT_EDGE_BRANCH = 0.971090466;
+const SPLIT_AXIS_BRANCH = 0.629422825;
+const SPLIT_AXIS_MATCHED = 0.683910386;
+const SPLIT_EDGE_BRANCH = 0.971090550;
 const SPLIT_EDGE_MATCHED = 0.965747442;
 /** § 6bo.2's plateau pair. */
 const PLATEAU_BRANCH = 0.9166034818148291;
 const PLATEAU_MATCHED = 0.8106410585075915;
 /** § 6br.1 and § 6br.3, the escape at its own anchor... */
-const ESCAPE_BRANCH = 0.7511359357713786;
-const ESCAPE_MATCHED = 0.39149024506518326;
+const ESCAPE_BRANCH = 0.7511311966833133;
+const ESCAPE_MATCHED = 0.3914877704551276;
 /** ...and § 6br.6's second anchor, which is the one the other five sit at. */
-const ESCAPE_AT_COMMON_ANCHOR = 0.3666634;
+const ESCAPE_AT_COMMON_ANCHOR = 0.3666606;
 
 /** § 6bq.7's seven, at the two apertures this interaction is built from. */
 const PLATEAU_FIELD_MOVE_010 = 0.9988262742778071;
@@ -406,8 +406,8 @@ describe("§ 6bs.2 — the tally, computed: ONE reversed, FOUR understated, ONE 
     const moved = growth.filter((g) => g > 1);
     const still = growth.filter((g) => g <= 1);
     expect(still).toHaveLength(1);
-    expect(Math.max(...still)).toBeCloseTo(0.7850130379787208, 6);
-    expect(Math.min(...moved)).toBeCloseTo(1.1913737941648266, 6);
+    expect(Math.max(...still)).toBeCloseTo(0.7850093845744445, 6);
+    expect(Math.min(...moved)).toBeCloseTo(1.1913773589044103, 6);
     expect(Math.min(...moved) / Math.max(...still)).toBeGreaterThan(1.5);
   });
 });
@@ -450,7 +450,7 @@ describe("§ 6bs.3 — the six sit at THREE anchors, in the ratio 1 : 1.5 : 2", 
 });
 
 describe("§ 6bs.4 — five of the six go onto ONE anchor, to 0.8%, and the escape's verdict does not move", () => {
-  it("§ 6br.6's second anchor IS the other five's, and the escape reads 0.3666634 there", () => {
+  it("§ 6br.6's second anchor IS the other five's, and the escape reads 0.3666606 there", () => {
     // § 6br's family walks the same extent ladder this file does: its second
     // rung sits exactly where § 6bo and § 6bp took their quartets.
     expect(anchorOf(1)).toBeCloseTo(0.4714912114212198, 12);
@@ -534,7 +534,7 @@ describe("§ 6bs.6 — the six were reported in TWO growth measures, and they di
     expect(distanceGrowth(four[0]!)).toBeCloseTo(1.1913737941648266, 5);
     expect(distanceGrowth(four[1]!)).toBeCloseTo(11.684598548101404, 5);
     expect(distanceGrowth(four[2]!)).toBeCloseTo(2.5673838440860384, 5);
-    expect(distanceGrowth(four[3]!)).toBeCloseTo(4.691405258485403, 5);
+    expect(distanceGrowth(four[3]!)).toBeCloseTo(4.691335055602586, 5);
   });
 
   it("and the two orderings were opposite at BOTH ends on the aim layout — on the exit they swap only the top two", () => {
@@ -628,8 +628,8 @@ describe("§ 6bs.8 — the plateau survived on the aim layout; on the exit it is
     };
     const moves = rows().map((r) => Math.abs(r.matched / r.branch - 1));
     expect(Math.min(...moves)).toBe(move("split, edge"));
-    expect(move("split, edge")).toBeCloseTo(0.005502086764386016, 9);
-    expect(move("split, axis")).toBeCloseTo(0.08656568780362894, 9);
+    expect(move("split, edge")).toBeCloseTo(0.005502172789139004, 9);
+    expect(move("split, axis")).toBeCloseTo(0.0865675009481901, 9);
   });
 
   it("and § 6bq.7 moves one of its own two apertures by 3.5% — under a third of its move", () => {

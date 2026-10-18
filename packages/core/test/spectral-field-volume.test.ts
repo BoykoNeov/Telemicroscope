@@ -455,12 +455,13 @@ describe("§ 6be — the third axis", () => {
       // samples, ~1e-4 of either sign, and the outer heights 5.929590e-3 and
       // 4.731926e-3. On the exit layout h = 0.4 is not a floor: 8.79e-4, 7.71e-4,
       // 5.77e-4 and 6.19e-4 at 40, 48, 56 and 60 samples — one sign, scattered by
-      // 3e-4, which is the lattice's. The traced bundle off the axis is displaced
+      // 3e-4, which is the lattice's. (Read before § 2t; at 48 samples it is now
+      // 7.96e-4, the off-axis rim back in the fit, and the others were not re-read.) The traced bundle off the axis is displaced
       // from its chief ray by a share that is a colour (the test below), and the
       // aim layout, which lays every rim on the unit circle, could not see it.
-      expect(interaction(0.4)).toBeCloseTo(7.710935e-4, 7);
-      expect(interaction(0.8)).toBeCloseTo(7.169432e-3, 7);
-      expect(interaction(1.1)).toBeCloseTo(6.445635e-3, 7);
+      expect(interaction(0.4)).toBeCloseTo(7.962862e-4, 7);
+      expect(interaction(0.8)).toBeCloseTo(7.236205e-3, 7);
+      expect(interaction(1.1)).toBeCloseTo(6.479721e-3, 7);
 
       expect(interaction(0.4)).toBeGreaterThan(3e-4);
       expect(interaction(0.4)).toBeLessThan(1e-3);
@@ -605,7 +606,7 @@ describe("§ 6be — the third axis", () => {
   });
 
   describe("§ 6be.3 — and the field adds half as much again to § 6bb.6's spread", () => {
-    it("0.242900 mm over the square — 5.620 depths of focus at 430 against 3.7493 on axis", () => {
+    it("0.242905 mm over the square — 5.620 depths of focus at 430 against 3.7493 on axis", () => {
       // § 6bb.6's own measurement, reproduced by this file's estimator before it
       // is taken anywhere new: within 2.1e-4 mm of its 0.208698, 0.047478 and
       // 0.067734 on the axis. On the exit layout (§ 2q.6); the aim layout read
@@ -619,9 +620,9 @@ describe("§ 6be — the third axis", () => {
       // 0.25022903 and 5.78924.
       const values = FOCUS_LAMBDAS.flatMap((nm) => HEIGHTS.map((h) => at(nm, h)));
       const spread = Math.max(...values) - Math.min(...values);
-      expect(spread).toBeCloseTo(0.24290018, 7);
+      expect(spread).toBeCloseTo(0.24290502, 7);
       expect(DOF430).toBeCloseTo(4.322314e-2, 7);
-      expect(spread / DOF430).toBeCloseTo(5.619680, 4);
+      expect(spread / DOF430).toBeCloseTo(5.619792, 4);
 
       // The extremes are the blue ON AXIS and the design wavelength at the EDGE
       // — one corner from each axis, which is what a separable surface does.
@@ -635,9 +636,9 @@ describe("§ 6be — the third axis", () => {
       // Aim layout 0.16189522, 0.08221791 and 0.507846; point-sampled 0.16691015,
       // 0.08331889 and 0.499184.
       expect(colour).toBeCloseTo(0.16082410, 7);
-      expect(field).toBeCloseTo(0.08207608, 7);
+      expect(field).toBeCloseTo(0.08208092, 7);
       expect(colour + field).toBeCloseTo(spread, 12);
-      expect(field / colour).toBeCloseTo(0.510347, 5);
+      expect(field / colour).toBeCloseTo(0.510377, 5);
       // § 6bb.6 reads 3.7493 of them on the axis (3.7709 on the aim layout,
       // 3.8775 point-sampled); the square holds 5.620.
       expect(spread / DOF430 / 3.7493).toBeCloseTo(1.498861, 4);
@@ -672,15 +673,15 @@ describe("§ 6be — the third axis", () => {
       // One curve for every wavelength: the h² coefficient at the field edge.
       // On the exit layout (§ 2q.6); the aim layout read -0.06403801, -0.06794869
       // and -0.06649446, the point-sampled rim -0.06823823, -0.06885859, -0.06728941.
-      expect(drop(430, 1.1) / 1.21).toBeCloseTo(-0.06250450, 7);
-      expect(drop(DESIGN, 1.1) / 1.21).toBeCloseTo(-0.06783147, 7);
-      expect(drop(RED, 1.1) / 1.21).toBeCloseTo(-0.06629564, 7);
+      expect(drop(430, 1.1) / 1.21).toBeCloseTo(-0.06248033, 7);
+      expect(drop(DESIGN, 1.1) / 1.21).toBeCloseTo(-0.06783547, 7);
+      expect(drop(RED, 1.1) / 1.21).toBeCloseTo(-0.06630108, 7);
       const coeffs = FOCUS_LAMBDAS.map((nm) => Math.abs(drop(nm, 1.1) / 1.21));
       // One curve for all three to 8.5% (6.1% on the aim layout, 5.7% there at
       // 56 samples) — and that is § 6be.2's coupling, the blue's field term
       // running 8% short of the design wavelength's. Point-sampled it read 2.3%,
       // which § 6be called the floor; it was the staircase's.
-      expect(Math.max(...coeffs) / Math.min(...coeffs) - 1).toBeCloseTo(0.085225, 5);
+      expect(Math.max(...coeffs) / Math.min(...coeffs) - 1).toBeCloseTo(0.085709, 5);
     });
   });
 
@@ -767,15 +768,15 @@ describe("§ 6be — the third axis", () => {
       // that was the count's: the located edge alone, still on the aim layout,
       // reads 2.1416e-3, 2.1414e-3 and 2.1413e-3, and the layout moves that 0.5%.
       const edge = table.map((row) => read(row, 4.5));
-      expect(edge[0]!).toBeCloseTo(2.131806e-3, 8);
-      expect(edge[1]!).toBeCloseTo(2.131874e-3, 8);
-      expect(edge[2]!).toBeCloseTo(2.131627e-3, 8);
+      expect(edge[0]!).toBeCloseTo(2.131839e-3, 8);
+      expect(edge[1]!).toBeCloseTo(2.131909e-3, 8);
+      expect(edge[2]!).toBeCloseTo(2.131662e-3, 8);
       expect(edge[0]! / edge[2]!).toBeCloseTo(1.000084, 5);
     });
   });
 
   describe("§ 6be.7 — patches reach the focus tilt INSIDE a frame, and nothing beyond it", () => {
-    it("0.388 of a depth of focus across one frame at the field edge", () => {
+    it("0.389 of a depth of focus across one frame at the field edge", () => {
       const frame = tileAtHeight(430, 1.1);
       const half = frame.objectHalfExtentMm;
       // 0.0514975942 on the aim layout's ruler (§ 6be.8)
@@ -788,19 +789,19 @@ describe("§ 6be — the third axis", () => {
       for (const r of [inner, middle, outer]) expect(r.interior).toBe(true);
       // On the exit layout (§ 2q.6); the aim layout read 0.14052332, 0.13228812
       // and 0.12356480, the point-sampled rim 0.14096351, 0.13149414, 0.12327933.
-      expect(inner.mm).toBeCloseTo(0.14099827, 7);
-      expect(middle.mm).toBeCloseTo(0.13286180, 7);
-      expect(outer.mm).toBeCloseTo(0.12421732, 7);
+      expect(inner.mm).toBeCloseTo(0.14104486, 7);
+      expect(middle.mm).toBeCloseTo(0.13289115, 7);
+      expect(outer.mm).toBeCloseTo(0.12424658, 7);
 
       // Aim layout 0.01695852 and 0.392348; point-sampled 0.01768418 and 0.409136.
       const tilt = inner.mm - outer.mm;
-      expect(tilt).toBeCloseTo(0.01678094, 7);
-      expect(tilt / DOF430).toBeCloseTo(0.388240, 5);
+      expect(tilt).toBeCloseTo(0.01679828, 7);
+      expect(tilt / DOF430).toBeCloseTo(0.388641, 5);
       // A frame's width is its lattice's (§ 6h.2), so the tilt across it is
       // too: 0.458 of a depth of focus at 56 samples on the aim layout. Per
       // frame width it was settled there — 0.164654, 0.164571 at 56 — and on the
-      // exit layout it reads 0.162379.
-      expect(tilt / (2 * half)).toBeCloseTo(0.162379, 5);
+      // exit layout it reads 0.162547 (0.162379 before § 2t).
+      expect(tilt / (2 * half)).toBeCloseTo(0.162547, 5);
 
       // So a patched frame is not isoplanatic in FOCUS either — and that part a
       // patched render carries, because each patch is imaged through its own

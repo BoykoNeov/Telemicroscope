@@ -252,34 +252,36 @@ const branchInteraction = (): number => {
 };
 
 /** § 6bn's published cells and interaction, cited for cross-check only. */
-const ESC_10_PUBLISHED = 0.02486551;
+const ESC_10_PUBLISHED = 0.02486538;
 const ESC_10F_PUBLISHED = 0.4758183;
-const ESC_I_PUBLISHED = 0.7511360;
+const ESC_I_PUBLISHED = 0.75113121;
 
 describe("§ 6br.1 — the branch column reproduces, and § 6bn's number was built from rounded cells", () => {
   it("§ 6bk's and § 6bm's two 10x escapes come back at the branch's own sampling", () => {
     const b = BRANCH();
-    expect(b.s10).toBeCloseTo(0.024865508024687788, 12);
+    expect(b.s10).toBeCloseTo(0.02486537942352507, 12);
     expect(b.f10).toBeCloseTo(0.47581829689643174, 12);
     // Which is what § 6bn cited, to every digit it published.
     expect(b.s10).toBeCloseTo(ESC_10_PUBLISHED, 8);
     expect(b.f10).toBeCloseTo(ESC_10F_PUBLISHED, 7);
   });
 
-  it("and the 20x pair gives § 6bn's interaction — measured exactly, it is 0.7511359", () => {
+  it("and the 20x pair gives § 6bn's interaction — measured exactly, it is 0.7511312", () => {
     const b = BRANCH();
-    expect(b.s20).toBeCloseTo(0.024695549408981665, 12);
+    expect(b.s20).toBeCloseTo(0.024695577496857912, 12);
     expect(b.f20).toBeCloseTo(0.3549613226128331, 12);
 
     const exact = branchInteraction();
-    expect(exact).toBeCloseTo(0.7511359357713786, 12);
+    expect(exact).toBeCloseTo(0.7511311966833133, 12);
 
-    // § 6bn formed it from the ROUNDED cells above and published 0.7511360
-    // (0.8231651 on the aim layout, against an exact 0.8231653). The two agree
-    // to six digits and differ in the seventh, which is the rounding and not a
-    // disagreement — so both are pinned, at the precision each earns.
-    expect(exact).toBeCloseTo(ESC_I_PUBLISHED, 6);
-    expect(exact).not.toBeCloseTo(ESC_I_PUBLISHED, 7);
+    // § 6bn formed it from the ROUNDED cells above: 0.75113121 since § 2t
+    // (0.7511360 against an exact 0.7511359 before it, 0.8231651 against
+    // 0.8231653 on the aim layout). The two agree to seven digits and differ in
+    // the eighth — one digit further than before § 2t, where the rounding of the
+    // cells fell differently — which is the rounding and not a disagreement, so
+    // both are pinned at the precision each earns.
+    expect(exact).toBeCloseTo(ESC_I_PUBLISHED, 7);
+    expect(exact).not.toBeCloseTo(ESC_I_PUBLISHED, 8);
   });
 });
 
@@ -316,9 +318,9 @@ describe("§ 6br.2 — the quartet sits at one field, to 1.4e-5 on M and to 1.55
 });
 
 describe("§ 6br.3 — matched, the interaction is UNDERSTATED, and the last of § 6bn's six closes", () => {
-  it("0.7511359 down the branch's path becomes 0.3914902 at the branch's own field", () => {
-    expect(branchInteraction()).toBeCloseTo(0.7511359357713786, 12);
-    expect(interactionAt(1)).toBeCloseTo(0.39149024506518326, 12);
+  it("0.7511312 down the branch's path becomes 0.3914878 at the branch's own field", () => {
+    expect(branchInteraction()).toBeCloseTo(0.7511311966833133, 12);
+    expect(interactionAt(1)).toBeCloseTo(0.3914877704551276, 12);
   });
 
   it("the sign holds — both below 1 — so this is § 6bp's third outcome, not a reversal", () => {
@@ -328,7 +330,7 @@ describe("§ 6br.3 — matched, the interaction is UNDERSTATED, and the last of 
     expect(branch).toBeLessThan(1);
     expect(matched).toBeLessThan(1);
     // Understated: same side, further out. The departure grows almost exactly 2x.
-    expect(departure(matched) / departure(branch)).toBeCloseTo(1.9186581153415823, 10);
+    expect(departure(matched) / departure(branch)).toBeCloseTo(1.9186581379287506, 10);
   });
 });
 
@@ -342,16 +344,16 @@ describe("§ 6br.4 — the halving is two levers moving in OPPOSITE directions",
     const matchedAt20 = q.f20 / q.s20;
     const matchedAt10 = q.f10 / q.s10;
 
-    expect(branchAt20).toBeCloseTo(14.373493649982745, 9);
-    expect(matchedAt20).toBeCloseTo(10.786983584277452, 9);
-    expect(branchAt10).toBeCloseTo(19.135675668641646, 9);
-    expect(matchedAt10).toBeCloseTo(27.553645896033544, 9);
+    expect(branchAt20).toBeCloseTo(14.373477302079525, 9);
+    expect(matchedAt20).toBeCloseTo(10.78697131554391, 9);
+    expect(branchAt10).toBeCloseTo(19.135774636370975, 9);
+    expect(matchedAt10).toBeCloseTo(27.553788725005177, 9);
 
     // Down at 20x, up at 10x — opposite signs, which is the whole finding.
     expect(matchedAt20 / branchAt20).toBeLessThan(1);
     expect(matchedAt10 / branchAt10).toBeGreaterThan(1);
     expect(matchedAt20 / branchAt20).toBeCloseTo(0.7504775002485496, 10);
-    expect(matchedAt10 / branchAt10).toBeCloseTo(1.439909746233144, 10);
+    expect(matchedAt10 / branchAt10).toBeCloseTo(1.4399097631843059, 10);
   });
 
   it("so no common-factor argument could have reached it — § 6bo.2's retraction, twice over", () => {
@@ -372,9 +374,9 @@ describe("§ 6br.5 — the pixel-sampling band is 0.75%, so this readout is NOT 
     const finer = interact(E("s10", 64, 512), E("f10", 128, 1024), E("s20", 32, 256), E("f20", 64, 512));
     const coarser = interact(E("s10", 64, 128), E("f10", 128, 256), E("s20", 32, 64), E("f20", 64, 128));
 
-    expect(base).toBeCloseTo(0.39149024506518326, 12);
-    expect(finer).toBeCloseTo(0.3905680612652207, 12);
-    expect(coarser).toBeCloseTo(0.393344177875472, 12);
+    expect(base).toBeCloseTo(0.3914877704551276, 12);
+    expect(finer).toBeCloseTo(0.39056556519106145, 12);
+    expect(coarser).toBeCloseTo(0.3933417481680994, 12);
 
     // § 6bp refused two readouts because their sampling band was as large as the
     // effect and straddled 1. This band is 0.75% against an effect of 2.0034x,
@@ -389,11 +391,11 @@ describe("§ 6br.6 — the ANCHOR field is a free parameter, and the quotient tu
   it("five anchors over a 16x range of extent give a single-humped curve", () => {
     const got = [0.25, 0.5, 1, 2, 4].map(interactionAt);
 
-    expect(got[0]).toBeCloseTo(0.2449026635291386, 12);
-    expect(got[1]).toBeCloseTo(0.3666633681274014, 12);
-    expect(got[2]).toBeCloseTo(0.39149024506518326, 12);
-    expect(got[3]).toBeCloseTo(0.29986361238518633, 12);
-    expect(got[4]).toBeCloseTo(0.10968617819121793, 12);
+    expect(got[0]).toBeCloseTo(0.24490333713904666, 12);
+    expect(got[1]).toBeCloseTo(0.36666055435487876, 12);
+    expect(got[2]).toBeCloseTo(0.3914877704551276, 12);
+    expect(got[3]).toBeCloseTo(0.299863022327613, 12);
+    expect(got[4]).toBeCloseTo(0.10968613069259965, 12);
 
     // Rises to the branch's own field, then falls: a turn, not a band and not a
     // slope. Three anchors would have shown a rise and one outlier.
@@ -416,9 +418,9 @@ describe("§ 6br.6 — the ANCHOR field is a free parameter, and the quotient tu
     // But the understatement runs 2.0035x to 6.5876x, a spread of 3.2876x, so the
     // step publishes the curve and no single matched number is quotable.
     const factors = got.map((v) => departure(v) / departure(branch));
-    expect(Math.min(...factors)).toBeCloseTo(1.9186581153415823, 10);
-    expect(Math.max(...factors)).toBeCloseTo(6.848045470796782, 10);
-    expect(Math.max(...factors) / Math.min(...factors)).toBeCloseTo(3.5691848464506726, 10);
+    expect(Math.min(...factors)).toBeCloseTo(1.9186581379287506, 10);
+    expect(Math.max(...factors)).toBeCloseTo(6.848005230382249, 10);
+    expect(Math.max(...factors) / Math.min(...factors)).toBeCloseTo(3.569163831225753, 10);
   });
 
   it("and the smallest anchor survives four times the pixels, though it sits at pupilSamples 8", () => {
@@ -435,14 +437,14 @@ describe("§ 6br.6 — the ANCHOR field is a free parameter, and the quotient tu
         E("f20", 16, 64 * mult),
       );
 
-    expect(at(1)).toBeCloseTo(0.2449026635291386, 12);
-    expect(at(2)).toBeCloseTo(0.2460063887574708, 12);
-    expect(at(4)).toBeCloseTo(0.24653416638649797, 12);
+    expect(at(1)).toBeCloseTo(0.24490333713904666, 12);
+    expect(at(2)).toBeCloseTo(0.246007476502237, 12);
+    expect(at(4)).toBeCloseTo(0.24653545850450367, 12);
 
     // 0.67% over a 4x pixel range (0.55% on the aim layout), and converging —
     // not an under-sampling artefact, against a shoulder-to-peak gap of 0.2465
     // against 0.3915.
-    expect(at(4) / at(1) - 1).toBeCloseTo(0.006661842030824872, 10);
+    expect(at(4) / at(1) - 1).toBeCloseTo(0.006664349226610744, 10);
     for (const v of [at(2), at(4)]) expect(Math.abs(v / at(1) - 1)).toBeLessThan(0.0067);
     expect(at(4)).toBeLessThan(interactionAt(1) * 0.7);
 
@@ -454,9 +456,9 @@ describe("§ 6br.6 — the ANCHOR field is a free parameter, and the quotient tu
     const q = QUARTET(0.25);
     // At the smallest anchor the 20x column is a third and a half escaped, and
     // its lever has been compressed toward 1 by the bound at 1.
-    expect(q.s20).toBeCloseTo(0.28806490751136016, 12);
+    expect(q.s20).toBeCloseTo(0.28806511083304387, 12);
     expect(q.f20).toBeCloseTo(0.525108070167767, 12);
-    expect(q.f20 / q.s20).toBeCloseTo(1.8228810815738072, 10);
+    expect(q.f20 / q.s20).toBeCloseTo(1.822879794950621, 10);
     expect(q.f20 / q.s20).toBeLessThan(QUARTET(1).f20 / QUARTET(1).s20);
 
     // The large-anchor fall has no such account: there every cell is small and
@@ -477,13 +479,13 @@ describe("§ 6br.7 — § 6bp.8's precondition, measured across all three frame 
     const ups = cells.map(([c, ps, size]) => E(c, ps, size * 2) / E(c, ps, size));
     const downs = cells.map(([c, ps, size]) => E(c, ps, size / 2) / E(c, ps, size));
 
-    expect(ups[0]).toBeCloseTo(1.0081251718032516, 12);
+    expect(ups[0]).toBeCloseTo(1.0081253809374655, 12);
     expect(ups[1]).toBeCloseTo(1.0031457470604035, 12);
-    expect(ups[2]).toBeCloseTo(1.0041581591533235, 12);
+    expect(ups[2]).toBeCloseTo(1.0041582972927028, 12);
     expect(ups[3]).toBeCloseTo(1.0015575704852095, 12);
-    expect(downs[0]).toBeCloseTo(0.9839096895753934, 12);
+    expect(downs[0]).toBeCloseTo(0.9839092746885584, 12);
     expect(downs[1]).toBeCloseTo(0.9937114629675026, 12);
-    expect(downs[2]).toBeCloseTo(0.9917220432887374, 12);
+    expect(downs[2]).toBeCloseTo(0.9917217678656213, 12);
     expect(downs[3]).toBeCloseTo(0.9968808363514178, 12);
 
     // Under 0.82% up and 1.61% down; on the aim layout under 0.8% and 1.6%.
@@ -503,7 +505,7 @@ describe("§ 6br.8 — the stage convention is bounded at 10x for the first time
     const s10 = escaped(LENS.s10, HEIGHT.s10, STAGE.s10() + step, 64, 256) / E("s10", 64, 256);
     const f10 = escaped(LENS.f10, HEIGHT.f10, STAGE.f10() + step, 128, 512) / E("f10", 128, 512);
 
-    expect(s10).toBeCloseTo(0.9987810554125802, 12);
+    expect(s10).toBeCloseTo(0.9987852433927411, 12);
     expect(f10).toBeCloseTo(0.990862932792964, 12);
 
     // § 6bo.6 bounded the same convention at 20x — 1.1% and under 8%. With

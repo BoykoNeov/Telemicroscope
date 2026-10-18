@@ -50,9 +50,9 @@ import { bandLimitedPeak } from "../src/math/band-limited-peak";
  * and of nothing else measured here. The same objective at 430 nm spreads
  * 7.8%, and not as a drift: it dips at the height where § 6be's pupil clip
  * begins and recovers outward (register item 33). The 10× drifts 52.2% over the
- * same field, monotonely, and the 2× 32.8%, monotonely too.
+ * same field, monotonely, and the 2× 31.5%, monotonely too.
  *
- * **The scale is not derivable either.** The edge coefficient runs 0.045053,
+ * **The scale is not derivable either.** The edge coefficient runs 0.045107,
  * 0.067835 and 0.114081 mm/mm² at focal lengths 75, 37.5 and 15 mm — a factor
  * 2.53 over a focal-length ratio of 5, so it goes as f^-0.58, and all three
  * pairs of objectives agree on that exponent to 4% (2% on the aim layout; the
@@ -296,12 +296,12 @@ describe("§ 6bf — the focus surface, offered", () => {
       // On the exit layout (§ 2q.6); the aim layout read -0.068726, -0.067953,
       // -0.011256 and 0.034726.
       const design = coefficients(SURFACE_4, 1);
-      expect(design[0]).toBeCloseTo(-0.068733, 5);
+      expect(design[0]).toBeCloseTo(-0.068728, 5);
       expect(design[3]).toBeCloseTo(-0.067835, 5);
-      expect(design[3]! / design[0]! - 1).toBeCloseTo(-0.013064, 4);
+      expect(design[3]! / design[0]! - 1).toBeCloseTo(-0.012925, 4);
       expect(spread(design)).toBeCloseTo(0.037476, 4);
 
-      // At 430 nm the same objective spreads 2.08 times as far (3.65 on the aim
+      // At 430 nm the same objective spreads 2.07 times as far (3.65 on the aim
       // layout). Point-sampled it fell monotonely (−11.1%); resolved it DIPS —
       // down to h = 0.825 and back up at 1.1 — and the dip sits past where
       // § 6be's pupil clip begins, between h = 0.5 and 0.56 on this objective
@@ -309,23 +309,23 @@ describe("§ 6bf — the focus surface, offered", () => {
       // the exit layout it first RISES, 0.7% from h = 0.275 to 0.55 — where
       // § 6be.2's in-clip coupling now reads, before the clip takes over.
       const blue = coefficients(SURFACE_4, 0);
-      expect(blue[0]).toBeCloseTo(-0.063186, 5);
-      expect(blue[2]).toBeCloseTo(-0.059031, 5);
-      expect(blue[3]).toBeCloseTo(-0.062494, 5);
-      expect(spread(blue)).toBeCloseTo(0.077888, 4);
+      expect(blue[0]).toBeCloseTo(-0.063287, 5);
+      expect(blue[2]).toBeCloseTo(-0.058938, 5);
+      expect(blue[3]).toBeCloseTo(-0.062470, 5);
+      expect(spread(blue)).toBeCloseTo(0.077566, 4);
       expect(Math.abs(blue[1]!)).toBeGreaterThan(Math.abs(blue[0]!));
       expect(Math.abs(blue[2]!)).toBeLessThan(Math.abs(blue[1]!));
       expect(Math.abs(blue[3]!)).toBeGreaterThan(Math.abs(blue[2]!));
       expect(spread(blue)).toBeGreaterThan(2 * spread(design));
     });
 
-    it("and § 6be's outer-third reading does not survive: across its own pair the 430 nm term moves 5.9%", () => {
+    it("and § 6be's outer-third reading does not survive: across its own pair the 430 nm term moves 6.0%", () => {
       // Point-sampled, § 6be's two heights read the 430 nm coefficient constant
       // to 0.16% and this rung said the drift was spent before them. Resolved, the
-      // pair straddles the dip above and moves 5.9% (5.1% on the aim layout) —
+      // pair straddles the dip above and moves 6.0% (5.1% on the aim layout) —
       // more than the design wavelength moves over the whole field.
       const blue = coefficients(SURFACE_4, 0);
-      expect(spread([blue[2]!, blue[3]!])).toBeCloseTo(0.058668, 4);
+      expect(spread([blue[2]!, blue[3]!])).toBeCloseTo(0.059919, 4);
       expect(spread([blue[2]!, blue[3]!])).toBeGreaterThan(spread(coefficients(SURFACE_4, 1)));
     });
   });
@@ -336,7 +336,7 @@ describe("§ 6bf — the focus surface, offered", () => {
       const four = Math.abs(coefficients(SURFACE_4, 1)[3]!);
       const ten = Math.abs(coefficients(SURFACE_10, 0)[3]!);
       // On the exit layout (§ 2q.6); the aim layout read 0.044873, 0.067953 and 0.116512.
-      expect(two).toBeCloseTo(0.045053, 5);
+      expect(two).toBeCloseTo(0.045107, 5);
       expect(four).toBeCloseTo(0.067835, 5);
       expect(ten).toBeCloseTo(0.114081, 5);
 
@@ -345,12 +345,12 @@ describe("§ 6bf — the focus surface, offered", () => {
       const p = (f1: number, c1: number, f2: number, c2: number) =>
         Math.log(c2 / c1) / Math.log(f1 / f2);
       const exponents = [p(75, two, 37.5, four), p(37.5, four, 15, ten), p(75, two, 15, ten)];
-      expect(exponents[0]).toBeCloseTo(0.590420, 5);
+      expect(exponents[0]).toBeCloseTo(0.588770, 5);
       expect(spread(exponents)).toBeLessThan(0.045);
       // The claim is the BAND, not one pair: three independent pairs of
       // objectives agree on the exponent to 4%, and 1 is nowhere in it. (Point-
       // sampled the band sat at 0.59–0.62; resolved on the aim layout it was
-      // 0.588–0.599, to 2%; on the exit layout it is 0.567–0.590. The pair that
+      // 0.588–0.599, to 2%; on the exit layout it is 0.567–0.589. The pair that
       // moved is the 2×'s, whose coefficient is register item 34's.)
       for (const e of exponents) {
         expect(e).toBeGreaterThan(0.56);
@@ -359,7 +359,7 @@ describe("§ 6bf — the focus surface, offered", () => {
 
       // The negative control on the claim: a form that merely scaled would put
       // the 10×'s coefficient at 2.5× the 4×'s. It is 1.68× (1.71× on the aim layout).
-      expect(ten / four).toBeCloseTo(1.681733, 5);
+      expect(ten / four).toBeCloseTo(1.681634, 5);
       expect(ten / four).toBeLessThan(2);
     });
 
@@ -367,7 +367,7 @@ describe("§ 6bf — the focus surface, offered", () => {
       const four = coefficients(SURFACE_4, 1);
       const ten = coefficients(SURFACE_10, 0);
       // On the exit layout (§ 2q.6); 0.487979, 0.034726 and 14.05× on the aim one.
-      expect(spread(ten)).toBeCloseTo(0.521915, 4);
+      expect(spread(ten)).toBeCloseTo(0.522024, 4);
       expect(spread(four)).toBeCloseTo(0.037476, 4);
       expect(spread(ten) / spread(four)).toBeGreaterThan(13.5);
       // Monotone at every height — not a wobble.
@@ -383,40 +383,40 @@ describe("§ 6bf — the focus surface, offered", () => {
       // was, and what still answers "the estimator gave up" is the shape: a
       // monotone 52% with every sample under 0.53.
       expect(worstPlateau(SURFACE_10, 0)).toBeCloseTo(0.529342, 5);
-      expect(worstPlateau(SURFACE_4, 1)).toBeCloseTo(0.423988, 5);
+      expect(worstPlateau(SURFACE_4, 1)).toBeCloseTo(0.423961, 5);
       expect(worstPlateau(SURFACE_10, 0) / worstPlateau(SURFACE_4, 1)).toBeLessThan(1.25);
       expect(worstPlateau(SURFACE_10, 0)).toBeLessThan(0.55);
       // The 2× is the worst conditioned of the three, and point-sampled its
       // coefficients wobbled with no trend, which this rung read as a reading at
-      // the estimator's limit beside a real shape. Resolved they DRIFT, 32.8%
+      // the estimator's limit beside a real shape. Resolved they DRIFT, 31.5%
       // (34.1% on the aim layout) and monotonely, the same way as the 10×'s — so
       // the 2× is a second objective with a shape, not a control for one.
-      expect(worstPlateau(SURFACE_2, 0)).toBeCloseTo(0.594339, 5);
+      expect(worstPlateau(SURFACE_2, 0)).toBeCloseTo(0.594368, 5);
       expect(worstPlateau(SURFACE_2, 0)).toBeGreaterThan(worstPlateau(SURFACE_10, 0));
       const twoCoeffs = coefficients(SURFACE_2, 0);
-      expect(spread(twoCoeffs)).toBeCloseTo(0.328337, 4);
+      expect(spread(twoCoeffs)).toBeCloseTo(0.314508, 4);
       for (let k = 1; k < twoCoeffs.length; k++) {
         expect(Math.abs(twoCoeffs[k]!)).toBeLessThan(Math.abs(twoCoeffs[k - 1]!));
       }
     });
 
     it("and the shape is the OBJECTIVE's, not the wavelength's — the 10× drifts at 430 nm too", () => {
-      // The 4×'s two rows show the wavelength moving the spread (3.75% → 7.79%;
+      // The 4×'s two rows show the wavelength moving the spread (3.75% → 7.76%;
       // 3.47% → 12.68% on the aim layout),
       // so a one-wavelength reading on the 10× could not tell "this objective
       // has a shape" from "this wavelength has one". Both of the 10×'s rows
       // drift, and both are several times the 4×'s at the SAME wavelength.
       // On the exit layout (§ 2q.6); -0.166067, -0.113623 and 0.461552 on the aim one.
       const tenBlue = coefficients(SURFACE_10_BLUE, 0);
-      expect(tenBlue[0]).toBeCloseTo(-0.164497, 5);
+      expect(tenBlue[0]).toBeCloseTo(-0.164511, 5);
       expect(tenBlue[3]).toBeCloseTo(-0.110613, 5);
-      expect(spread(tenBlue)).toBeCloseTo(0.487130, 4);
+      expect(spread(tenBlue)).toBeCloseTo(0.487264, 4);
       for (let k = 1; k < tenBlue.length; k++) {
         expect(Math.abs(tenBlue[k]!)).toBeLessThan(Math.abs(tenBlue[k - 1]!));
       }
 
       const fourBlue = spread(coefficients(SURFACE_4, 0));
-      expect(fourBlue).toBeCloseTo(0.077888, 5);
+      expect(fourBlue).toBeCloseTo(0.077566, 5);
       expect(spread(tenBlue) / fourBlue).toBeGreaterThan(3);
       expect(spread(coefficients(SURFACE_10, 0)) / spread(coefficients(SURFACE_4, 1))).toBeGreaterThan(7);
     });
@@ -424,8 +424,8 @@ describe("§ 6bf — the focus surface, offered", () => {
 
   describe("§ 6bf.7 — the readout reports its own separability", () => {
     it("the interaction over the 4×'s grid, and the two-curve prediction is worth exactly that", () => {
-      expect(SURFACE_4.interactionMm).toBeCloseTo(7.722857e-3, 7);
-      expect(SURFACE_4.interactionDepths).toBeCloseTo(0.178674, 6);
+      expect(SURFACE_4.interactionMm).toBeCloseTo(7.790861e-3, 7);
+      expect(SURFACE_4.interactionDepths).toBeCloseTo(0.180247, 6);
       // Point-sampled this read 2.15e-3 mm, under a twentieth of a depth of
       // focus, and stood for § 6be.2's "separates". Resolved it is § 6be's
       // restated coupling, on a grid of its own. On the aim layout: 6.4e-6 mm at
@@ -433,7 +433,7 @@ describe("§ 6bf — the focus surface, offered", () => {
       // (2.2 mm, at its onset) and the worst, 6.4e-3, at 0.825 — past it. On the
       // exit layout (§ 2q.6): 4.2e-4 inside the clip — § 6be.2's in-clip
       // coupling, which the aim layout could not see — 1.7e-3 at the onset and
-      // 7.7e-3 past it, eighteen times the in-clip figure (register item 33).
+      // 7.8e-3 past it, eighteen times the in-clip figure (register item 33).
       const coupling = HEIGHTS.map((_, j) =>
         Math.abs(SURFACE_4.fieldDropMm[0]![j]! - SURFACE_4.fieldDropMm[1]![j]!),
       );
@@ -443,7 +443,9 @@ describe("§ 6bf — the focus surface, offered", () => {
       expect(coupling[2]).toBeLessThan(2e-3);
       expect(coupling[3]).toBeCloseTo(SURFACE_4.interactionMm, 15);
       expect(coupling[3]! / coupling[1]!).toBeGreaterThan(15);
-      expect(SURFACE_4.interactionDepths).toBeLessThan(0.18);
+      // A ceiling at two figures over the reading, as § 2q.6 restated it: 0.18
+      // over 0.1787 there, 0.19 over 0.1802 since § 2t moved the off-axis fits.
+      expect(SURFACE_4.interactionDepths).toBeLessThan(0.19);
 
       // With two wavelengths the averaged field term is half-way between them,
       // so the prediction's error IS half the interaction — exactly, which is
@@ -471,7 +473,7 @@ describe("§ 6bf — the focus surface, offered", () => {
       const two = build(2, 0.1);
       const design = renderedBestFocus(two, DESIGN, 0.7, { ...SWEEP, maxPlateauDepths: 1 });
       // Well-conditioned at the design wavelength — a real vertex.
-      expect(design.plateauDepths).toBeCloseTo(0.583415, 5);
+      expect(design.plateauDepths).toBeCloseTo(0.583471, 5);
       expect(design.curvature).toBeLessThan(0);
 
       // At 430 nm, twelve depths of focus from nominal, this rung refused it as a

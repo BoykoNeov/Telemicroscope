@@ -607,7 +607,7 @@ describe("§ 6al.7 — image-space telecentric is not object-space telecentric",
     // § 2q.5's throughput fit.
     expect(one.harmonic.contrast).toBeCloseTo(0.03972267265713407, 12);
     // 0.03771756163402071 on the aim layout (§ 2n); 0.037717283519146674 before § 2q.5.
-    expect(four.harmonic.contrast).toBeCloseTo(0.03771728397880895, 12);
+    expect(four.harmonic.contrast).toBeCloseTo(0.03771728461268698, 12);
     expect(one.harmonic.contrast / four.harmonic.contrast - 1).toBeCloseTo(0.0531, 3);
     expect(four.rendered.fidelity.verdict).toBe("valid");
   });

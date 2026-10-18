@@ -146,6 +146,18 @@ export interface ZernikeFit {
 export const MAX_ZERNIKE_TERMS = 45; // through radial order 8
 
 /**
+ * Which samples a fit keeps. `"disc"`: those inside the unit disc. `"samples"`:
+ * every one given — for a coordinate whose traced rim is not the unit circle,
+ * where the caller's support is that rim and every sample is a ray that reached
+ * it (the exit layout off the axis, § 2t).
+ */
+export type FitDomain = "disc" | "samples";
+
+/** Does a fit over `domain` keep this sample? */
+export const fitKeeps = (domain: FitDomain, s: PupilPoint): boolean =>
+  domain === "samples" || s.px * s.px + s.py * s.py <= 1 + 1e-9;
+
+/**
  * Least-squares fit of Zernike terms to scattered wavefront samples.
  *
  * Scattered, not gridded: the samples that reach here are whatever survived
@@ -153,17 +165,23 @@ export const MAX_ZERNIKE_TERMS = 45; // through radial order 8
  * least-squares fit handles that; a quadrature-based projection would silently
  * mis-weight the surviving points.
  *
- * Samples outside the unit disc are rejected rather than fitted — outside it
- * the basis is not orthogonal and the coefficients stop meaning what their
- * names say.
+ * By default samples outside the unit disc are rejected rather than fitted —
+ * outside it the basis is not orthogonal and the coefficients stop meaning what
+ * their names say. A caller whose pupil's own rim leaves the disc says
+ * `"samples"`: dropping the rim there made the fit step with field (§ 2s.3),
+ * and on a non-circular rim the basis is not orthogonal inside the disc either.
  */
-export function fitZernike(samples: readonly WavefrontSample[], terms: number): ZernikeFit {
+export function fitZernike(
+  samples: readonly WavefrontSample[],
+  terms: number,
+  domain: FitDomain = "disc",
+): ZernikeFit {
   if (!Number.isInteger(terms) || terms < 1) throw new Error(`term count must be ≥ 1, got ${terms}`);
   if (terms > MAX_ZERNIKE_TERMS) {
     throw new Error(`term count ${terms} exceeds MAX_ZERNIKE_TERMS (${MAX_ZERNIKE_TERMS})`);
   }
 
-  const inside = samples.filter((s) => s.px * s.px + s.py * s.py <= 1 + 1e-9);
+  const inside = samples.filter((s) => fitKeeps(domain, s));
   if (inside.length < terms) {
     throw new Error(`Zernike fit needs at least ${terms} in-pupil samples, got ${inside.length}`);
   }

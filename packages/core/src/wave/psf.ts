@@ -1062,7 +1062,9 @@ export function exitCoordinatePupil(
     py: s.exitY / sigma,
   }));
   const exitMap: OpdMap = { ...map, samples: exitSamples };
-  const fit = fitZernike(exitSamples, options.zernikeTerms ?? 28);
+  // Every traced sample: off the axis the rim leaves the unit circle, and the
+  // support below is that rim (§ 2t).
+  const fit = fitZernike(exitSamples, options.zernikeTerms ?? 28, "samples");
   const support = rimSupport(exitRim(system, map, aim), sigma);
 
   const vignette =
@@ -1155,13 +1157,13 @@ function inverseExitMap(
   aimSamples: readonly OpdSample[],
   exitSamples: readonly OpdSample[],
 ): (px: number, py: number) => readonly [number, number] {
-  const inside = exitSamples.filter((s) => s.px * s.px + s.py * s.py <= 1 + 1e-9).length;
+  const inside = exitSamples.length;
   const terms = [MAX_ZERNIKE_TERMS, 28, 15, 10, 6, 3].find((t) => inside >= 2 * t) ?? 1;
   const fx = wavefrontSampler(
-    fitZernike(exitSamples.map((s, i) => ({ px: s.px, py: s.py, waves: aimSamples[i]!.px })), terms),
+    fitZernike(exitSamples.map((s, i) => ({ px: s.px, py: s.py, waves: aimSamples[i]!.px })), terms, "samples"),
   );
   const fy = wavefrontSampler(
-    fitZernike(exitSamples.map((s, i) => ({ px: s.px, py: s.py, waves: aimSamples[i]!.py })), terms),
+    fitZernike(exitSamples.map((s, i) => ({ px: s.px, py: s.py, waves: aimSamples[i]!.py })), terms, "samples"),
   );
   return (px, py) => [fx(px, py), fy(px, py)];
 }

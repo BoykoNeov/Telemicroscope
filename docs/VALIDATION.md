@@ -41,6 +41,7 @@ whole ladder.
 | [2q](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout) | Stale cache; pixel peak; staircase rim; counted edge; ringless rim; flip; re-asked rim. Keyed; interpolated; resolved; located; slid; restated; laid once | `aperture-sine-key`, `band-limited-peak`, `edge-*`, `exit-density-rim` |
 | [2r](#step-2r--the-mosaic-chain-on-the-exit-layout) | Sweep rim per stage; mosaic chain flipped; field seam. Laid once; 28 reversed; the aim ruler's, 0 on exit | `sweep-plan`, `field-seam-zero` |
 | [2s](#step-2s--the-default-itself-for-finite-conjugates) | Mosaic drops its layout; condenser spread; exit fit's rim; the flip. Forwarded; the slope's 1/N⁴; item 42; exit everywhere, oil cells 32 | `mosaic-layout`, `condenser-source`, `object-field`, `builder` |
+| [2t](#step-2t--the-exit-layouts-fit-keeps-the-traced-rim) | Exit fit dropped the off-axis rim. Every traced sample fitted: the step 3.2e-5 → 4e-12 waves, item 42 closed; ~300 readings restated | `object-field`, `stage-mosaic`, `escape-window` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -5509,11 +5510,14 @@ read against the AXIAL aperture sine; and off the axis the traced rim stops bein
 that circle, so four of the 313 samples land just outside (1.3e-9 out at 1e-6 mm,
 6.4e-4 at 0.8 mm) and leave the fit. The aim layout lays the rim at ρ = 1 exactly
 and never sees it. Read against a tile 1e-4 mm out, which has lost the same four,
-the law is back to ×4 inside § 6m.4's own bounds on both members. Register item 42.
+the law is back to ×4 inside § 6m.4's own bounds on both members. Register item 42,
+**closed at [§ 2t](#step-2t--the-exit-layouts-fit-keeps-the-traced-rim)**: the exit layout fits every traced sample, and the
+law holds against the axis itself.
 
-What is left weakened: coma 1.0020 and astigmatism 1.977 on the rim member (aim
-1.00002 and 2.000), not split between the coordinate and the dropped rim; the
-axis's odd-term margin 161× and 488× (aim 183× and 886×), still two orders.
+What is left weakened: ~~coma 1.0020 and astigmatism 1.977 on the rim member (aim
+1.00002 and 2.000), not split between the coordinate and the dropped rim~~ — 1.0007
+and 2.0003 since § 2t, so mostly the dropped rim; the
+axis's odd-term margin 161× and 488× (aim 183× and 886×; 164× and 491× since § 2t), still two orders.
 
 ### § 2s.4 — the flip
 
@@ -5554,9 +5558,107 @@ name when it is that layout's own ruler (§ 2r.3 and the table above).
   § 6s.2, § 6t.3, § 6ag, § 6x.1, § 6ae.7, § 6ak.5, § 6an, § 6ap, § 6aq.8 and the
   seam chain (§ 2r.3). Each pins its reason; each could be re-derived on the
   exit layout's ruler, where several of its readings are 0 or ∞.
-- **The exit layout's fit drops the off-axis rim** (item 42, § 2s.3).
+- ~~**The exit layout's fit drops the off-axis rim** (item 42, § 2s.3).~~ Closed at
+  [§ 2t](#step-2t--the-exit-layouts-fit-keeps-the-traced-rim).
 - **The app's stage** stays on the aim layout until the located rim is costed
   for it (APP.md D4).
+
+## Step 2t — the exit layout's fit keeps the traced rim
+
+Source: engine change — `fitZernike` takes a domain, and the exit layout fits every traced sample (`"samples"`) where it kept only the unit disc: its wavefront and the inverse map behind its entrance-pupil masks (`wave/zernike.ts`, `wave/psf.ts`)
+· Tests: `packages/core/test/object-field.test.ts` (§ 2s's rung, now the closing one); `stage-mosaic.test.ts` (§ 6bj.4), `escape-window.test.ts` (§ 6cc.0), `sweep-plan.test.ts` (§ 2r.1); the restatements in the files named below
+
+Register item 42 (§ 2s.3): `fitZernike` kept samples inside ρ ≤ 1 + 1e-9, the
+exit coordinate is read against the AXIAL aperture sine, and off the axis the
+traced rim stops being that circle — four of a 21-sample trace's 313 landed
+just outside and left the fit at every field but zero. Every traced sample is a
+ray that reached the stop, and the support the pupil is laid on is already the
+traced rim (`exitRim`), so the fit's domain is now the samples it is given. The
+traced rim was not used as the domain: `rimSupport` interpolates it linearly in
+angle and sits inside the true outline between its rays, which would drop real
+samples again at a smaller size. The aim layout keeps the disc; its rim is the
+unit circle by construction, and nothing on it moved.
+
+**Hypothesis.** The −3.248e-5 waves of Z4 under every off-axis tile is the
+dropped rim alone: with every sample fitted, the step from the axis to 1e-6 mm
+falls to the f64 floor, under 1e-10 waves; `samplesUsed` is the trace's own count
+at every field; and § 6m.4's ×4 per doubling holds against the axis itself,
+inside its own bounds. **Refuted by** a step above 1e-10 waves, or a ratio
+outside 2e-3 (shipped 4×) / 1e-3 (rim 4×).
+
+| DIN 4×/0.10, exit layout | before | after |
+|---|---|---|
+| Z4 step, axis → 1e-6 mm, rim / shipped | −3.248e-5 / −2.63e-5 | −4.0e-12 / −2.0e-11 |
+| samples fitted, axis / off axis | 313 / 309 | 313 / 313 (305 where 8 vignette) |
+| ×4 per doubling against the axis, rim | 3.886, 3.970, 3.993 | 4.0006, 4.0005, 4.0012 |
+| the same, shipped | 3.960, 3.989, 4.002 | 3.997, 3.996, 4.002 |
+| rim member's coma / astigmatism order | 1.0020 / 1.977 | 1.0007 / 2.0003 (aim 1.00002 / 2.000) |
+| axis odd-term margin, shipped / rim | 161× / 488× | 164× / 491× (aim 183× / 886×) |
+
+Holds. § 2s.3's weakened field laws were mostly the dropped rim: all but 1.3% of
+astigmatism's departure and two thirds of coma's. The odd-term margin was not
+— the gap to the aim layout's margins is the exit coordinate's own.
+
+### What the full run moved
+
+The suite with the change: 116 tests in 25 files failed, three of them on load
+alone (`doublet-wall`'s 180 s rung, the app's `golden` worker, the app's
+`telecentric` wall clock — each re-run alone and passing on its values). The
+other 22 files were re-run under a recorder that logs a failed comparison
+instead of throwing, so one run lists every moved reading: **~300 readings**,
+almost all the mosaic and focus chains' off-axis exit readings pinned to 7–12
+digits, restated at the same digits. A second round moved 15 more that are
+computed from borrowed constants (§ 6bn's and § 6bm's cited cells, § 6bk.3's
+ratios), and those constants now carry one value in every file that cites them,
+`growth-measures` and `six-interactions` included, where nothing asserted them.
+Readings that moved inside their tolerances were not audited, as at § 2s.
+
+**Three claims of exactness, each investigated rather than restated:**
+
+- **§ 6bj.4**, the scanner's per-tile frame dividing a stage scan's seam to
+  exactly 0, read 1.2e-16. The tiles are still the anchor's frame bit for bit;
+  the division is not exact — a / (a/m) is m to ±1 ulp — and the row sums had
+  cancelled the ulps until this change moved the frame's last bits. The rung
+  now pins the tiles bitwise and the corrected picture to one ulp of its mean,
+  the seam to two.
+- **§ 6cc.0**, a box of the top render against the top anchor's escape to
+  1e-11, read 1.14e-11. The two sum up to 16.8 million pixels in different
+  orders and the escape is a difference from 1 of a ratio near 1; compensated
+  (Neumaier) summation on both sides makes them agree **to the bit** on all four
+  cells. The bound is unchanged.
+- **§ 2r.1**'s best focus, pinned as the engine read it with no plan: re-read
+  with the plan switched off in `renderFieldVolume` for the run (49 s against
+  5.6 s), bitwise the planned sweep's 0.18926908475291915 mm.
+
+**Moved toward what was expected, so findings and not only restatements:**
+
+- **§ 6x.6**'s control converged at 0.4992 on the exit layout against the aim
+  layout's 0.5001; it is **0.5000** now. The 8e-4 under ½ was the dropped rim.
+- **§ 6i.5**'s corner kernel sits 8.6e-5 above the axis's, not 3.29e-4: the
+  wavefront's share falls 0.28% → 0.26% (telecentric 1.29% → 1.27%); the
+  support's −0.25% did not move.
+- **§ 6bg.3**'s even interpolation error falls 1.74e-4 → 1.29e-4 mm, so h's
+  error is 10.9× h²'s, not 8.4×.
+- **§ 6br.1**: § 6bn's interaction formed from rounded cells now agrees with the
+  exact one to seven digits (0.75113121 against 0.7511312) and differs in the
+  eighth, where it agreed to six; the rung pins both at the new precision.
+
+**One ceiling restated, not a tolerance:** § 6bf.7's `interactionDepths < 0.18`
+sat 0.7% over § 2q.6's 0.1787 with no stated meaning beside its six-digit pin; the
+reading is 0.1802 and the ceiling is 0.19, set the same way.
+
+**Register items it touched without closing:** item 39's axial anchor is still
+the largest phase step of nine (0.34088 against the eight from 0.33337, which
+moved from 0.33287), so it is not item 42's; item 33's in-clip coupling at
+h = 0.4 reads 7.96e-4 mm at 48 samples (7.71e-4 before).
+
+### What it leaves
+
+- **`exitDensity`'s √-light fit** keeps the unit disc. Its nodes are exit
+  coordinates too, so off the axis it drops the same rim; register item 35 names
+  "a fit that keeps the nodes past exit radius 1" as the candidate for its
+  second residue, and that change is item 35's to make against its own numbers.
+- The readings that moved inside their tolerances.
 
 ## Step 3a — the standard observer and thermal sources
 

@@ -263,8 +263,8 @@ const SURF40 = once(() =>
 const CORRECTED_20 = once((): TileStageMm => surfaceStage(SURF20()));
 
 /** § 6bk.3's readings on its two lenses, cited — see the header. */
-const RATIO_4 = 2.672052;
-const RATIO_10 = 2.118740;
+const RATIO_4 = 2.674204;
+const RATIO_10 = 2.118607;
 
 function mosaicOptions(
   stageMm: TileStageMm,
@@ -407,9 +407,9 @@ describe("§ 6bl.1 — the matched ruler ties magnification to field height, and
     // the 4×/0.20 and the 2× refuse — so it is a full member of the family and
     // not a forced reading (§ 6bk.8's distinction, and § 6bl.5's).
     expect(spanOf(SURF20().colourMm)).toBeCloseTo(0.02390937719370735, 7);
-    expect(Math.abs(SURF20().fieldDropMm[0]![2]!)).toBeCloseTo(0.012735338506648309, 7);
+    expect(Math.abs(SURF20().fieldDropMm[0]![2]!)).toBeCloseTo(0.012735895782502685, 7);
     expect(SURF20().colourMm[0]!).toBeCloseTo(0.02697497308723119, 7);
-    expect(SURF20().interactionMm).toBeCloseTo(0.0004919968232223598, 9);
+    expect(SURF20().interactionMm).toBeCloseTo(0.000492094489831129, 9);
   });
 });
 
@@ -425,8 +425,8 @@ describe("§ 6bl.2 — four points, monotone, and never across one", () => {
     // geometry on which of them dominates. § 6bk had two points and could say only
     // that they agreed to 1.15×. Four say the ratio moves, in one direction, and
     // stops short of the thing that would matter.
-    expect(ratio20()).toBeCloseTo(1.877404136625484, 5);
-    expect(ratio40()).toBeCloseTo(1.7619641504429242, 5);
+    expect(ratio20()).toBeCloseTo(1.8773219883406589, 5);
+    expect(ratio40()).toBeCloseTo(1.7618984490775305, 5);
 
     const series = [RATIO_4, RATIO_10, ratio20(), ratio40()];
     for (let i = 1; i < series.length; i++) expect(series[i]!).toBeLessThan(series[i - 1]!);
@@ -435,9 +435,9 @@ describe("§ 6bl.2 — four points, monotone, and never across one", () => {
     // this file computes; it is written out so the series can be read as a series.
     // `steps[1]` and `steps[2]` each have a measured operand and are real pins.
     const steps = [1 - RATIO_10 / RATIO_4, 1 - ratio20() / RATIO_10, 1 - ratio40() / ratio20()];
-    expect(steps[0]!).toBeCloseTo(0.2070738144317551, 7);
-    expect(steps[1]!).toBeCloseTo(0.11390536987762334, 7);
-    expect(steps[2]!).toBeCloseTo(0.061489150860217, 7);
+    expect(steps[0]!).toBeCloseTo(0.20776163673377201, 7);
+    expect(steps[1]!).toBeCloseTo(0.11388851809672162, 7);
+    expect(steps[2]!).toBeCloseTo(0.061483080675548, 7);
     for (let i = 1; i < steps.length; i++) expect(steps[i]!).toBeLessThan(steps[i - 1]!);
   });
 
@@ -454,9 +454,9 @@ describe("§ 6bl.2 — four points, monotone, and never across one", () => {
     // spread of the shortest lever anyone had pulled. The currency narrows the
     // ratio (§ 6bk.3's matched-object-height reading spread 5.13× and straddled
     // one) and it does not collapse it.
-    expect(RATIO_4 / RATIO_10).toBeCloseTo(1.2611514390628393, 5);
-    expect(RATIO_4 / ratio20()).toBeCloseTo(1.4232694750544468, 7);
-    expect(RATIO_4 / ratio40()).toBeCloseTo(1.5165189367378995, 7);
+    expect(RATIO_4 / RATIO_10).toBeCloseTo(1.2622463722625292, 5);
+    expect(RATIO_4 / ratio20()).toBeCloseTo(1.4244780685510934, 7);
+    expect(RATIO_4 / ratio40()).toBeCloseTo(1.517796897658955, 7);
     expect(RATIO_4 / ratio40()).toBeGreaterThan(RATIO_4 / ratio20());
     expect(RATIO_4 / ratio20()).toBeGreaterThan(RATIO_4 / RATIO_10);
     // Still an order of magnitude tighter than the ruler § 6bk.3 rejected.
@@ -641,13 +641,13 @@ describe("§ 6bl.6 — the flat field on a third lens, and a gain that crossed b
     // control's 1.01788: below one. On the exit layout it reads 1.0282 against
     // the control's 1.00807 — above one, and above the control: along the
     // magnification lever the axial gain RISES, so there is no crossing to find.
-    expect(F20_AXIS().freeGain).toBeCloseTo(1.0282462917848973, 7);
+    expect(F20_AXIS().freeGain).toBeCloseTo(1.0282461830045928, 7);
     expect(F20_AXIS().freeGain).toBeGreaterThan(1);
     expect(F20_AXIS().freeGain).toBeGreaterThan(1.00807);
     expect(1.00807 / F20_AXIS().freeGain).toBeCloseTo(0.9803779581350359, 5);
 
     // At the edge it still buys nearly everything, as on the control.
-    expect(F20_EDGE().freeGain).toBeCloseTo(169.96220809652183, 4);
+    expect(F20_EDGE().freeGain).toBeCloseTo(169.96514389437942, 4);
     expect(F20_EDGE().freeGain / F20_AXIS().freeGain).toBeGreaterThan(100);
   });
 
@@ -656,7 +656,7 @@ describe("§ 6bl.6 — the flat field on a third lens, and a gain that crossed b
     // aperture's 1195×. Across twice the lever it is 1.185× — still nothing, and
     // now known to be SATURATING rather than merely small: 1.136× over the first
     // 2.5× and 1.043× more over the next 2×.
-    expect(F20_AXIS().rendOverFree).toBeCloseTo(1584.7923052711892, 4);
+    expect(F20_AXIS().rendOverFree).toBeCloseTo(1584.7929120395727, 4);
     // § 6bk.5's control and 10× at the corrected stage, and its aperture
     // collapse — 1220.1048 over 1.8565748 — of which this is under a tenth.
     expect(F20_AXIS().rendOverFree / 1218.4117).toBeCloseTo(1.3007, 4);
@@ -673,7 +673,7 @@ describe("§ 6bl.6 — the flat field on a third lens, and a gain that crossed b
     // scanner's repeating per-tile flat field is right for a stage scan and wrong
     // for a field-scanned mosaic, which is a statement about the GEOMETRY and not
     // the glass. Ten measurements over four lenses now, never once below one.
-    expect(F20_AXIS().scannerVsRaw).toBeCloseTo(1.1899990705911898, 6);
+    expect(F20_AXIS().scannerVsRaw).toBeCloseTo(1.1899983673265024, 6);
     expect(F20_EDGE().scannerVsRaw).toBeCloseTo(1.0924426014715394, 6);
     expect(F20_AXIS().scannerVsRaw).toBeGreaterThanOrEqual(1);
     expect(F20_EDGE().scannerVsRaw).toBeGreaterThanOrEqual(1);
@@ -685,15 +685,15 @@ describe("§ 6bl.6 — the flat field on a third lens, and a gain that crossed b
   });
 
   it("and § 6bg's focus correction still helps on the third lens, as on every other", () => {
-    // § 6bk.4 found 2.674×, 1.199× and 1.054× (3.139×, 1.154× and 1.192× on
+    // § 6bk.4 found 2.675×, 1.199× and 1.054× (3.139×, 1.154× and 1.192× on
     // the aim layout). The 20×'s nominal stage is very nearly its best focus
     // already, so it has little to gain and gains 2.8%. The direction is what
     // travels; the size never has.
     const nominal = escaped(TWENTY, 430, H20, EDGE, 0);
     const corrected = escaped(TWENTY, 430, H20, EDGE, predictedFocusMm(SURF20(), 430, H20));
-    expect(nominal).toBeCloseTo(0.025589452013859315, 7);
-    expect(corrected).toBeCloseTo(0.02489017489656442, 7);
-    expect(nominal / corrected).toBeCloseTo(1.0280945039639482, 5);
+    expect(nominal).toBeCloseTo(0.025588876728206533, 7);
+    expect(corrected).toBeCloseTo(0.02488993674960105, 7);
+    expect(nominal / corrected).toBeCloseTo(1.0280812275915763, 5);
     expect(nominal / corrected).toBeGreaterThan(1);
   });
 });

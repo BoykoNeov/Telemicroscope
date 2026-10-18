@@ -597,8 +597,8 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     one mosaic that dropped the layout it was asked for ([§ 2s.1](VALIDATION.md#-2s1--a-mosaics-tiles-take-the-layout-they-are-asked-for)), and A1's
     table, whose oil rows' cells gap was the aim ruler. **Item 24's residue:**
     the chains named in § 2s's *What it leaves* stay on the aim layout by name
-    and are not flipped, and the app's stage with them (APP.md D4); item 42 is
-    the exit layout's own.
+    and are not flipped, and the app's stage with them (APP.md D4); ~~item 42 is
+    the exit layout's own~~ — closed at [§ 2t](VALIDATION.md#step-2t--the-exit-layouts-fit-keeps-the-traced-rim).
     Readings that moved INSIDE their tolerances under § 2m were not audited
     (§ 2j's follow-up did that for its own flip); one met while editing was the
     retinal Airy in APP.md, 1.384″ → 1.380″. Found
@@ -786,7 +786,8 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     6.4e-6 mm at 1.1 mm of image radius, 6.3e-4 at 2.2 and 6.4e-3 at 3.3, and the
     4×'s 430 nm field coefficient dips over the same step — the onset again, still
     not a mechanism. **Refuted as stated at [§ 2q.6](VALIDATION.md#-2q6--the-flip)**, on the exit
-    layout: h = 0.4 (1.60 mm) reads 7.7e-4 mm, and 8.8e-4 / 5.8e-4 / 6.2e-4 at 40 /
+    layout: h = 0.4 (1.60 mm) reads 7.7e-4 mm (7.96e-4 since [§ 2t](VALIDATION.md#step-2t--the-exit-layouts-fit-keeps-the-traced-rim), whose fit
+    keeps the off-axis rim; the other lattices not re-read), and 8.8e-4 / 5.8e-4 / 6.2e-4 at 40 /
     56 / 60 samples — one sign, over 1e-4 on every lattice. The coupling has a
     second part inside the clip, an eighth of the clip's (7.2e-3 / 6.4e-3 at 0.8 /
     1.1). The exit layout lays the off-axis rim where the rays cross the reference
@@ -874,7 +875,9 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     kernels as it is to the picture.
 39. **On the exit layout a stage scan's axial anchor tile reads the largest phase
     step of nine.** Found at [§ 2r.2](VALIDATION.md#-2r2--the-flip) (§ 6bj.6, reversed): 0.34088
-    waves against the eight around it at 0.33287–0.33344, where the aim layout
+    waves against the eight around it at 0.33287–0.33344 (from 0.33337 since
+    [§ 2t](VALIDATION.md#step-2t--the-exit-layouts-fit-keeps-the-traced-rim), and the anchor still the largest — so not item 42's dropped
+    rim, which the eight had and the axis had not), where the aim layout
     read it as the best. The eight sit 0.13 mm out and every tile reads the same
     ruler, so it is not the ruler. *What would pin it:* the step's map across the
     tile — which grid cell carries it on the axis and off.
@@ -892,7 +895,7 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     44–52 and its vertex 0.1 µm low; the other thirteen span 0.051% with no
     integer structure. *What would pin it:* the pupil lattice's offset at the
     two classes — a period of 2 in ps is a half-cell shift every other step.
-42. **Off the axis the exit layout's Zernike fit drops the traced rim.** Found
+42. ~~**Off the axis the exit layout's Zernike fit drops the traced rim.** Found
     at [§ 2s.3](VALIDATION.md#-2s3--the-exit-layouts-fit-drops-the-rim-off-the-axis). `fitZernike` keeps samples inside ρ ≤ 1 + 1e-9, and the
     exit coordinate is read against the AXIAL aperture sine; off the axis the
     traced rim is no longer that circle, so four of a 21-sample trace's 313 land
@@ -904,7 +907,15 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     off-axis exit-layout fit in the ladder carries it. *What would pin it:* the
     fit's domain taken from the traced rim (`exitRim`) rather than the unit
     circle, or every traced sample kept — the step must then vanish to the f64
-    floor — and the ladder's off-axis exit readings re-run to see what moves.
+    floor — and the ladder's off-axis exit readings re-run to see what moves.~~
+
+    ✅ **CLOSED at [§ 2t](VALIDATION.md#step-2t--the-exit-layouts-fit-keeps-the-traced-rim)**: the exit layout fits every traced
+    sample, and the step is −4.0e-12 waves on the rim member (−2.0e-11 shipped),
+    ×4 per doubling against the axis to 1.2e-3. It was most of § 2s.3's weakened
+    coma and astigmatism orders (1.0007 and 2.0003 now) and none of the odd-term
+    margin. The re-run moved ~300 readings, restated there; three exactness
+    claims were investigated, not restated. `exitDensity`'s √-light fit still
+    keeps the disc — item 35's candidate, left to it.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;
@@ -1430,4 +1441,4 @@ radial-map nodes · § 6ba differential bleaching.
     reads the default.~~ **Flipped at [§ 2s.4](VALIDATION.md#-2s4--the-flip)** (item 42 opened, and § 6ag's
     on-axis spread found to be the slope coordinate's). What is left of the
     entry is its residue — the chains pinned to the aim layout by name — and
-    item 42.
+    ~~item 42~~ (closed at [§ 2t](VALIDATION.md#step-2t--the-exit-layouts-fit-keeps-the-traced-rim)).

@@ -508,11 +508,13 @@ describe("§ 6x.6 — a moved cone is decided by the PUPIL sampling", () => {
     const control = sequence(stripped);
     const moved = sequence(traced);
     // On the exit layout since § 2n — the cone placed by its optical sine, the
-    // pupil where its rays went: 0.4992/0.5086 and 0.725, against the aim
+    // pupil where its rays went: 0.5000/0.5095 and 0.725, against the aim
     // layout's 0.5001/0.5092 and 0.727. The finding is the gap and its sign, and
-    // both held: 9.4e−3 above the control here, 9.1e−3 there.
-    expect(control[1]! / control[0]!).toBeCloseTo(0.4992, 3);
-    expect(moved[1]! / moved[0]!).toBeCloseTo(0.5086, 3);
+    // both held: 9.4e−3 above the control here, 9.1e−3 there. (0.4992/0.5086
+    // until § 2t: the control's 8e-4 under ½ was the fit dropping the off-axis
+    // rim, not the patches.)
+    expect(control[1]! / control[0]!).toBeCloseTo(0.5000, 3);
+    expect(moved[1]! / moved[0]!).toBeCloseTo(0.5095, 3);
     expect(moved[1]! / moved[0]! - control[1]! / control[0]!).toBeCloseTo(9.4e-3, 3);
     // The first step SHRINKS when the cone is put where it belongs.
     expect(moved[0]!).toBeLessThan(control[0]!);

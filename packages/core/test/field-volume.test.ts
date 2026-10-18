@@ -402,8 +402,8 @@ describe("§ 6bd.5 — out-of-focus light dilutes the field variation", () => {
     // samples), the staircase 2.6852e-2, 2.0606e-2, 5.5543e-2, 4.1055e-2 and 0.7392.
     expect(moveAt(2.25, thin)).toBeCloseTo(2.8701e-2, 5);
     expect(moveAt(2.25, thick)).toBeCloseTo(2.0609e-2, 5);
-    expect(moveAt(4.5, thin)).toBeCloseTo(5.4163e-2, 5);
-    expect(moveAt(4.5, thick)).toBeCloseTo(3.9284e-2, 5);
+    expect(moveAt(4.5, thin)).toBeCloseTo(5.4171e-2, 5);
+    expect(moveAt(4.5, thick)).toBeCloseTo(3.9290e-2, 5);
     expect(moveAt(4.5, thick) / moveAt(4.5, thin)).toBeCloseTo(0.7253, 3);
 
     // The corollary that does NOT follow is "a thick specimen needs fewer
@@ -453,8 +453,8 @@ describe("§ 6bd.6 — what the patches buy is the phase, not the clip", () => {
     };
 
     const edge = split(4.5);
-    expect(edge.full).toBeCloseTo(3.9284e-2, 5);
-    expect(edge.phase).toBeCloseTo(3.9069e-2, 5);
+    expect(edge.full).toBeCloseTo(3.9290e-2, 5);
+    expect(edge.phase).toBeCloseTo(3.9077e-2, 5);
     expect(edge.amplitude).toBeCloseTo(4.0279e-3, 5);
     // the aberration is 10× the clip (9.7×; the aim layout's 3.8537e-2 over
     // 3.7609e-3 was 10.2×). The staircase read the clip at 8.9971e-3, 2.4× too
