@@ -44,6 +44,7 @@ whole ladder.
 | [2t](#step-2t--the-exit-layouts-fit-keeps-the-traced-rim) | Exit fit dropped the off-axis rim. Every traced sample fitted: the step 3.2e-5 → 4e-12 waves, item 42 closed; ~300 readings restated | `object-field`, `stage-mosaic`, `escape-window` |
 | [2u](#step-2u--the-densitys-fits-keep-every-node) | Density fit dropped off-axis nodes. Every node fitted: laid pupil = density to 1.4e-6; item 35 narrowed to the lattice, 43 opened | `exit-density-rim` |
 | [2v](#step-2v--the-outline-is-the-rims-curve) | The 32-ray outline was a polygon off axis. Curve in aim angle: 2.5e-4 each way → 3e-15; item 43 narrowed to vignetted rims; stale citations found and fixed | `rim-outline`, `exit-density-rim` |
+| [2w](#step-2w--the-citations-assert-their-source) | Two measure chains cited readings stale since § 2u. Held once, asserted at source: verdicts hold, § 6bs.2's gap 1.52× → 1.29×; item 44 closed | `support/cited`, `six-interactions` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -5963,10 +5964,70 @@ next 2×. Every claim is amended where it stands.
   leaves 1 — and the curve built piecewise between corners. A rim clipped at
   EVERY ray (`builder`'s 0.9946–0.9951, `fourth-corner`'s 0.8969–0.9597) has no
   such corner from the start of a cut and could take the curve; not this step.
-- **`growth-measures` and `six-interactions`** cite § 6bp.3's splits and § 6bo.2's
+- ~~**`growth-measures` and `six-interactions`** cite § 6bp.3's splits and § 6bo.2's
   plateau at eight figures from before § 2u (0.629422825 for a branch interaction
   `matched-flat-field` reads 0.7024134) — measure chains built on those numbers
-  and not re-derived here. Register item 44.
+  and not re-derived here. Register item 44.~~ Restated, and made to assert their
+  source, at [§ 2w](#step-2w--the-citations-assert-their-source).
+
+## Step 2w — the citations assert their source
+
+Source: measurement only — no engine change
+· Tests: `packages/core/test/support/cited.ts` (new: the cited readings, held once); `growth-measures.test.ts`, `six-interactions.test.ts`, `escape-window.test.ts` (import them); `matched-flat-field`, `aperture-and-field`, `escape-interaction`, `refusal-boundary`, `six-interactions` (assert them)
+
+Register item 44 (§ 2v): `growth-measures` (§ 6bt) and `six-interactions`
+(§ 6bs) built their tables on eleven readings copied in as literals — § 6bp.3's
+four splits, § 6bo.2's plateau pair, § 6br's escape at three anchors, § 6bq.7's
+two field moves — and nothing compared a copy with a fresh reading.
+
+**Hypothesis.** Set to their sources' current readings, the two chains'
+verdicts stand: the six classify 1 reversed / 4 understated / 1 unchanged with
+the same rows in each class, the edge split sits nearest the cut on both growth
+measures, it is the smallest mover of the six, and § 6bs.6's two orderings are
+unchanged. **Refuted by** any row changing class or any of those orderings
+changing; a gap that an assertion bounds falling through its bound is a weakened
+claim, recorded as one.
+
+| Cited | was | now (source) |
+|---|---|---|
+| § 6bp.3 axial split, branch / matched | 0.629422825 / 0.683910386 | 0.7024134 / 0.7183256 (`matched-flat-field`) |
+| § 6bp.3 edge split, branch / matched | 0.971090550 / 0.965747442 | 0.9710761 / 0.9656919 |
+| § 6bo.2 plateau, branch / matched | 0.91660348 / 0.81064106 | 0.91662844 / 0.81064066 (`aperture-and-field`) |
+| § 6br escape, branch / k = 1 / k = 0.5 | 0.75113120 / 0.39148777 / 0.3666606 | 0.75112883 / 0.39149649 / 0.36666028 (`escape-interaction`) |
+| § 6bq.7 field move at NA 0.20 | 0.96487536 | 0.96488064 (`refusal-boundary`) |
+
+Every one stale since § 2u, the axial split furthest: § 2u and § 2v together
+moved it 0.073, the rest in the fifth to seventh digit. § 6bs.7's anisotropy
+family, cited at six figures, had not moved. `escape-window`'s § 6cc.1 had the
+same defect in a smaller form: § 6br.6's end-to-end fall asserted as one copied
+literal over another, which no reading could fail.
+
+**Holds.** No row changes class, no ordering changes, and the edge split is
+still both the nearest neighbour of the cut and the smallest mover. What moved
+is the axial split's own row, which is the cut's one side:
+
+| Reading | stale copies | current |
+|---|---|---|
+| § 6bs.2, the unchanged row's distance growth (axial split) | 0.785 | 0.926 |
+| § 6bs.2, the cut's gap, nearest grower over the unchanged row | **1.52×** | **1.29×** |
+| § 6bt.3, the same gap on § 6br's measure | 9.26% | 2.84% |
+| § 6bt.3, how much the gap depends on the measure | 5.6× | 10.2× |
+| § 6bt.4, the axial row's conversion factor | 2.698 | 3.360 |
+| § 6bt.5, the effect's spread across the four understated | 166× | 165× |
+| § 6bs.8, the axial split's move | 8.7% | 2.3% |
+
+**One bound moved, flagged so it can be overruled:** § 6bs.2 asserted the cut's
+gap above 1.5; it reads 1.2887 and is now pinned there, with the gap still
+asserted above 1. The cut separates the six, by less than § 2r.2 wrote.
+
+**What changed so it cannot happen again.** The eleven readings and § 6bs.7's
+family live in `test/support/cited.ts`. The file that measures each asserts its
+fresh reading against that constant at its own precision, so a source that
+moves fails where it moved; the files that cite it import it, so the citation
+moves with it and the derived rungs fail loudly. (The numbers cannot live in
+the source files: importing a `.test.ts` registers its tests a second time.)
+Citations of other readings elsewhere in the ladder are still copies; this
+step covers the two chains item 44 named and `escape-window`'s ratio.
 
 ## Step 3a — the standard observer and thermal sources
 

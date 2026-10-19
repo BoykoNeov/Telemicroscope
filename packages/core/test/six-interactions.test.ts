@@ -8,6 +8,20 @@ import { objectFieldTile } from "../src/imaging/object-field";
 import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/designs/microscope";
 import type { OpticalSystem } from "../src/trace/system";
 import type { EmitterSlabs } from "../src/imaging/emitter-volume";
+import {
+  ANISO_ANCHOR_FAMILY,
+  ESCAPE_AT_HALF_ANCHOR,
+  ESCAPE_BRANCH,
+  ESCAPE_MATCHED,
+  PLATEAU_BRANCH,
+  PLATEAU_FIELD_MOVE_010,
+  PLATEAU_FIELD_MOVE_020,
+  PLATEAU_MATCHED,
+  SPLIT_AXIS_BRANCH,
+  SPLIT_AXIS_MATCHED,
+  SPLIT_EDGE_BRANCH,
+  SPLIT_EDGE_MATCHED,
+} from "./support/cited";
 
 /**
  * § 2r.3: every seam here is read on the aim layout, explicitly. A field scan's
@@ -271,26 +285,15 @@ const KS = [1, 2, 4, 8] as const;
  * are geometry and are rebuilt.
  * ------------------------------------------------------------------ */
 
-/** § 6bp.3, `rendOverFree` on the axis and at the edge, branch and Q6BO. */
-const SPLIT_AXIS_BRANCH = 0.629422825;
-const SPLIT_AXIS_MATCHED = 0.683910386;
-const SPLIT_EDGE_BRANCH = 0.971090550;
-const SPLIT_EDGE_MATCHED = 0.965747442;
-/** § 6bo.2's plateau pair. */
-const PLATEAU_BRANCH = 0.9166034818148291;
-const PLATEAU_MATCHED = 0.8106410585075915;
-/** § 6br.1 and § 6br.3, the escape at its own anchor... */
-const ESCAPE_BRANCH = 0.7511311966833133;
-const ESCAPE_MATCHED = 0.3914877704551276;
-/** ...and § 6br.6's second anchor, which is the one the other five sit at. */
-const ESCAPE_AT_COMMON_ANCHOR = 0.3666606;
-
-/** § 6bq.7's seven, at the two apertures this interaction is built from. */
-const PLATEAU_FIELD_MOVE_010 = 0.9988262742778071;
-const PLATEAU_FIELD_MOVE_020 = 0.9648753618908332;
+/* § 6bp.3's splits (branch and Q6BO), § 6bo.2's plateau pair, § 6br's escape
+ * at its own anchor and at § 6br.6's second — the one the other five sit at —
+ * and § 6bq.7's field move at this interaction's two apertures, all imported
+ * from `support/cited.ts`, where each is asserted by its own step. Copied here
+ * as literals until § 2w, and stale from § 2t on. */
+const ESCAPE_AT_COMMON_ANCHOR = ESCAPE_AT_HALF_ANCHOR;
 
 /** § 6bn.3's six, as published — the departures, in the order it printed them. */
-const SIX_PUBLISHED = [1.0233, 1.0298, 1.0417, 1.091, 1.3313, 1.5888] as const;
+const SIX_PUBLISHED = [1.0233, 1.0298, 1.0417, 1.091, 1.3313, 1.4237] as const;
 
 interface Row {
   readonly name: string;
@@ -376,7 +379,8 @@ describe("§ 6bs.2 — the tally, computed: ONE reversed, FOUR understated, ONE 
     // § 2r.2: the same tally, a different row in it. On the aim layout the
     // plateau was the one unchanged; on the exit layout it is understated
     // (2.57×) and the axial split is the one that does not grow — it moves
-    // TOWARD 1, to 0.785 of its distance (§ 6bp.3).
+    // TOWARD 1, to 0.926 of its distance (§ 6bp.3; 0.785 on the stale copy
+    // this file read until § 2w).
     expect(byName.get("registration cost")).toBe("reversed");
     expect(byName.get("split, axis")).toBe("unchanged");
     for (const n of ["split, edge", "anisotropy", "plateau", "escape"])
@@ -395,20 +399,23 @@ describe("§ 6bs.2 — the tally, computed: ONE reversed, FOUR understated, ONE 
     expect(crossed.map((r) => r.name)).toEqual(["registration cost"]);
   });
 
-  it("and the classification is a measured gap — 6.6x on the aim layout, 1.52x on the exit", () => {
+  it("and the classification is a measured gap — 6.6x on the aim layout, 1.29x on the exit", () => {
     // On the aim layout everything that moved, moved by at least 6.19x, and the
     // one that did not, 0.94x: nothing sat between, so the cut was not a
     // judgement call. § 2r.2 WEAKENED: on the exit layout the smallest grower
-    // is the edge split at 1.19x and the one that does not grow reads 0.785x —
-    // the cut at 1 still separates them, by 1.52x, and the edge split sits
-    // nearest it.
+    // is the edge split at 1.19x and the one that does not grow reads 0.926x —
+    // the cut at 1 still separates them, by 1.29x, and the edge split sits
+    // nearest it. § 2w WEAKENED it again: read on the stale § 6bp.3 copies this
+    // file held until then, the still row was 0.785x and the gap 1.52x, and
+    // "more than 1.5x" was asserted. The current splits do not support it.
     const growth = rows().map(distanceGrowth);
     const moved = growth.filter((g) => g > 1);
     const still = growth.filter((g) => g <= 1);
     expect(still).toHaveLength(1);
-    expect(Math.max(...still)).toBeCloseTo(0.7850093845744445, 6);
-    expect(Math.min(...moved)).toBeCloseTo(1.1913773589044103, 6);
-    expect(Math.min(...moved) / Math.max(...still)).toBeGreaterThan(1.5);
+    expect(Math.max(...still)).toBeCloseTo(0.9255620792041432, 6);
+    expect(Math.min(...moved)).toBeCloseTo(1.1927656949367025, 6);
+    expect(Math.min(...moved) / Math.max(...still)).toBeCloseTo(1.2886933483298255, 6);
+    expect(Math.min(...moved) / Math.max(...still)).toBeGreaterThan(1);
   });
 });
 
@@ -484,7 +491,7 @@ describe("§ 6bs.4 — five of the six go onto ONE anchor, to 0.8%, and the esca
   it("but the escape's SIZE moves 6.8% between the two anchors (14% on the aim layout), so the table is not one number", () => {
     expect(ESCAPE_MATCHED / ESCAPE_AT_COMMON_ANCHOR).toBeCloseTo(1.0677101806866551, 4);
     // On § 6br's own measure the understatement goes 1.919x to 2.049x.
-    expect(departure(ESCAPE_MATCHED) / departure(ESCAPE_BRANCH)).toBeCloseTo(1.918658, 5);
+    expect(departure(ESCAPE_MATCHED) / departure(ESCAPE_BRANCH)).toBeCloseTo(1.9186093687821866, 5);
     expect(departure(ESCAPE_AT_COMMON_ANCHOR) / departure(ESCAPE_BRANCH)).toBeCloseTo(2.048570803007278, 5);
   });
 });
@@ -524,17 +531,17 @@ describe("§ 6bs.6 — the six were reported in TWO growth measures, and they di
     expect(four.map((r) => r.name)).toEqual(["split, edge", "anisotropy", "plateau", "escape"]);
 
     // § 6br's measure.
-    expect(departureRatio(four[0]!)).toBeCloseTo(1.0055325272091171, 5);
+    expect(departureRatio(four[0]!)).toBeCloseTo(1.0055755327394178, 5);
     expect(departureRatio(four[1]!)).toBeCloseTo(1.242969315222853, 5);
-    expect(departureRatio(four[2]!)).toBeCloseTo(1.1307143552564642, 5);
-    expect(departureRatio(four[3]!)).toBeCloseTo(1.9186581153415823, 5);
+    expect(departureRatio(four[2]!)).toBeCloseTo(1.130745695858167, 5);
+    expect(departureRatio(four[3]!)).toBeCloseTo(1.9186093687821866, 5);
 
     // § 6bo's and § 6bp's. § 6br's 1.919 is the OTHER measure; on this one the
     // same readout is 4.69.
-    expect(distanceGrowth(four[0]!)).toBeCloseTo(1.1913737941648266, 5);
+    expect(distanceGrowth(four[0]!)).toBeCloseTo(1.1927656949367025, 5);
     expect(distanceGrowth(four[1]!)).toBeCloseTo(11.684598548101404, 5);
-    expect(distanceGrowth(four[2]!)).toBeCloseTo(2.5673838440860384, 5);
-    expect(distanceGrowth(four[3]!)).toBeCloseTo(4.691335055602586, 5);
+    expect(distanceGrowth(four[2]!)).toBeCloseTo(2.5682289563157634, 5);
+    expect(distanceGrowth(four[3]!)).toBeCloseTo(4.691103937616023, 5);
   });
 
   it("and the two orderings were opposite at BOTH ends on the aim layout — on the exit they swap only the top two", () => {
@@ -569,10 +576,8 @@ describe("§ 6bs.7 — the anchor sensitivity is not the escape's, and two verdi
     expect(costs[1]!).toBeCloseTo(0.9404251685564944, 9);
     expect(costs[2]!).toBeCloseTo(0.9863246838710185, 9);
     expect(costs[3]!).toBeCloseTo(1.0048044909202725, 9);
-    expect(anisos[0]!).toBeCloseTo(0.7862300730210287, 9);
-    expect(anisos[1]!).toBeCloseTo(0.9285478115301892, 9);
-    expect(anisos[2]!).toBeCloseTo(0.9710985815696986, 9);
-    expect(anisos[3]!).toBeCloseTo(0.9853104600763398, 9);
+    // `support/cited.ts`'s family, which `growth-measures` builds § 6bt.6 on.
+    anisos.forEach((a, i) => expect(a).toBeCloseTo(ANISO_ANCHOR_FAMILY[i]!, 9));
 
     // Monotone, where § 6br.6's escape was single-humped over the same ladder.
     for (let i = 1; i < KS.length; i++) {
@@ -617,10 +622,11 @@ describe("§ 6bs.8 — the plateau survived on the aim layout; on the exit it is
     // smallest move among the six, standing alone by 4.37x. On the exit layout
     // it moves 11.6% — understated, § 6bs.2 — and the smallest move is the edge
     // split's 0.55%, which § 6bs.2 counts understated because its distance from
-    // 1 grows. The one unchanged row, the axial split, moves 8.7%, toward 1.
+    // 1 grows. The one unchanged row, the axial split, moves 2.3%, toward 1
+    // (8.7% on the stale § 6bp.3 copy this file read until § 2w).
     const plateau = rows().find((r) => r.name === "plateau")!;
-    expect(plateau.matched / plateau.branch).toBeCloseTo(0.8843966607049787, 8);
-    expect(Math.abs(plateau.matched / plateau.branch - 1)).toBeCloseTo(0.11560333929502131, 10);
+    expect(plateau.matched / plateau.branch).toBeCloseTo(0.8843721480991895, 8);
+    expect(Math.abs(plateau.matched / plateau.branch - 1)).toBeCloseTo(0.11562785190081049, 10);
 
     const move = (n: string): number => {
       const r = rows().find((x) => x.name === n)!;
@@ -628,8 +634,8 @@ describe("§ 6bs.8 — the plateau survived on the aim layout; on the exit it is
     };
     const moves = rows().map((r) => Math.abs(r.matched / r.branch - 1));
     expect(Math.min(...moves)).toBe(move("split, edge"));
-    expect(move("split, edge")).toBeCloseTo(0.005502172789139004, 9);
-    expect(move("split, axis")).toBeCloseTo(0.0865675009481901, 9);
+    expect(move("split, edge")).toBeCloseTo(0.005544618537235757, 9);
+    expect(move("split, axis")).toBeCloseTo(0.022653542177083263, 9);
   });
 
   it("and § 6bq.7 moves one of its own two apertures by 3.5% — under a third of its move", () => {
@@ -641,12 +647,12 @@ describe("§ 6bs.8 — the plateau survived on the aim layout; on the exit it is
     // survival left for it to explain.
     const moved020 = Math.abs(PLATEAU_FIELD_MOVE_020 - 1);
     const moved010 = Math.abs(PLATEAU_FIELD_MOVE_010 - 1);
-    expect(moved020).toBeCloseTo(0.03512463810916677, 12);
+    expect(moved020).toBeCloseTo(0.03511935533354771, 12);
     expect(moved010).toBeCloseTo(0.0011737257221928754, 12);
 
     const plateau = rows().find((r) => r.name === "plateau")!;
     const margin = Math.abs(plateau.matched / plateau.branch - 1);
-    expect(moved020 / margin).toBeCloseTo(0.30383757358019053, 9);
+    expect(moved020 / margin).toBeCloseTo(0.30372747358200763, 9);
     expect(moved020 / margin).toBeLessThan(1 / 3);
   });
 

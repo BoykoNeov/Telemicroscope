@@ -958,7 +958,7 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     clipped at EVERY ray (`builder`'s 0.9946–0.9951, `fourth-corner`'s
     0.8969–0.9597) has no corner from the start of a cut and could take the curve
     as it stands. Either moves the vignetted readings, a restatement of its own.
-44. **Two measure chains cite § 6bp's readings from before § 2u.** Found at
+44. ~~**Two measure chains cite § 6bp's readings from before § 2u.** Found at
     [§ 2v](VALIDATION.md#step-2v--the-outline-is-the-rims-curve)'s citation audit. `growth-measures` and `six-interactions` pin
     § 6bp.3's four `rendOverFree` splits at eight figures (`SPLIT_AXIS_BRANCH`
     0.629422825, where `matched-flat-field` reads 0.7024134) and § 6bo.2's
@@ -969,7 +969,14 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     moves, and read whether § 6bt's and the six-interactions chain's verdicts
     survive — the same audit § 2v ran on the § 6bm–§ 6bp chain, where two
     verdicts did not. Better still, make each such constant an assertion
-    against its source so it cannot drift silently again.
+    against its source so it cannot drift silently again.~~
+
+    **Closed at [§ 2w](VALIDATION.md#step-2w--the-citations-assert-their-source)**, both halves. Eleven cited readings, all stale since
+    § 2u, now live in `test/support/cited.ts`, asserted by the file that
+    measures each and imported by the files that cite them. Every verdict
+    holds; § 6bs.2's cut separates by 1.29× rather than 1.52×, and its "above
+    1.5" bound went with it. Citations elsewhere in the ladder are still
+    copies.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;

@@ -6,6 +6,12 @@ import { renderedBestFocus, type FocusProbe, type FocusSweepOptions } from "../s
 import { objectFieldTile, objectHeightForImageRadius } from "../src/imaging/object-field";
 import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/designs/microscope";
 import type { OpticalSystem } from "../src/trace/system";
+import {
+  ESCAPE_AT_HALF_ANCHOR,
+  ESCAPE_AT_QUADRUPLE_ANCHOR,
+  ESCAPE_BRANCH,
+  ESCAPE_MATCHED,
+} from "./support/cited";
 
 /**
  * § 2r.2: the exit layout, on the located rim (§ 2q.4). Every reading below is
@@ -272,7 +278,8 @@ describe("§ 6br.1 — the branch column reproduces, and § 6bn's number was bui
     expect(b.f20).toBeCloseTo(0.35496271731637086, 12);
 
     const exact = branchInteraction();
-    expect(exact).toBeCloseTo(0.7511288264140593, 12);
+    // Against `support/cited.ts`, which § 6bs, § 6bt and § 6cc cite (§ 2w).
+    expect(exact).toBeCloseTo(ESCAPE_BRANCH, 12);
 
     // § 6bn formed it from the ROUNDED cells above: 0.75112902 since § 2u
     // (0.75113121 against an exact 0.75113123 at § 2t, 0.7511360 against 0.7511359
@@ -392,10 +399,10 @@ describe("§ 6br.6 — the ANCHOR field is a free parameter, and the quotient tu
     const got = [0.25, 0.5, 1, 2, 4].map(interactionAt);
 
     expect(got[0]).toBeCloseTo(0.2449024157363393, 12);
-    expect(got[1]).toBeCloseTo(0.36666027861117056, 12);
-    expect(got[2]).toBeCloseTo(0.39149648627580136, 12);
+    expect(got[1]).toBeCloseTo(ESCAPE_AT_HALF_ANCHOR, 12);
+    expect(got[2]).toBeCloseTo(ESCAPE_MATCHED, 12);
     expect(got[3]).toBeCloseTo(0.29987667117449185, 12);
-    expect(got[4]).toBeCloseTo(0.10968529225303913, 12);
+    expect(got[4]).toBeCloseTo(ESCAPE_AT_QUADRUPLE_ANCHOR, 12);
 
     // Rises to the branch's own field, then falls: a turn, not a band and not a
     // slope. Three anchors would have shown a rise and one outlier.

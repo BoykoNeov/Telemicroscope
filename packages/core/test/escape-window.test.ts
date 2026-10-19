@@ -6,6 +6,7 @@ import { renderedBestFocus, type FocusProbe, type FocusSweepOptions } from "../s
 import { objectFieldTile, objectHeightForImageRadius } from "../src/imaging/object-field";
 import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/designs/microscope";
 import type { OpticalSystem } from "../src/trace/system";
+import { ESCAPE_AT_QUADRUPLE_ANCHOR, ESCAPE_MATCHED } from "./support/cited";
 
 /**
  * § 2r.2: the exit layout, on the located rim (§ 2q.4). Every reading below is
@@ -19,8 +20,8 @@ const EXIT = { layout: "exit", edgeSamples: 8, edgeRule: "crossing" } as const;
  * § 6cc — the escape's high-anchor fall, which is the slow cells running dry.
  *
  * § 6br.6 measured the guard-band escape's interaction over five anchor fields —
- * 0.2449033, 0.3666606, 0.3914878, 0.2998630, 0.1096861 on the exit layout's
- * located rim since § 2r.2 (0.2462866, 0.3596838, 0.4108834, 0.3100469,
+ * 0.2449024, 0.3666603, 0.3914965, 0.2998767, 0.1096853 on the exit layout's
+ * located rim since § 2r.2, restated at § 2w (0.2462866, 0.3596838, 0.4108834, 0.3100469,
  * 0.1249815 on the aim layout's point-sampled one) — and left the top end
  * open, in terms: "**The high-anchor fall has no account.** The low end is a
  * saturation of a bounded fraction and is pinned as such; at the large anchor
@@ -44,11 +45,11 @@ const EXIT = { layout: "exit", edgeSamples: 8, edgeRule: "crossing" } as const;
  *
  * ## The fall is the window's, and it is stronger than published
  *
- * Held at one sampling the interaction runs **0.4262281, 0.3598819, 0.2284353,
- * 0.1096861** — monotone, and 3.89× end to end where § 6br.6's curve falls
+ * Held at one sampling the interaction runs **0.4262243, 0.3599127, 0.2284366,
+ * 0.1096853** — monotone, and 3.89× end to end where § 6br.6's curve falls
  * 3.57× over the same four (§ 6cc.1). So the fall is not a sampling artefact,
  * and the sampling has been masking some of it: at the k = 1 box the
- * fine-sampled reading is 0.4262281 against the ladder's own 0.3914878, 9%
+ * fine-sampled reading is 0.4262243 against the ladder's own 0.3914965, 9%
  * higher (§ 6cc.2). And the floor is the light's and not the grid's: halving the
  * pixel scale at the top anchor's own field moves it 0.21%, 66 times less than
  * the turn it would have to explain, and moves a cell that has NOT floored by
@@ -303,11 +304,13 @@ describe("§ 6cc.1 — held at one sampling the fall is still there, and stronge
     expect(got[3]).toBeCloseTo(0.10968529225040409, 7);
     for (let n = 1; n < got.length; n++) expect(got[n]!).toBeLessThan(got[n - 1]!);
     // 3.89x against § 6br.6's own curve's 3.57x over the same four anchors
-    // (0.3914878 to 0.1096861), so the anchor's OTHER effect was hiding some of
+    // (0.3914965 to 0.1096853), so the anchor's OTHER effect was hiding some of
     // this one rather than causing it. (3.81x against 3.29x on the aim layout's
-    // point-sampled rim, § 2r.2.)
+    // point-sampled rim, § 2r.2.) § 6br.6's two ends come from
+    // `support/cited.ts`, asserted where § 6br.6 measures them; until § 2w they
+    // were literals here, a ratio of two copies that no reading could fail.
     expect(got[0]! / got[3]!).toBeCloseTo(3.8859150641500815, 4);
-    expect(0.3914877704551276 / 0.10968613069259965).toBeCloseTo(3.5691638312257528, 4);
+    expect(ESCAPE_MATCHED / ESCAPE_AT_QUADRUPLE_ANCHOR).toBeCloseTo(3.569270576155609, 4);
   });
 });
 

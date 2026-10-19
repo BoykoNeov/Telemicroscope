@@ -18,6 +18,7 @@ import { boxcarBand } from "../src/imaging/emission";
 import { objectFieldTile, objectHeightForImageRadius } from "../src/imaging/object-field";
 import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/designs/microscope";
 import type { OpticalSystem } from "../src/trace/system";
+import { PLATEAU_BRANCH, PLATEAU_MATCHED } from "./support/cited";
 
 /**
  * § 2r.2: the exit layout, on the located rim (§ 2q.4). Every reading below is
@@ -602,9 +603,10 @@ describe("§ 6bo.2 — each lever's field factor is pure, and that is NOT enough
     const branch = interact(D_LO_SLOW(), D_LO_FAST(), DEPTHS()[0]!, DEPTHS()[4]!);
     const matched = interact(D_LO_SLOW(), D_LO_FAST_M(), D_HI_SLOW_M(), DEPTHS()[4]!);
 
-    expect(branch).toBeCloseTo(0.9166284391500286, 9);
+    // Against `support/cited.ts`, which § 6bs and § 6bt cite (§ 2w).
+    expect(branch).toBeCloseTo(PLATEAU_BRANCH, 9);
     expect(branch).toBeCloseTo(0.9166284391500286, 6); // § 6bn's plateauI
-    expect(matched).toBeCloseTo(0.810640661739918, 9);
+    expect(matched).toBeCloseTo(PLATEAU_MATCHED, 9);
     expect(matched / branch).toBeCloseTo(0.8843721480991895, 8);
 
     // On the aim layout the matched field moved it 0.89% (0.8614 → 0.8691),

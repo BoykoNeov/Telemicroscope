@@ -15,6 +15,7 @@ import {
   straddlesOne,
   sweep,
 } from "./support/refusalSweep";
+import { PLATEAU_FIELD_MOVE_010, PLATEAU_FIELD_MOVE_020 } from "./support/cited";
 
 /**
  * § 2r.2: the exit layout, on the located rim (§ 2q.4). Every reading below is
@@ -253,9 +254,10 @@ describe("§ 6bq.7 — § 6bo.5's field control sampled the flat apertures", () 
     // The same experiment it ran — field alone, aperture held — at all seven,
     // and at a uniform 2×, which only its NA 0.10 control was.
     const moved = LADDER.map((na) => D(20, na, 128, 48) / D(20, na, 64, 24));
+    // NA 0.10 and 0.20 from `support/cited.ts`, which § 6bs.8 cites (§ 2w).
     expectReproduces(moved, [
-      0.9988262742778071, 0.9991892705494844, 0.9940905395032201, 1.0458761754926622,
-      0.9648806446664523, 0.7056325132435267, 1.1916726283390513,
+      PLATEAU_FIELD_MOVE_010, 0.9991892705494844, 0.9940905395032201, 1.0458761754926622,
+      PLATEAU_FIELD_MOVE_020, 0.7056325132435267, 1.1916726283390513,
     ]);
 
     // § 6bo.5's 0.10 reading, to twelve digits — the same lens, the same pair of

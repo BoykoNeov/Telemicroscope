@@ -27,6 +27,12 @@ import { boxcarBand } from "../src/imaging/emission";
 import { objectFieldTile } from "../src/imaging/object-field";
 import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/designs/microscope";
 import type { OpticalSystem } from "../src/trace/system";
+import {
+  SPLIT_AXIS_BRANCH,
+  SPLIT_AXIS_MATCHED,
+  SPLIT_EDGE_BRANCH,
+  SPLIT_EDGE_MATCHED,
+} from "./support/cited";
 
 /**
  * § 2r.2: the exit layout, on the located rim (§ 2q.4). Every reading below is
@@ -590,12 +596,14 @@ describe("§ 6bp.3 — the split does not reverse; on the aim layout its interac
   it("the axial interaction goes 1.4237 to 1.3921 — OVERstated — and the family spans 4.3%", () => {
     const branch = branchInteraction("rendOverFree", "axis");
     const family = across("rendOverFree", "axis");
-    expect(branch).toBeCloseTo(0.7024134089688632, 8);
+    // Against `support/cited.ts`, which § 6bs and § 6bt build their tables on
+    // (§ 2w: copied there as literals until then, they went stale at § 2t).
+    expect(branch).toBeCloseTo(SPLIT_AXIS_BRANCH, 8);
     // § 6bn.3 published this as a departure of 1.0063.
     expect(departure(branch)).toBeCloseTo(1.423663026974373, 5);
     expect(family[0]!).toBeCloseTo(0.7169490408213444, 8);
     expect(family[1]!).toBeCloseTo(0.7478283281181224, 8);
-    expect(family[2]!).toBeCloseTo(0.7183255607546881, 8);
+    expect(family[2]!).toBeCloseTo(SPLIT_AXIS_MATCHED, 8);
     expect(family[3]!).toBeCloseTo(0.7268967570497842, 8);
     // No reversal: both columns below 1. What changes is the size.
     expect(branch).toBeLessThan(1);
@@ -619,11 +627,11 @@ describe("§ 6bp.3 — the split does not reverse; on the aim layout its interac
   it("the edge interaction goes 1.0298 to 1.0355, and separates by 6.6× (1.1377 and 21× on the aim layout)", () => {
     const branch = branchInteraction("rendOverFree", "edge");
     const family = across("rendOverFree", "edge");
-    expect(branch).toBeCloseTo(0.9710761152743042, 8);
+    expect(branch).toBeCloseTo(SPLIT_EDGE_BRANCH, 8);
     expect(departure(branch)).toBeCloseTo(1.029785394029103, 5);
     expect(family[0]!).toBeCloseTo(0.9659837525043911, 8);
     expect(family[1]!).toBeCloseTo(0.9659115426606842, 8);
-    expect(family[2]!).toBeCloseTo(0.9656918686444873, 8);
+    expect(family[2]!).toBeCloseTo(SPLIT_EDGE_MATCHED, 8);
     expect(family[3]!).toBeCloseTo(0.9664914634472859, 8);
     for (const f of family) expect(f).toBeLessThan(1);
     expect(departure(family[2]!)).toBeCloseTo(1.0355269962080866, 5);

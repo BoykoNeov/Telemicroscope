@@ -7,6 +7,17 @@ import type { TileStageMm } from "../src/imaging/focus-tiles";
 import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/designs/microscope";
 import type { OpticalSystem } from "../src/trace/system";
 import type { EmitterSlabs } from "../src/imaging/emitter-volume";
+import {
+  ANISO_ANCHOR_FAMILY,
+  ESCAPE_BRANCH,
+  ESCAPE_MATCHED,
+  PLATEAU_BRANCH,
+  PLATEAU_MATCHED,
+  SPLIT_AXIS_BRANCH,
+  SPLIT_AXIS_MATCHED,
+  SPLIT_EDGE_BRANCH,
+  SPLIT_EDGE_MATCHED,
+} from "./support/cited";
 
 /**
  * § 2r.3: every seam here is read on the aim layout, explicitly. A field scan's
@@ -215,24 +226,15 @@ const anisoI = (q: Record<Cell, Cost>): number =>
  * rows above are geometry and are rebuilt.
  * ------------------------------------------------------------------ */
 
-/** § 6bp.3's `rendOverFree` on the axis and at the edge — pinned there to 8
- *  decimals, which is what § 6bt.4's perturbation is against. */
+/** § 6bp.3's `rendOverFree` on the axis and at the edge (`support/cited.ts`) —
+ *  asserted at its source to 8 decimals, which is what § 6bt.4's perturbation is
+ *  against. § 6bo.2's plateau pair and § 6br's escape at its own anchor beside
+ *  it. Copied here as literals until § 2w, and stale from § 2t on.
+ *
+ *  § 6bs.7's anisotropy anchor family is ONE branch quotient and four matched
+ *  ones, over anchors 0.4677 / 0.9354 / 1.8708 / 3.7415 mm. The held branch is
+ *  what makes § 6bt.6 a controlled case. */
 const SPLIT_TOL = 5e-9;
-const SPLIT_AXIS_BRANCH = 0.629422825;
-const SPLIT_AXIS_MATCHED = 0.683910386;
-const SPLIT_EDGE_BRANCH = 0.971090550;
-const SPLIT_EDGE_MATCHED = 0.965747442;
-/** § 6bo.2's plateau pair. */
-const PLATEAU_BRANCH = 0.9166034818148291;
-const PLATEAU_MATCHED = 0.8106410585075915;
-/** § 6br.1 and § 6br.3, the escape at its own anchor. */
-const ESCAPE_BRANCH = 0.7511311966833133;
-const ESCAPE_MATCHED = 0.3914877704551276;
-
-/** § 6bs.7's anisotropy anchor family at the digits it pinned: ONE branch
- *  quotient and four matched ones, over anchors 0.4677 / 0.9354 / 1.8708 /
- *  3.7415 mm. The held branch is what makes § 6bt.6 a controlled case. */
-const ANISO_ANCHOR_FAMILY = [0.78623, 0.928548, 0.971099, 0.98531] as const;
 
 interface Row {
   readonly name: string;
@@ -375,14 +377,15 @@ describe("§ 6bt.3 — the COMFORT of § 6bs.2's cut was not measure-independent
     expect(Math.max(...unchanged.map(departureRatio))).toBeLessThan(Math.min(...others));
   });
 
-  it("and on the exit layout the SAME readout sits nearest it under both measures, at margins 5.6× apart", () => {
+  it("and on the exit layout the SAME readout sits nearest it under both measures, at margins 10× apart", () => {
     // On the aim layout the plateau was the unchanged row, its nearest
     // neighbour the registration cost at a factor of 6.6 on § 6bo's measure and
     // the axis split at 4.98% on § 6br's — a different row, and a gap two orders
     // of magnitude smaller — so § 6bs.2's cut could not be quoted unqualified.
     // § 2r.2 REVERSED: on the exit layout the unchanged row is the axial split,
-    // and its nearest neighbour is the edge split on both measures — at 1.52×
-    // on § 6bo's and 9.26% on § 6br's.
+    // and its nearest neighbour is the edge split on both measures — at 1.29×
+    // on § 6bo's and 2.84% on § 6br's. (1.52× and 9.26%, 5.6× apart, on the
+    // stale § 6bp.3 copies this file read until § 2w.)
     const six = rows();
     const axis = six.find((r) => r.name === "split, axis")!;
     const others = six.filter((r) => r.name !== "split, axis");
@@ -390,21 +393,21 @@ describe("§ 6bt.3 — the COMFORT of § 6bs.2's cut was not measure-independent
 
     const nd = nearestBy(distanceGrowth);
     expect(nd.name).toBe("split, edge");
-    expect(distanceGrowth(axis)).toBeCloseTo(0.7850130379787208, 5);
-    expect(distanceGrowth(nd)).toBeCloseTo(1.1913737941648266, 5);
-    expect(distanceGrowth(nd) / distanceGrowth(axis)).toBeCloseTo(1.5176484166841582, 3);
+    expect(distanceGrowth(axis)).toBeCloseTo(0.9255620792041432, 5);
+    expect(distanceGrowth(nd)).toBeCloseTo(1.1927656949367025, 5);
+    expect(distanceGrowth(nd) / distanceGrowth(axis)).toBeCloseTo(1.2886933483298255, 3);
 
     const nr = nearestBy(departureRatio);
     expect(nr.name).toBe("split, edge");
-    expect(departureRatio(axis)).toBeCloseTo(0.9203309208312919, 5);
-    expect(departureRatio(nr)).toBeCloseTo(1.0055325272091171, 5);
+    expect(departureRatio(axis)).toBeCloseTo(0.9778482729069152, 5);
+    expect(departureRatio(nr)).toBeCloseTo(1.0055755327394178, 5);
     const margin = departureRatio(nr) / departureRatio(axis);
-    expect(margin).toBeCloseTo(1.0925771420358958, 5);
+    expect(margin).toBeCloseTo(1.0283553804825731, 5);
 
-    // The size of the gap still depends on the measure — by 5.6×, not by more
+    // The size of the gap still depends on the measure — by 10×, not by more
     // than a hundred.
     expect((distanceGrowth(nd) / distanceGrowth(axis) - 1) / (margin - 1)).toBeCloseTo(
-      5.591545456831784,
+      10.181254612585885,
       5,
     );
   });
@@ -413,18 +416,18 @@ describe("§ 6bt.3 — the COMFORT of § 6bs.2's cut was not measure-independent
 describe("§ 6bt.4 — the conversion factor, at the precision each branch value earns", () => {
   it("the six factors, the edge split to four decimals and the rest harder", () => {
     const f = new Map(rows().map((r) => [r.name, conversion(r.branch)]));
-    expect(f.get("split, axis")!).toBeCloseTo(2.698493235585813, 6);
-    expect(f.get("split, edge")!).toBeCloseTo(34.59076530338688, 4);
+    expect(f.get("split, axis")!).toBeCloseTo(3.360366461859059, 6);
+    expect(f.get("split, edge")!).toBeCloseTo(34.57350246979804, 4);
     expect(f.get("anisotropy")!).toBeCloseTo(43.9750943, 6);
     expect(f.get("registration cost")!).toBeCloseTo(25.0049376, 6);
-    expect(f.get("plateau")!).toBeCloseTo(11.990908274847074, 6);
-    expect(f.get("escape")!).toBeCloseTo(4.018181413953662, 6);
+    expect(f.get("plateau")!).toBeCloseTo(11.994497761647, 6);
+    expect(f.get("escape")!).toBeCloseTo(4.0181431444677855, 6);
   });
 
   it("and four decimals is what the edge split's 9-digit pin supports — measured by perturbation", () => {
     // § 2r.2: on the aim layout both splits sat within 1% of 1 (0.9937, 0.9915)
     // and the cancellation in β/(β − 1) left three decimals. On the exit layout
-    // the edge split is 0.971 and the axial one 0.629, so the same perturbation
+    // the edge split is 0.971 and the axial one 0.702, so the same perturbation
     // leaves four decimals and six.
     const moved = (b: number): number => Math.abs(conversion(b + SPLIT_TOL) - conversion(b - SPLIT_TOL));
     // Inside a four-decimal pin's tolerance and outside a five-decimal one's, so
@@ -463,7 +466,7 @@ describe("§ 6bt.5 — the factor and the effect ran OPPOSITE ways across the fo
     expect(e[3]!).toBeGreaterThan(e[2]!);
   });
 
-  it("their spreads are 10.9× and 166× (within 13% on the aim layout), so the product is not forced into either order", () => {
+  it("their spreads are 10.9× and 165× (within 13% on the aim layout), so the product is not forced into either order", () => {
     const four = rows()
       .filter((r) => verdictOf(r) === "understated")
       .sort((a, b) => departure(a.branch) - departure(b.branch));
@@ -472,16 +475,16 @@ describe("§ 6bt.5 — the factor and the effect ran OPPOSITE ways across the fo
     const fSpread = Math.max(...f) / Math.min(...f);
     const eSpread = Math.max(...e) / Math.min(...e);
     expect(fSpread).toBeCloseTo(10.943820691484763, 3);
-    expect(eSpread).toBeCloseTo(166.0441351320551, 3);
-    expect(fSpread / eSpread).toBeCloseTo(0.06590807258565977, 4);
+    expect(eSpread).toBeCloseTo(164.75723696998836, 3);
+    expect(fSpread / eSpread).toBeCloseTo(0.06642581247060375, 4);
 
     // And the products land in no order at all — § 6bs.6's disagreement, now as
     // the two factors that produce it rather than as two published columns.
     const products = four.map((r) => distanceGrowth(r) - 1);
     expect(products[0]!).toBeCloseTo(10.684598548101404, 5);
-    expect(products[1]!).toBeCloseTo(0.19137379416482658, 5);
-    expect(products[2]!).toBeCloseTo(1.5673838440860384, 5);
-    expect(products[3]!).toBeCloseTo(3.691335055602586, 5);
+    expect(products[1]!).toBeCloseTo(0.19276569493670248, 5);
+    expect(products[2]!).toBeCloseTo(1.5682289563157634, 5);
+    expect(products[3]!).toBeCloseTo(3.691103937616023, 5);
     // Neither monotone: it falls, then rises, then rises again (on the aim
     // layout it rose, then fell, then fell again).
     expect(products[1]!).toBeLessThan(products[0]!);
@@ -543,7 +546,7 @@ describe("§ 6bt.6 — where the branch value is HELD, the two measures must agr
 
 describe("§ 6bt.7 — both measures are blind to a crossing of 1, so the classifier asks first", () => {
   it("departure() folds x and 1/x together, which is the blind spot", () => {
-    for (const x of [0.7948724057562382, 0.39149024506518326, 0.9166034818148291])
+    for (const x of [0.7948724057562382, ESCAPE_MATCHED, PLATEAU_BRANCH])
       expect(departure(x)).toBeCloseTo(departure(1 / x), 12);
   });
 
