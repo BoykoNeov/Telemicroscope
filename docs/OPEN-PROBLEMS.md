@@ -757,7 +757,9 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     short of the stop's. *What would close it:* real aiming for every finite
     preset, or a paraxial aim scaled to the stop's traced edge — either moves every
     reading that integrates a microscope pupil, so it is a flip of its own with the
-    brute-force count as its rung, on and off axis.
+    brute-force count as its rung, on and off axis. [§ 2y](VALIDATION.md#step-2y--the-outline-turns-at-the-rims-corners)'s
+    located outline follows this aim: its arcs labelled "stop" are the aim disc's
+    rim, located to 1e-15, so closing this item moves them and their corners.
 32. **A resolved rim's focus still moves with the lattice, smoothly.** Found at
     [§ 2q.3](VALIDATION.md#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout). With `edgeSamples` the 4×/0.10's
     rendered axial focus at 430 nm no longer scatters with `pupilSamples`, but it

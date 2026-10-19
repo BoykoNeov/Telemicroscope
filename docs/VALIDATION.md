@@ -6159,8 +6159,13 @@ the rim has corners a series rings at.
 
 **What the rim is made of** (read before the hypothesis; it sets its scope). A
 rim ray's edge is now labelled by what stops the ray just past its reach — the
-stop's own rim where the ρ = 1 ray exists, otherwise the failing status and
-surface ("miss@2", "vignetted@3"). One full run of the suite, every `exitRim`
+"stop" label where the ρ = 1 ray exists, otherwise the failing status and
+surface ("miss@2", "vignetted@3"). Under the paraxial aim the "stop" label is
+the rim of the AIM disc, not the stop's traced edge, which lies outside it (at
+1.00546 of the aim radius on the axis, up to 1.0204 off it — register item 31,
+still open); § 2y locates that convention's edge exactly and does not move it.
+Its 1e-15 is the outline against the rim the aim defines, not against the
+light a real aim would launch. One full run of the suite, every `exitRim`
 call logged: 18 118 rims are the stop's all round; 4 192 are cut all round by
 ONE constraint (the stop itself vignetting a paraxially aimed ray, or one
 surface), which has no corner; 5 347 change edge — 2 or 4 corners, and in 295
