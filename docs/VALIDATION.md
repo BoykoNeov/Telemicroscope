@@ -6144,6 +6144,49 @@ and the half-axis split. The guard is unchanged: it is a point-sample
 readout by design (`fluorescence.ts`), and whether a cut cell should enter it
 is a separate decision.
 
+## Step 2y — the outline turns at the rim's corners
+
+Source: engine change
+
+Register item 43, as § 2v narrowed it: where the reach varies around the rim,
+the outline is still the 32-ray polygon, 6.8e-4 of the area misplaced on the
+DIN 4× at 1.1 mm, and the trigonometric curve does no better (3.8e-4), because
+the rim has corners a series rings at.
+
+**What the rim is made of** (read before the hypothesis; it sets its scope). A
+rim ray's edge is now labelled by what stops the ray just past its reach — the
+stop's own rim where the ρ = 1 ray exists, otherwise the failing status and
+surface ("miss@2", "vignetted@3"). One full run of the suite, every `exitRim`
+call logged: 18 118 rims are the stop's all round; 4 192 are cut all round by
+ONE constraint (the stop itself vignetting a paraxially aimed ray, or one
+surface), which has no corner; 5 347 change edge — 2 or 4 corners, and in 295
+of them two cuts meet with the stop nowhere (DIN 10×/0.20 at 0.5 mm: miss@2 and
+vignetted@3). A probe on the DIN 4× at 1.1 mm: near the corner the landing
+moves linearly in aim angle (|Δz|/Δθ = 0.993 from 1e-2 down to 1e-10), not as a
+square root, and a cut ray bisected 40 times lands within 1.5e-13 to 8.9e-13 of
+one bisected to the last bit. Rim tracing was 77 s of the run's ~12 100 s of
+worker time.
+
+**Hypothesis.** Where the edge changes, the rim is smooth arcs meeting at
+corners. With each corner located by bisection in aim angle, and each arc the
+polynomial through its landings at Chebyshev nodes in aim angle — refined until
+the last two Chebyshev coefficients fall below 1e-13 of the rim, the cut arcs'
+reach bisected to the last bit — the outline is the traced rim; and a rim cut
+all round by one constraint takes § 2v's trigonometric curve. **Refuted by** an
+area between the outline and the traced rim above **1e-11 of π** on any of:
+the DIN 4×/0.10 at 0.8 and 1.1 mm (stop and miss@2, 2 corners), the DIN
+10×/0.20 at 0.5 mm (miss@2 and vignetted@3, 2 corners), at 1.0 mm (all three, 4
+corners) and at 0.2 mm (vignetted@3 all round, no corner); 587.6 nm. The traced
+rim is read per exit angle with no outline in it — the aim angle landing there
+bisected outside, its reach bisected to the last bit inside — at 2048 angles,
+and the polygon and the curve are re-read against it, so the § 2v numbers
+(against a 4096-ray polygon) are not the comparison.
+
+Written after the probe, the survey and closed-form checks of the construction, and before any
+reading of the five; the threshold is the closed forms' 2e-15 in radius
+carried through a 2π perimeter, with room for the all-round case, whose curve
+goes through 40-step landings that carry ~1e-12.
+
 ## Step 3a — the standard observer and thermal sources
 
 The layer that makes the hero image *visible*. Purple fringing is not new
