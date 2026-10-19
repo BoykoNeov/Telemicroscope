@@ -5771,6 +5771,20 @@ second interval where it fell. No sign reversed and no verdict crossed 1.
   for the sum (Higham's γₙ, 7.4e-12) and 2·ulp/m + (size − 1)·ε for the seam —
   derived, not fitted, and **raised, flagged here so they can be overruled**. The
   per-pixel claim, one ulp, is unchanged and holds.
+
+**Five bounds moved, all flagged so they can be overruled.** Besides § 6bj.4's
+two above (2e-12 → 7.4e-12; 4.4e-16 → 5.7e-14, read 2.08e-12 and 6.0e-16), three
+claim thresholds in `second-objective` were reset to the amended wording, each
+just above its new reading:
+
+| § 6bk.5 claim | was | now | reading |
+|---|---|---|---|
+| the fast lens's axial split stays apart from 1 | > 1.8 | > 1.4 | 1.416 |
+| its edge split over its axial split | < 1.1 | < 1.3 | 1.291 |
+| its free-field gain, axis over edge | < 1.1 | < 1.4 | 1.368 |
+
+The two § 6bp thresholds that broke (`matched-flat-field`) were readings, not
+claims, and are now pinned as readings: 1.00984 and 0.99781.
 - **§ 2k**'s laid-pupil amplitude sum, bitwise, is 744.5653414552702; the phase
   sum did not move.
 
@@ -5781,7 +5795,8 @@ of the cells falling differently again, pinned at the precision each earns.
 ### What it leaves
 
 - **The density lattice** — register item 35, narrowed to it: −1.6e-4 of the oil
-  100×'s light at 21 nodes, inside 1e-6 at 61, which is 9× the density's traces.
+  100×'s light at 21 nodes, inside 1e-6 at 61, which is 11× the density's time
+  (4.8 → 52.8 ms on one oil pupil; the whole laid pupil is ~5 ms at 21).
 - **The outline's displacement** — register item 43, opened here.
 
 ## Step 3a — the standard observer and thermal sources

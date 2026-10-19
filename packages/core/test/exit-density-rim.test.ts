@@ -271,7 +271,8 @@ describe("§ 2u — the density's fits keep every node", () => {
     // Per exit angle φ: the outline's radius as `rimSupport` interpolates it, and
     // the traced rim's — the aim-circle ray landing at φ, bisected in aim angle.
     // The light between them is |P(rim)|²·(r_p² − r_t²)/2 per radian, a strip
-    // under 2e-4 deep in exit radius. At 1024 angles: 2.526e-4 cut, 2.396e-4
+    // under 2e-4 deep in exit radius. At the 256 angles here 2.5245e-4 cut and
+    // 2.3932e-4 reached past, −1.31e-5 net. At 1024 angles: 2.526e-4 cut, 2.396e-4
     // reached past, −1.30e-5 net; at 720 rim rays 4.98e-7 and 4.73e-7, the
     // polygon's 1/N². Item 35's "clips 3.5e-4 and then 6.4e-4" counted one side.
     const system = oilField();
@@ -320,8 +321,8 @@ describe("§ 2u — the density's fits keep every node", () => {
       else past += dl;
     }
     const total = emitterLaunchEnergy(system, h, L, { throughput: false });
-    expect(cut / total).toBeCloseTo(2.526e-4, 6);
-    expect(past / total).toBeCloseTo(2.396e-4, 6);
+    expect(cut / total).toBeCloseTo(2.524486e-4, 9);
+    expect(past / total).toBeCloseTo(2.393214e-4, 9);
     expect(Math.abs(past - cut) / total).toBeLessThan(2e-5);
   });
 });

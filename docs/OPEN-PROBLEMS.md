@@ -841,8 +841,10 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     lattice alone: −1.58e-4 on axis to −1.30e-4 at 20 µm, and inside 1e-6 of the
     launches at 0–20 µm on 61 nodes. The entry's off-axis numbers were not
     reproduced by § 2u's construction, which reads the same at § 2q.5's commit.
-    *What would pin it:* a lattice choice with its cost measured — 61 nodes is 9×
-    the density's traces per pupil — or a derivative that does not need one.
+    *What would pin it:* a lattice choice with its cost measured — 61 nodes is
+    11× the density's time (4.8 → 52.8 ms on one oil pupil, where the whole laid
+    pupil is ~5 ms), since at 21 the in-disc nodes are the map's own traces and at
+    61 none are — or a derivative that does not need one.
 36. **§ 2j.3's ray histogram reads the oil's half-radius light 1.0–1.3e-3 high.**
     Found at [§ 2q.5](VALIDATION.md#-2q5--the-ring-that-was-not-there): off the launches the light inside half the exit
     radius is 0.20521 (emitter) and 0.29608 (a field, the point's construction);
