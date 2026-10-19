@@ -309,10 +309,10 @@ describe("§ 6bf — the focus surface, offered", () => {
       // the exit layout it first RISES, 0.7% from h = 0.275 to 0.55 — where
       // § 6be.2's in-clip coupling now reads, before the clip takes over.
       const blue = coefficients(SURFACE_4, 0);
-      expect(blue[0]).toBeCloseTo(-0.063287, 5);
+      expect(blue[0]).toBeCloseTo(-0.063294, 5);
       expect(blue[2]).toBeCloseTo(-0.058938, 5);
       expect(blue[3]).toBeCloseTo(-0.062470, 5);
-      expect(spread(blue)).toBeCloseTo(0.077566, 4);
+      expect(spread(blue)).toBeCloseTo(0.077689, 4);
       expect(Math.abs(blue[1]!)).toBeGreaterThan(Math.abs(blue[0]!));
       expect(Math.abs(blue[2]!)).toBeLessThan(Math.abs(blue[1]!));
       expect(Math.abs(blue[3]!)).toBeGreaterThan(Math.abs(blue[2]!));
@@ -367,7 +367,7 @@ describe("§ 6bf — the focus surface, offered", () => {
       const four = coefficients(SURFACE_4, 1);
       const ten = coefficients(SURFACE_10, 0);
       // On the exit layout (§ 2q.6); 0.487979, 0.034726 and 14.05× on the aim one.
-      expect(spread(ten)).toBeCloseTo(0.522024, 4);
+      expect(spread(ten)).toBeCloseTo(0.521958, 4);
       expect(spread(four)).toBeCloseTo(0.037476, 4);
       expect(spread(ten) / spread(four)).toBeGreaterThan(13.5);
       // Monotone at every height — not a wobble.
@@ -391,10 +391,10 @@ describe("§ 6bf — the focus surface, offered", () => {
       // the estimator's limit beside a real shape. Resolved they DRIFT, 31.5%
       // (34.1% on the aim layout) and monotonely, the same way as the 10×'s — so
       // the 2× is a second objective with a shape, not a control for one.
-      expect(worstPlateau(SURFACE_2, 0)).toBeCloseTo(0.594368, 5);
+      expect(worstPlateau(SURFACE_2, 0)).toBeCloseTo(0.594386, 5);
       expect(worstPlateau(SURFACE_2, 0)).toBeGreaterThan(worstPlateau(SURFACE_10, 0));
       const twoCoeffs = coefficients(SURFACE_2, 0);
-      expect(spread(twoCoeffs)).toBeCloseTo(0.314508, 4);
+      expect(spread(twoCoeffs)).toBeCloseTo(0.314268, 4);
       for (let k = 1; k < twoCoeffs.length; k++) {
         expect(Math.abs(twoCoeffs[k]!)).toBeLessThan(Math.abs(twoCoeffs[k - 1]!));
       }
@@ -408,15 +408,15 @@ describe("§ 6bf — the focus surface, offered", () => {
       // drift, and both are several times the 4×'s at the SAME wavelength.
       // On the exit layout (§ 2q.6); -0.166067, -0.113623 and 0.461552 on the aim one.
       const tenBlue = coefficients(SURFACE_10_BLUE, 0);
-      expect(tenBlue[0]).toBeCloseTo(-0.164511, 5);
+      expect(tenBlue[0]).toBeCloseTo(-0.164503, 5);
       expect(tenBlue[3]).toBeCloseTo(-0.110613, 5);
-      expect(spread(tenBlue)).toBeCloseTo(0.487264, 4);
+      expect(spread(tenBlue)).toBeCloseTo(0.487191, 4);
       for (let k = 1; k < tenBlue.length; k++) {
         expect(Math.abs(tenBlue[k]!)).toBeLessThan(Math.abs(tenBlue[k - 1]!));
       }
 
       const fourBlue = spread(coefficients(SURFACE_4, 0));
-      expect(fourBlue).toBeCloseTo(0.077566, 5);
+      expect(fourBlue).toBeCloseTo(0.077689, 5);
       expect(spread(tenBlue) / fourBlue).toBeGreaterThan(3);
       expect(spread(coefficients(SURFACE_10, 0)) / spread(coefficients(SURFACE_4, 1))).toBeGreaterThan(7);
     });
@@ -473,7 +473,7 @@ describe("§ 6bf — the focus surface, offered", () => {
       const two = build(2, 0.1);
       const design = renderedBestFocus(two, DESIGN, 0.7, { ...SWEEP, maxPlateauDepths: 1 });
       // Well-conditioned at the design wavelength — a real vertex.
-      expect(design.plateauDepths).toBeCloseTo(0.583471, 5);
+      expect(design.plateauDepths).toBeCloseTo(0.583493, 5);
       expect(design.curvature).toBeLessThan(0);
 
       // At 430 nm, twelve depths of focus from nominal, this rung refused it as a

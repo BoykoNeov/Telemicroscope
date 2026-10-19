@@ -43,6 +43,7 @@ whole ladder.
 | [2s](#step-2s--the-default-itself-for-finite-conjugates) | Mosaic drops its layout; condenser spread; exit fit's rim; the flip. Forwarded; the slope's 1/N⁴; item 42; exit everywhere, oil cells 32 | `mosaic-layout`, `condenser-source`, `object-field`, `builder` |
 | [2t](#step-2t--the-exit-layouts-fit-keeps-the-traced-rim) | Exit fit dropped the off-axis rim. Every traced sample fitted: the step 3.2e-5 → 4e-12 waves, item 42 closed; ~300 readings restated | `object-field`, `stage-mosaic`, `escape-window` |
 | [2u](#step-2u--the-densitys-fits-keep-every-node) | Density fit dropped off-axis nodes. Every node fitted: laid pupil = density to 1.4e-6; item 35 narrowed to the lattice, 43 opened | `exit-density-rim` |
+| [2v](#step-2v--the-outline-is-the-rims-curve) | The 32-ray outline was a polygon off axis. Curve in aim angle: 2.5e-4 each way → 3e-15; item 43 narrowed to vignetted rims; stale citations found and fixed | `rim-outline`, `exit-density-rim` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -4998,7 +4999,7 @@ both. Every one is on the exit layout or downstream of it.
   lattice on its cubic map — ~~and off axis two older residues show: the √-fit
   slips by 6e-5 to 1.6e-4 of the light at 10–20 µm, and at 15–20 µm the 32-ray
   rim clips 3–6e-4 of the aim disc's image~~ (register item 35). The slip went at
-  [§ 2u](#step-2u--the-densitys-fits-keep-every-node), and the rim moves light rather than losing it (item 43).
+  [§ 2u](#step-2u--the-densitys-fits-keep-every-node), and the rim moves light rather than losing it (item 43, placed on the rim at [§ 2v](#step-2v--the-outline-is-the-rims-curve) where the rim is smooth).
 - **§ 2j.3's ray histogram reads 1.0–1.3e-3 high** on the oil's half-radius
   light, for both sources — more than § 2i.4's pixel edge, untraced (register
   item 36).
@@ -5733,8 +5734,10 @@ with the change switched off. A second round moved 11 readings computed from
 cited constants (§ 6bm's six in `second-interval`, § 6bn's cells), and a third
 moved 7 behind § 6bk.8's refusal, which had stopped its rung before them — among
 them the fast lens's axial stage, 0.1208236 → 0.1208356 mm, which six more
-readings in `second-objective` take as their input. Those constants now carry
-one value in every file that cites them. Readings that moved
+readings in `second-objective` take as their input. ~~Those constants now carry
+one value in every file that cites them.~~ They did not: an audit at
+[§ 2v](#step-2v--the-outline-is-the-rims-curve) found citations in four files left at
+older readings. Readings that moved
 inside their tolerances were not audited, as at § 2s and § 2t.
 
 **The flat-field chain moved by findings' size, not digits.** Its readings are
@@ -5797,7 +5800,173 @@ of the cells falling differently again, pinned at the precision each earns.
 - **The density lattice** — register item 35, narrowed to it: −1.6e-4 of the oil
   100×'s light at 21 nodes, inside 1e-6 at 61, which is 11× the density's time
   (4.8 → 52.8 ms on one oil pupil; the whole laid pupil is ~5 ms at 21).
-- **The outline's displacement** — register item 43, opened here.
+- **The outline's displacement** — register item 43, opened here;
+  narrowed at [§ 2v](#step-2v--the-outline-is-the-rims-curve) to rims whose
+  reach varies.
+
+## Step 2v — the outline is the rim's curve
+
+Source: engine change — `rimOutline` (`pupil/rim-outline.ts`) joins `exitRim`'s rim rays by their trigonometric interpolant in aim angle, the radius found by Newton on the exit angle, where `exitCoordinatePupil`'s support joined them linearly in exit angle; `exitRim` reports each ray's reach and takes a ray count
+· Tests: `packages/core/test/rim-outline.test.ts` (closed forms, no trace); `exit-density-rim.test.ts` (§ 2v's rung; § 2u's outline rung now reads `rimPolygon`); `exit-field-energy.test.ts` (§ 2l.2's area, tightened); the restatements and amendments named below
+
+Register item 43 (§ 2u): off the axis the 32-ray outline moves light across
+the traced rim — on the oil 100× at 20 µm 2.5e-4 of the light cut on one side
+and 2.4e-4 taken in on the other. The rim rays are aimed evenly around the aim
+circle, so their landings are equal-step samples of a periodic curve, and the
+register named the candidate: interpolate THAT, in aim angle, rather than the
+radius in exit angle.
+
+**Hypothesis.** On a smooth rim the trigonometric interpolant through the 32
+landings is the traced rim to rounding, and as the support it puts no light on
+the wrong side of it. **Refuted by** either strip above 1e-12 of the light on the
+oil 100× at 10 or 20 µm. (The threshold was set after a first measurement at
+the d-line, 587.6 nm, read 2–3e-15; the rung reads 550 nm.)
+
+| oil 100×, light between outline and traced rim | 10 µm cut | 10 µm past | 20 µm cut | 20 µm past |
+|---|---|---|---|---|
+| polygon in exit angle (§ 2l–§ 2u) | 1.250e-4 | 1.218e-4 | 2.524e-4 | 2.393e-4 |
+| curve in aim angle | 2.7e-15 | 3.5e-15 | 3.2e-15 | 2.5e-15 |
+
+Holds, by eleven orders. The closed forms say why, with no trace in them: an
+ellipse 0.2 off the chief ray, 1.05 × 0.95, sampled at 32 equal steps of its
+parameter, is reproduced to 3.3e-15 in radius at every exit angle (the polygon
+misses by 1.6e-3) and its area πab to 6e-16 from the series' coefficients alone
+(polygon 2.1e-4); run clockwise, as an odd number of mirrors lays it, the same;
+any curve with no harmonic past the 15th to 2.4e-15. § 2l.2's area check — the
+32-ray outline against the same construction at 720 rays — reads 0, 1.8e-15 and
+1.6e-15 at 0°, 1° and 2° on the hero achromat, where the polygon read 0, 1.9e-10
+and 1.1e-8; its bound goes from 5e-8 to 1e-14.
+
+**Where it does not apply.** Off the axis some azimuths' stop-rim ray can fail to
+exist, and `exitRim` then takes the farthest ray that does; where that reach
+varies around the rim, the rim has a corner where the cut begins, and a
+trigonometric series rings at a corner. Measured against a 4096-ray traced rim
+on the DIN 4×, as area misplaced over π:
+
+| DIN 4×, 587.6 nm | rays clipped | polygon | curve |
+|---|---|---|---|
+| 0.5 mm | 0 of 32 | 1.9e-5 | 1.2e-9 (the reference's own floor) |
+| 0.8 mm | 1, to 0.9982 | 5.2e-5 | 8.4e-5 |
+| 1.1 mm | 9, to 0.9346 | 6.8e-4 | 3.8e-4 |
+
+Neither is the rim there, so where the reach varies the outline stays the
+polygon and those readings do not move. In the mosaic chains most off-axis
+pupils are of this kind (629 of the 778 distinct file-and-reach cases a full run
+logged), so this step reaches a minority of them. That is item 43, narrowed.
+
+**A circle about the chief ray keeps the polygon.** The first full run moved
+on-axis readings — `throughput-units`' axial pixel count 441 → 439, a
+`telecentric-scene` harmonic to 3e-15 — which a smooth-rim change cannot do
+physically. On the axis the rim is a circle and the transform's grid has points
+ON it ((±1, 0), (0, ±1)); the polygon gives each ray its own radius exactly and
+the curve gives it to the last bit, so two pixels flipped out. Where the 32
+radii agree to 1e-12, relative, `rimOutline` keeps the polygon: on the axis they
+spread 3e-16 to 6e-15, and off it the spread grows linearly with field — 1.8e-6
+at 0.1 µm on the DIN 4× — so the switch sits within ~1e-10 mm of the axis and
+can only flip a point lying on the rim to the last bit. Every on-axis mover went
+back to the bit.
+
+**Cost.** A support test is 0.15 µs where it was 0.10 µs (a table brackets a
+Newton step taken only within 4× the table's own chord error of the rim). The
+app's four-tail survey, which must stay a frame, reads 457 ms against 437 ms
+alone, under its 1500 ms budget; it read 2248 ms once on a loaded full run.
+
+### What the full run moved
+
+Under the recorder of § 2t, with the on-axis circle rule in: **131 readings in
+14 files**, every one off the axis and on the exit layout, and `doublet-wall`'s
+three recorder artefacts, which a baseline run with the polygon switched back
+on reproduces alone. Most restate at their own digits. The flat-field chain
+moved by findings' size again, its axial readings being residues (§ 2u):
+
+| Reading | § 2u | § 2v |
+|---|---|---|
+| § 6bi.3, the control's axial rendered over free | 1349× | 1383× |
+| § 6bk.5, the aperture's collapse of the axial split | 954× | 978× |
+| § 6bk.5, magnification's effect on the axial split | 1.148× | 1.091× |
+| § 6bp.3, the matched field's axial interaction, branch → family | 1.4441 → 1.4109 | 1.4237 → 1.3921 |
+| § 6bp.3, the family's width; its nearest member to the branch | 6.5%; 0.98% | 4.3%; 2.1% |
+| § 6bp.4, the published 10×/20× gap; held at one field | 1.25e-3; 5.2×, 8.4× | 2.03e-3; 4.0×, 5.1× |
+| § 6bp.5, the free-field gain's interaction, branch → family | 1.546 → 1.532–1.542 | 1.545 → 1.535–1.542 |
+
+No sign reversed on the outline alone. `sweep-plan`'s resolved best focus was
+re-read with the plan switched off in `renderFieldVolume`: 0.18926688263787453 mm,
+bitwise the planned sweep's.
+
+**A claim that was the polygon's luck.** § 2q.4's located span on the DIN 4×'s
+16 patches read 9.91e-9 at 8 sub-samples and 9.73e-9 at 32, 1.8e-10 apart. On the
+curve they read 1.700e-8, 9.44e-9 and, at 128, 1.004e-8: per patch, 8 sub-samples
+sit within 4.1e-9 of 32 of either sign, where on the polygon every patch erred
+the same way (1.0e-9 to 4.0e-9) and the span cancelled them. The curve is the
+traced rim to 9e-11 on those patches (the 4096-ray reference's floor), and
+`inside` never disagrees with it. The rung now bounds each patch, 5e-9, which
+both outlines meet.
+
+### The citations § 2t and § 2u left behind
+
+§ 2u wrote that its cited constants "now carry one value in every file that
+cites them". **That was false.** A constant that no assertion compares with a
+fresh reading goes stale without anything failing, and an audit — every literal
+§ 2t, § 2u and this step removed from a test, searched at six figures across the
+tests — found these, each now set to its source's reading:
+
+| Cited as | in | was | source, now | stale since |
+|---|---|---|---|---|
+| § 6bk.5's axial splits, control and fast 4× | `fourth-corner` | 1220.0858, 1.8565748 | 1385.0697, 1.4159143 (`second-objective`) | before § 2u |
+| § 6bk.5's fast 4× edge split | `fourth-corner` | 1.9596655 | 1.8285497 | before § 2u |
+| § 6bk.1's corrected free gain | `fourth-corner`, `third-magnification` | 1.00807 | 1.007040 | § 2r.2 |
+| § 6bl.6's 20× free gain | `fourth-corner`, `second-interval` | 1.028246 | 1.029480 (`third-magnification`) | § 2u |
+| the fast 10×'s axial split, plateau | `second-interval` | 3.7985279, 1.4286063 | 3.5561461, 1.4285750 (`fourth-corner`) | before § 2u |
+| § 6bk.6's scanner ceiling | `second-interval`, `fourth-corner`, `third-magnification` | 1.17606796, 1.17607893 | 1.17599647 | § 2t |
+| § 6bk.4's guard ratios | `second-interval` | 19.135676, 9.5261959 | 19.135912, 9.5334852 | § 2t |
+| § 6bl.1's 20× interaction / field term | `fourth-corner` | 4.919968e-4 / 1.273534e-2 | 4.920945e-4 / 1.273590e-2 | § 2t |
+| the control's and 10×'s splits | `third-magnification` | 1218.4117, 1549.3136 | 1383.1419, 1508.9125 | before § 2t |
+
+Folded in here rather than split out because the two cannot be separated: under
+the new outline `second-interval`'s § 6bl.6 gap read 6.55e-4 against its 5.5e-4
+bound on the stale 1.028246, and the axial interaction divides one stale split
+by another whose source this step moved. **What changed with them** — at § 2u's
+commit, on this step's outline with the old citations, and on current ones:
+
+| Conclusion | § 2u | § 2v outline, old citations | § 2v |
+|---|---|---|---|
+| § 6bm.4, the largest of the six interactions | the escape, 1.25× the next | the escape, 1.30× | **the axial flat field, 2.306**, 1.15× the escape |
+| § 6bm.4, the edge flat-field interaction | 1.489 | 1.489 | 1.389 |
+| § 6bm, magnification's edge move, fast over slow aperture | 1.49× | 1.49× | 1.39× |
+| § 6bn.3, the axial interaction from first interval to second | 1.5089 → 1.5422, **does not collapse** | 1.5490 → 1.4813 | 2.3057 → 1.4237, **collapses 3.1×** |
+| § 6bn.3, the edge interaction's fall in distance from 1 | 16× | 16× | 13× |
+| § 6bn.3, the first interval's span over the second's | 1.27× | 1.36× | 1.63× |
+| § 6bl.6, the 20×'s axial split over the control's, the 10×'s | (1.24738, 0.98096 on stale splits) | — | 1.099×, 1.007× |
+
+§ 6bn.3's "§ 2r.2 REVERSED: it does not collapse" is gone: on current citations
+the exit layout's axial interaction collapses on the second interval as the aim
+layout's did, by 3.1× where that fell 21×. § 6bl.6's "saturating" reading
+strengthens: 1.091× over the first 2.5× of magnification and 1.007× over the
+next 2×. Every claim is amended where it stands.
+
+**Six bounds moved, flagged so they can be overruled:**
+
+| Rung | was | now | reading |
+|---|---|---|---|
+| § 2l.2, 32 against 720 rim rays' area | < 5e-8 | < 1e-14 | 1.8e-15 (tightened) |
+| § 2q.4, located at 8 against 32 sub-samples | span gap < 1e-9 | each patch < 5e-9 | 4.1e-9 |
+| § 6be.6, achromatic inside the clip | < 2.8e-7 | < 3.2e-7 | 3.14e-7 |
+| § 6bp.4, held-at-one-field gaps over the published | > 5, > 8 | > 3.9, > 5 | 3.99, 5.14 |
+| § 6bm, the edge move fast over slow | > 1.4× | > 1.3× | 1.39× |
+| § 6bn.3, the edge fall; the axial "no collapse" | > 15; < 1.1 | > 13; > 3 | 13.07; 3.08 |
+
+### What it leaves
+
+- **Vignetted rims** — register item 43, narrowed: where the reach varies the
+  outline is still the polygon, 6.8e-4 of the area misplaced on the DIN 4× at
+  1.1 mm. The fix wants the corner located — the aim angle where the reach
+  leaves 1 — and the curve built piecewise between corners. A rim clipped at
+  EVERY ray (`builder`'s 0.9946–0.9951, `fourth-corner`'s 0.8969–0.9597) has no
+  such corner from the start of a cut and could take the curve; not this step.
+- **`growth-measures` and `six-interactions`** cite § 6bp.3's splits and § 6bo.2's
+  plateau at eight figures from before § 2u (0.629422825 for a branch interaction
+  `matched-flat-field` reads 0.7024134) — measure chains built on those numbers
+  and not re-derived here. Register item 44.
 
 ## Step 3a — the standard observer and thermal sources
 

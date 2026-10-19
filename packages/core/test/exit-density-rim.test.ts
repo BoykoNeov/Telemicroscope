@@ -9,6 +9,7 @@ import { asCompiled, compile } from "../src/trace/compile";
 import { exitDensity } from "../src/wave/exit-density";
 import { laidPupil } from "../src/wave/psf";
 import { exitCoordinate, exitRim } from "../src/pupil/opd";
+import { rimOutline, rimPolygon, type RimOutline } from "../src/pupil/rim-outline";
 import { toImageSpace } from "../src/trace/axis";
 import { LINE_D } from "../src/materials/dispersion";
 import { emitterLaunchEnergy, exactPupilEnergy, exitDensityEnergy } from "./support/exitEnergy";
@@ -268,62 +269,81 @@ describe("§ 2u — the density's fits keep every node", () => {
   });
 
   it("the 32-ray outline moves light at 20 µm and nearly loses none: 2.5e-4 cut, 2.4e-4 taken in", () => {
-    // Per exit angle φ: the outline's radius as `rimSupport` interpolates it, and
-    // the traced rim's — the aim-circle ray landing at φ, bisected in aim angle.
-    // The light between them is |P(rim)|²·(r_p² − r_t²)/2 per radian, a strip
-    // under 2e-4 deep in exit radius. At the 256 angles here 2.5245e-4 cut and
-    // 2.3932e-4 reached past, −1.31e-5 net. At 1024 angles: 2.526e-4 cut, 2.396e-4
-    // reached past, −1.30e-5 net; at 720 rim rays 4.98e-7 and 4.73e-7, the
-    // polygon's 1/N². Item 35's "clips 3.5e-4 and then 6.4e-4" counted one side.
-    const system = oilField();
-    const h = 0.02;
-    const c = asCompiled(system.prescription);
-    const map = opdMap(system, h, L, pupilGrid(21));
-    const sigma = exitApertureSine(system, L);
-    const density = exitDensity(system, map, sigma);
-    const pts = exitRim(system, map)
-      .map((p) => ({ a: Math.atan2(p.py, p.px), r: Math.hypot(p.px, p.py) / sigma }))
-      .sort((u, v) => u.a - v.a);
-    const outline = (a: number) => {
-      let j = pts.findIndex((p) => p.a > a);
-      if (j < 0) j = 0;
-      const i = (j - 1 + pts.length) % pts.length;
-      let span = pts[j]!.a - pts[i]!.a;
-      let at = a - pts[i]!.a;
-      if (span <= 0) span += 2 * Math.PI;
-      if (at < 0) at += 2 * Math.PI;
-      return pts[i]!.r + ((pts[j]!.r - pts[i]!.r) * at) / span;
-    };
-    const rimAt = (t: number) => {
-      const res = traceRay(c, aimRay(system, map.pupil, h, { px: Math.cos(t), py: Math.sin(t) }, L));
-      const e = exitCoordinate(map, toImageSpace(c, res.ray!))!;
-      return [e[0] / sigma, e[1] / sigma] as const;
-    };
-    const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
-    const N = 256;
-    let cut = 0;
-    let past = 0;
-    for (let k = 0; k < N; k++) {
-      const phi = -Math.PI + (2 * Math.PI * (k + 0.5)) / N;
-      let lo = phi - 0.5;
-      let hi = phi + 0.5;
-      for (let it = 0; it < 55; it++) {
-        const m = (lo + hi) / 2;
-        const e = rimAt(m);
-        if (wrap(Math.atan2(e[1], e[0]) - phi) < 0) lo = m;
-        else hi = m;
-      }
-      const e = rimAt((lo + hi) / 2);
-      const rt = Math.hypot(e[0], e[1]);
-      const rp = outline(phi);
-      const dl = ((density.amplitude(e[0], e[1]) ** 2 * (rp * rp - rt * rt)) / 2) * ((2 * Math.PI) / N);
-      if (dl < 0) cut -= dl;
-      else past += dl;
+    // The outline as the support joined it until § 2v — the rim rays linear in
+    // exit angle, `rimPolygon` now — against the traced rim: a strip under 2e-4
+    // deep in exit radius. At the 256 angles here 2.5245e-4 cut and 2.3932e-4
+    // reached past, −1.31e-5 net. At 1024 angles: 2.526e-4 cut, 2.396e-4 reached
+    // past, −1.30e-5 net; at 720 rim rays 4.98e-7 and 4.73e-7, the polygon's
+    // 1/N². Item 35's "clips 3.5e-4 and then 6.4e-4" counted one side.
+    const { cut, past } = outlineStrips(oilField(), 0.02, rimPolygon);
+    expect(cut).toBeCloseTo(2.524486e-4, 9);
+    expect(past).toBeCloseTo(2.393214e-4, 9);
+    expect(Math.abs(past - cut)).toBeLessThan(2e-5);
+  });
+});
+
+/**
+ * The light between an outline and the traced rim, per side, as a fraction of
+ * the launches' (§ 2u, § 2v). Per exit angle φ: the outline's radius, and the
+ * traced rim's — the aim-circle ray landing at φ, bisected in aim angle. The
+ * light between them is |P(rim)|²·(r_p² − r_t²)/2 per radian, summed at 256
+ * angles.
+ */
+function outlineStrips(
+  system: OpticalSystem,
+  h: number,
+  build: (rim: ReturnType<typeof exitRim>, sigma: number) => RimOutline,
+): { cut: number; past: number } {
+  const c = asCompiled(system.prescription);
+  const map = opdMap(system, h, L, pupilGrid(21));
+  const sigma = exitApertureSine(system, L);
+  const density = exitDensity(system, map, sigma);
+  const outline = build(exitRim(system, map), sigma);
+  const rimAt = (t: number) => {
+    const res = traceRay(c, aimRay(system, map.pupil, h, { px: Math.cos(t), py: Math.sin(t) }, L));
+    const e = exitCoordinate(map, toImageSpace(c, res.ray!))!;
+    return [e[0] / sigma, e[1] / sigma] as const;
+  };
+  const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
+  const N = 256;
+  let cut = 0;
+  let past = 0;
+  for (let k = 0; k < N; k++) {
+    const phi = -Math.PI + (2 * Math.PI * (k + 0.5)) / N;
+    let lo = phi - 0.5;
+    let hi = phi + 0.5;
+    for (let it = 0; it < 55; it++) {
+      const m = (lo + hi) / 2;
+      const e = rimAt(m);
+      if (wrap(Math.atan2(e[1], e[0]) - phi) < 0) lo = m;
+      else hi = m;
     }
-    const total = emitterLaunchEnergy(system, h, L, { throughput: false });
-    expect(cut / total).toBeCloseTo(2.524486e-4, 9);
-    expect(past / total).toBeCloseTo(2.393214e-4, 9);
-    expect(Math.abs(past - cut) / total).toBeLessThan(2e-5);
+    const e = rimAt((lo + hi) / 2);
+    const rt = Math.hypot(e[0], e[1]);
+    const rp = outline.radiusAt(phi);
+    const dl = ((density.amplitude(e[0], e[1]) ** 2 * (rp * rp - rt * rt)) / 2) * ((2 * Math.PI) / N);
+    if (dl < 0) cut -= dl;
+    else past += dl;
+  }
+  const total = emitterLaunchEnergy(system, h, L, { throughput: false });
+  return { cut: cut / total, past: past / total };
+}
+
+/**
+ * § 2v — register item 43: the outline interpolated in aim angle.
+ *
+ * **Hypothesis:** the rim rays are aimed evenly around the aim circle, so their
+ * landings are equal-step samples of a smooth periodic curve, and the
+ * trigonometric interpolant through them is that curve to rounding; as the
+ * support, it puts no light on the wrong side of the traced rim. **Refuted by**
+ * either strip above 1e-12 of the light on the oil 100× at 10 or 20 µm, where
+ * the polygon's are 1.2e-4 and 2.5e-4.
+ */
+describe("§ 2v — the outline is the traced rim's curve", () => {
+  it.each([0.01, 0.02])("the oil 100× at %s mm: nothing on the wrong side of the rim, where the polygon moved 1e-4 each way", (h) => {
+    const { cut, past } = outlineStrips(oilField(), h, rimOutline);
+    expect(cut).toBeLessThan(1e-12);
+    expect(past).toBeLessThan(1e-12);
   });
 });
 

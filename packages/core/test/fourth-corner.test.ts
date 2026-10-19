@@ -449,18 +449,18 @@ const ANISO_F = 81.766377;
 const ANISO_10 = 16.868779;
 const ESC_4 = 0.0644316;
 const ESC_F = 0.614257;
-const ROF_AXIS_4 = 1220.0858;
-const ROF_AXIS_F = 1.8565748;
+const ROF_AXIS_4 = 1385.0697;
+const ROF_AXIS_F = 1.4159143;
 const ROF_EDGE_4 = 1.1675136;
-const ROF_EDGE_F = 1.9596655;
+const ROF_EDGE_F = 1.8285497;
 /**
  * § 6bk.1's CORRECTED-stage free-field axial gain on the control — deliberately
  * NOT § 6bk.5's axial 1.0177396, which is the same readout on the same lens in
  * the other convention. § 6bm.6 is what makes the choice safe.
  */
-const FREE_AXIS_4 = 1.00807;
+const FREE_AXIS_4 = 1.007040;
 /** § 6bl.6's, corrected stage, same readout, at 20×. */
-const FREE_AXIS_20 = 1.028246;
+const FREE_AXIS_20 = 1.029480;
 
 /**
  * The interaction: one lever's effect at the far end of the other lever, over
@@ -515,7 +515,7 @@ describe("§ 6bm.1 — the corner builds, the ruler barely moves, and every borr
     expect(C4().aniso).toBeCloseTo(ANISO_4, 4);
     expect(CF().aniso).toBeCloseTo(ANISO_F, 4);
 
-    expect(F10_CORR_AXIS().rendOverFree).toBeCloseTo(1549.0238, 3);
+    expect(F10_CORR_AXIS().rendOverFree).toBeCloseTo(1508.9125, 3);
     expect(spanOf(SURF10().colourMm) / Math.abs(SURF10().fieldDropMm[0]![2]!)).toBeCloseTo(2.118607, 5);
   });
 
@@ -655,9 +655,12 @@ describe("§ 6bm.4 — six readouts, six interactions, and an ordering that span
   it("no readout separates, and the two with no render in them are the two smallest", () => {
     // What the square is for. Every one of these would be 1 if the levers acted
     // independently, and none of them is. The ordering is stated as measured: the
-    // two render-free readouts sit at the bottom, and the largest — the escape —
-    // is 1.25× the next. § 2r.2: on the aim layout the flat field at the edge
-    // was 53.6, thirty times the next largest; on the exit layout it is 1.49. That the two smallest are the two
+    // two render-free readouts sit at the bottom, and the largest — the axial
+    // flat field, 2.306 — is 1.15× the next, the escape. (The escape was the
+    // largest, 1.25× and then 1.30× the next, until § 2v put § 6bk's splits back
+    // at their own readings: 1220.0858 and 1.8565748 had been cited since before
+    // § 2u.) § 2r.2: on the aim layout the flat field at the edge was 53.6,
+    // thirty times the next largest; on the exit layout it is 1.39. That the two smallest are the two
     // computed off `mosaicSeamShiftMm` is CONSISTENT with the split being about
     // the traced map rather than the defocused light — it is NOT isolated by this
     // data, 1.106 against 1.134 being no gap at all, and six readouts across one
@@ -676,10 +679,10 @@ describe("§ 6bm.4 — six readouts, six interactions, and an ordering that span
 
     expect(departure(anisoI)).toBeCloseTo(1.0166451, 6);
     expect(departure(costI)).toBeCloseTo(1.1060587, 6);
-    expect(departure(flatAxisI)).toBeCloseTo(1.5089040701372523, 6);
+    expect(departure(flatAxisI)).toBeCloseTo(2.3057497249272934, 6);
     expect(departure(escI)).toBeCloseTo(2.007231511613516, 5);
     expect(departure(plateauI)).toBeCloseTo(1.199636881784921, 6);
-    expect(departure(flatEdgeI)).toBeCloseTo(1.489049742478338, 5);
+    expect(departure(flatEdgeI)).toBeCloseTo(1.389421541530349, 5);
 
     // Not one of the six separates.
     for (const i of [anisoI, costI, flatAxisI, escI, plateauI, flatEdgeI]) {
@@ -691,7 +694,7 @@ describe("§ 6bm.4 — six readouts, six interactions, and an ordering that span
       .sort((a, b) => a - b);
     expect(ordered[0]!).toBe(departure(anisoI));
     expect(ordered[1]!).toBe(departure(costI));
-    expect(ordered[5]! / ordered[4]!).toBeCloseTo(1.3302578681698003, 4);
+    expect(ordered[5]! / ordered[4]!).toBeCloseTo(1.1487213665123328, 4);
   });
 
   it("the guard band's interaction: 11.94× of aperture at 4× becomes 20.09× at 10×", () => {
@@ -709,7 +712,7 @@ describe("§ 6bm.4 — six readouts, six interactions, and an ordering that span
     expect(EC()).toBeGreaterThan(E10());
   });
 
-  it("and § 6bk.5's sharpest sentence was a NA-0.10 sentence on the aim layout: 1.03× on the lever, 55.4× off it — 1.01× and 1.51× on the exit", () => {
+  it("and § 6bk.5's sharpest sentence was a NA-0.10 sentence on the aim layout: 1.03× on the lever, 55.4× off it — 1.01× and 1.40× on the exit", () => {
     // § 6bk.5 pinned that magnification barely touches the rendered-versus-free
     // split — 1.136× across the 2.5×, against the aperture's thousandfold — and
     // concluded the split is a property of the aperture. On the aim layout the
@@ -719,19 +722,21 @@ describe("§ 6bm.4 — six readouts, six interactions, and an ordering that span
     // 0.20, the largest reading in the square.
     //
     // § 2r.2 REVERSED. On the exit layout the aperture collapses the axial split
-    // less at 10× than at 4× — to 3.80 against 1.86, 2.05× apart — and at the
-    // edge magnification moves the split 1.011× at NA 0.10 and 1.505× at NA
-    // 0.20: larger at the fast aperture still, by 1.49×, not by fifty.
-    expect(F10_AXIS().rendOverFree).toBeCloseTo(1548.8019272560082, 3);
+    // less at 10× than at 4× — to 3.56 against 1.42, 2.51× apart — and at the
+    // edge magnification moves the split 1.011× at NA 0.10 and 1.404× at NA
+    // 0.20: larger at the fast aperture still, by 1.39×, not by fifty. (3.80
+    // against 1.86 and 1.505× by 1.49× until § 2v, on § 6bk's splits as they read
+    // before § 2u.)
+    expect(F10_AXIS().rendOverFree).toBeCloseTo(1508.6972000704727, 3);
     expect(FC_AXIS().rendOverFree).toBeCloseTo(3.5561460505797453, 7);
-    expect(FC_AXIS().rendOverFree / ROF_AXIS_F).toBeCloseTo(1.9154337603740745, 7);
+    expect(FC_AXIS().rendOverFree / ROF_AXIS_F).toBeCloseTo(2.511554583903662, 7);
 
     expect(F10_EDGE().rendOverFree).toBeCloseTo(1.1551247460749423, 7);
     expect(FC_EDGE().rendOverFree).toBeCloseTo(1.302086039264602, 7);
     expect(ROF_EDGE_4 / F10_EDGE().rendOverFree).toBeCloseTo(1.0107266651026825, 4);
-    expect(ROF_EDGE_F / FC_EDGE().rendOverFree).toBeCloseTo(1.5050109978801869, 4);
+    expect(ROF_EDGE_F / FC_EDGE().rendOverFree).toBeCloseTo(1.4043232511983128, 4);
     expect(ROF_EDGE_F / FC_EDGE().rendOverFree).toBeGreaterThan(
-      1.4 * (ROF_EDGE_4 / F10_EDGE().rendOverFree),
+      1.3 * (ROF_EDGE_4 / F10_EDGE().rendOverFree),
     );
     expect(ROF_EDGE_F / FC_EDGE().rendOverFree).toBeLessThan(2);
   });
@@ -777,30 +782,30 @@ describe("§ 6bm.5 — § 6bl.4's residual is the aperture's, and the anisotropy
 });
 
 describe("§ 6bm.6 — the free field's axial crossing was between 4× and 10× on the aim layout; on the exit there is none", () => {
-  it("the 10×'s corrected-stage gain is 1.0269 (0.97253 on the aim layout), so there is no crossing on the lever", () => {
+  it("the 10×'s corrected-stage gain is 1.0273 (0.97253 on the aim layout), so there is no crossing on the lever", () => {
     // § 6bl.6's open item. On the aim layout the free flat field's axial gain was
     // 1.01788 on the control and 0.972202 at 20× — one side of 1 and the other —
     // and the 10× read 0.97253, putting the crossing on the FIRST step. Below 1
     // means a calibration that makes the seam worse than leaving it alone.
     //
-    // § 2r.2 REVERSED. On the exit layout the three read 1.00807, 1.02690 and
-    // 1.02825: all above 1, rising with magnification. There is no crossing.
-    expect(F10_CORR_AXIS().freeGain).toBeCloseTo(1.026949514861834, 6);
+    // § 2r.2 REVERSED. On the exit layout the three read 1.00704, 1.02732 and
+    // 1.02948: all above 1, rising with magnification. There is no crossing.
+    expect(F10_CORR_AXIS().freeGain).toBeCloseTo(1.027321274432451, 6);
     expect(FREE_AXIS_4).toBeGreaterThan(1);
     expect(F10_CORR_AXIS().freeGain).toBeGreaterThan(FREE_AXIS_4);
     expect(FREE_AXIS_20).toBeGreaterThan(F10_CORR_AXIS().freeGain);
-    expect(FREE_AXIS_4 / F10_CORR_AXIS().freeGain).toBeCloseTo(0.9816159269870496, 6);
+    expect(FREE_AXIS_4 / F10_CORR_AXIS().freeGain).toBeCloseTo(0.9802580994502859, 6);
   });
 
-  it("and the convention this comparison could have died on is worth 0.046%, measured on this lens", () => {
-    // The trap. § 6bk pins the same readout on the same lens at 1.0080440 (axial
-    // stage) and 1.0080720 (corrected) — different numbers — so a step quoted
+  it("and the convention this comparison could have died on is worth 0.047%, measured on this lens", () => {
+    // The trap. § 6bk pins the same readout on the same lens at 1.0070154 (axial
+    // stage) and 1.0070397 (corrected) — different numbers — so a step quoted
     // across the two conventions would be a convention difference wearing a
     // physics result's clothes. Here both are measured on the 10× itself, and the
-    // convention is worth 4.6e-4 against the 4×-to-10× step's 1.9e-2: 40×
+    // convention is worth 4.7e-4 against the 4×-to-10× step's 1.9e-2: 40×
     // smaller. (2.6e-4 against the aim layout's crossing of 4.7e-2.)
-    expect(F10_AXIS().freeGain).toBeCloseTo(1.0264740716345158, 6);
-    expect(F10_CORR_AXIS().freeGain / F10_AXIS().freeGain).toBeCloseTo(1.0004631809418831, 7);
+    expect(F10_AXIS().freeGain).toBeCloseTo(1.0268392882654203, 6);
+    expect(F10_CORR_AXIS().freeGain / F10_AXIS().freeGain).toBeCloseTo(1.0004693881238658, 7);
     expect(F10_CORR_AXIS().freeGain / F10_AXIS().freeGain - 1).toBeLessThan(
       0.03 * (F10_CORR_AXIS().freeGain / FREE_AXIS_4 - 1),
     );
@@ -810,19 +815,19 @@ describe("§ 6bm.6 — the free field's axial crossing was between 4× and 10× 
   });
 
   it("what is NOT claimed: that the series then flattens", () => {
-    // 1.00807, 1.02690, 1.02825 invites "it steps up once and settles". The
-    // 10×-to-20× gap is 1.3e-3, and this file's own measurement of the stage
-    // convention on the 10× is 4.6e-4, while § 6bl's 20× surface was swept to
+    // 1.00704, 1.02732, 1.02948 invites "it steps up once and settles". The
+    // 10×-to-20× gap is 2.1e-3, and this file's own measurement of the stage
+    // convention on the 10× is 4.7e-4, while § 6bl's 20× surface was swept to
     // OUTER = 1.30 against the 1.25 used here — an unquantified third difference.
     // On the aim layout the gap sat inside twice the convention; on the exit it
-    // is 2.8 times it, and still a two-point trend beside an unquantified
+    // is 4.5 times it, and still a two-point trend beside an unquantified
     // difference — so the agreement is pinned as a reading and nothing is
     // inferred from it.
-    expect(F10_CORR_AXIS().freeGain / FREE_AXIS_20).toBeCloseTo(0.9987391294124499, 7);
+    expect(F10_CORR_AXIS().freeGain / FREE_AXIS_20).toBeCloseTo(0.9979030913009004, 7);
     expect(
       Math.abs(F10_CORR_AXIS().freeGain / FREE_AXIS_20 - 1) /
         Math.abs(F10_CORR_AXIS().freeGain / F10_AXIS().freeGain - 1),
-    ).toBeCloseTo(2.722198764102475, 3);
+    ).toBeCloseTo(4.467323718866153, 3);
   });
 
   it("the aperture's role-swap was the CONTROL's on the aim layout, and does not appear at 10×", () => {
@@ -851,9 +856,9 @@ describe("§ 6bm.6 — the free field's axial crossing was between 4× and 10× 
     // 1.2090451 ceiling.
     for (const f of [F10_AXIS(), F10_EDGE(), FC_AXIS(), FC_EDGE(), F10_CORR_AXIS()]) {
       expect(f.scannerVsRaw).toBeGreaterThanOrEqual(1);
-      expect(f.scannerVsRaw).toBeLessThanOrEqual(1.17607893);
+      expect(f.scannerVsRaw).toBeLessThanOrEqual(1.17599648);
     }
-    expect(F10_AXIS().scannerVsRaw).toBeCloseTo(1.1730341692717419, 6);
+    expect(F10_AXIS().scannerVsRaw).toBeCloseTo(1.1729728099845877, 6);
     expect(FC_AXIS().scannerVsRaw).toBeCloseTo(1.0025520247432556, 6);
     expect(FC_EDGE().scannerVsRaw).toBeCloseTo(1.1181999454681475, 6);
   });
@@ -903,6 +908,6 @@ describe("§ 6bm.7 — the refusal, and the signature that justified it did not 
     // reads 0.248×, this corner's signature — so on this layout the two lenses
     // refuse with the SAME signature, not different ones.
     expect(forced.interactionMm / fieldTerm).toBeCloseTo(0.21289900944902684, 6);
-    expect(forced.interactionMm / fieldTerm).toBeGreaterThan(5 * (4.919968e-4 / 1.273534e-2));
+    expect(forced.interactionMm / fieldTerm).toBeGreaterThan(5 * (4.920945e-4 / 1.273590e-2));
   });
 });

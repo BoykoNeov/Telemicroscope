@@ -930,7 +930,7 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     claims were investigated, not restated. `exitDensity`'s √-light fit still
     keeps the disc — item 35's candidate, left to it.
 43. **Off the axis the exit layout's outline moves light across the rim.** Found
-    at [§ 2u](VALIDATION.md#step-2u--the-densitys-fits-keep-every-node). `rimSupport` joins the 32 traced rim rays with the radius
+    at [§ 2u](VALIDATION.md#step-2u--the-densitys-fits-keep-every-node). ~~`rimSupport` joins the 32 traced rim rays with the radius
     linear in exit angle, and off the axis the traced rim is not centred on the
     chief ray, so the polygon cuts inside it on one side and reaches past it on
     the other: on the oil 100× at 20 µm 2.53e-4 of the light cut and 2.40e-4
@@ -940,7 +940,36 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     nodes miss the strip. *Candidate:* the outline interpolated in AIM angle,
     where the rim rays are evenly spaced and a trigonometric interpolant of the
     landing points is exact to rounding on a smooth rim — or more rays. Either
-    moves every off-axis exit reading, so it is a step of its own.
+    moves every off-axis exit reading, so it is a step of its own.~~
+
+    **Narrowed at [§ 2v](VALIDATION.md#step-2v--the-outline-is-the-rims-curve)** to rims whose reach varies.
+    Where every rim ray reaches the stop, `rimOutline` takes the trigonometric
+    curve in aim angle, and the strips are 3e-15 (2.5e-4 on the polygon). Where
+    the reach varies — some azimuths' stop-rim ray does not exist and the edge is
+    the farthest that does — the rim has a corner where the cut begins, the
+    curve rings there, and the outline stays the polygon; neither is the rim. On
+    the DIN 4× against a 4096-ray traced rim, as area misplaced over π: 0.5 mm,
+    no clip, polygon 1.9e-5 and curve 1.2e-9; 0.8 mm, one ray to 0.9982, 5.2e-5
+    and 8.4e-5; 1.1 mm, nine rays to 0.9346, 6.8e-4 and 3.8e-4. Most off-axis
+    pupils in the mosaic chains are of this kind (629 of the 778 distinct
+    file-and-reach cases one full run logged). *Candidate:* locate the corner —
+    the aim angle where the reach leaves 1, by bisection as `reachableExit`
+    already bisects the radius — and interpolate piecewise between corners. A rim
+    clipped at EVERY ray (`builder`'s 0.9946–0.9951, `fourth-corner`'s
+    0.8969–0.9597) has no corner from the start of a cut and could take the curve
+    as it stands. Either moves the vignetted readings, a restatement of its own.
+44. **Two measure chains cite § 6bp's readings from before § 2u.** Found at
+    [§ 2v](VALIDATION.md#step-2v--the-outline-is-the-rims-curve)'s citation audit. `growth-measures` and `six-interactions` pin
+    § 6bp.3's four `rendOverFree` splits at eight figures (`SPLIT_AXIS_BRANCH`
+    0.629422825, where `matched-flat-field` reads 0.7024134) and § 6bo.2's
+    plateau pair, and build their measures (`distanceGrowth` 0.7850130 and
+    1.1913738, § 6bt.4's perturbations) on them; nothing compares those
+    constants with a fresh reading, so they pass unchanged however far their
+    source moves. *Pin:* set each to its source's current reading, restate what
+    moves, and read whether § 6bt's and the six-interactions chain's verdicts
+    survive — the same audit § 2v ran on the § 6bm–§ 6bp chain, where two
+    verdicts did not. Better still, make each such constant an assertion
+    against its source so it cannot drift silently again.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;

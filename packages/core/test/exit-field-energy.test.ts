@@ -68,13 +68,14 @@ describe("§ 2l.1 — the brightness map is the light: no grid, the two layouts 
 
 describe("§ 2l.2 — the outline the grid sums inside is the aim circle's image", () => {
   it("the 32-ray rim holds the area of a 720-ray one, at every field", () => {
-    // The grid sums |P|² inside `exitCoordinatePupil`'s support, the 32 rim rays
-    // joined linearly in angle; § 2l.1 integrates over the image of the aim
-    // circle. They are one region if the two areas agree — the same
-    // construction on both sides, so neither carries a polygon's bias the
-    // other does not. Measured: 3e-15, 1.9e-10, 1.1e-8 at 0°, 1°, 2°.
+    // The grid sums |P|² inside `exitCoordinatePupil`'s support, the curve
+    // through the 32 rim rays (§ 2v); § 2l.1 integrates over the image of the
+    // aim circle. They are one region if the two areas agree — the same
+    // construction on both sides. Measured: 0, 1.8e-15, 1.6e-15 at 0°, 1°, 2°.
+    // The polygon in angle the support was until § 2v read 0, 1.9e-10, 1.1e-8,
+    // under the 5e-8 this bound was then.
     for (const f of [0, 1, 2]) {
-      expect(Math.abs(exitOutlineArea(achromat, f, L) / exitOutlineArea(achromat, f, L, 720) - 1)).toBeLessThan(5e-8);
+      expect(Math.abs(exitOutlineArea(achromat, f, L) / exitOutlineArea(achromat, f, L, 720) - 1)).toBeLessThan(1e-14);
     }
   });
 

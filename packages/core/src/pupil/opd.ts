@@ -542,8 +542,13 @@ export function canonicalApertureSine(
   return Math.abs(m) * Math.abs(pupils(system, wavelengthNm).exit.n) * Math.abs(exitApertureSine(system, wavelengthNm, options));
 }
 
-/** Rays around the stop's rim `exitRim` traces. Linear in angle between them. */
+/** Rays around the stop's rim `exitRim` traces, evenly spaced in aim angle. */
 export const RIM_RAYS = 32;
+
+/** A rim ray's landing, and how far out along its aim azimuth it was reachable (1 = the stop's rim). */
+export interface RimPoint extends PupilPoint {
+  readonly reach: number;
+}
 
 /**
  * The stop's rim as the transform sees it: `RIM_RAYS` rays aimed at the unit
@@ -559,13 +564,17 @@ export function exitRim(
   system: OpticalSystem,
   map: OpdMap,
   options: AimOptions = {},
-): readonly PupilPoint[] {
-  const out: PupilPoint[] = [];
-  for (let k = 0; k < RIM_RAYS; k++) {
-    const a = (2 * Math.PI * k) / RIM_RAYS;
+  rays = RIM_RAYS,
+): readonly RimPoint[] {
+  const out: RimPoint[] = [];
+  for (let k = 0; k < rays; k++) {
+    const a = (2 * Math.PI * k) / rays;
     // Off axis a rim ray can fail to exist where the axial one does; the edge of
     // the light along that azimuth is then the farthest ray that does.
-    const [x, y] = reachableExit(
+    const {
+      at: [x, y],
+      rho,
+    } = reachableExit(
       system,
       map,
       map.pupil,
@@ -574,8 +583,8 @@ export function exitRim(
       Math.sin(a),
       map.wavelengthNm,
       options,
-    ).at;
-    out.push({ px: x, py: y });
+    );
+    out.push({ px: x, py: y, reach: rho });
   }
   return out;
 }

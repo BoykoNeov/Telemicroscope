@@ -287,7 +287,7 @@ describe("§ 6bd.3 — the field varies fastest where § 6bc did not read it", (
     // the staircase, which at 23 samples is a different staircase. Resolved on
     // the aim layout, 23 samples read 3.2090e-3, 6.4833e-3 and 7.3036e-3 — the
     // rest of the gap is the frame, which is pupilSamples wide.
-    expect(at225.span).toBeCloseTo(3.1463e-3, 6);
+    expect(at225.span).toBeCloseTo(3.1435e-3, 6);
     expect(at450.span).toBeCloseTo(6.6540e-3, 6);
     expect(at600.span).toBeCloseTo(7.3148e-3, 6);
     // The comparison, stated so it cannot be read as a correction of § 6bc.4:
@@ -301,7 +301,7 @@ describe("§ 6bd.3 — the field varies fastest where § 6bc did not read it", (
     // beneath it: the clip begins inside this frame. The staircase read 3.0×,
     // the aim layout 1.1831.
     const deficit = 1 - spanAt(2.25).centre / spanAt(0).centre;
-    expect(at225.span / deficit).toBeCloseTo(1.2101, 3);
+    expect(at225.span / deficit).toBeCloseTo(1.2118, 3);
     expect(at225.span / deficit).toBeGreaterThan(1);
   });
 
@@ -312,7 +312,7 @@ describe("§ 6bd.3 — the field varies fastest where § 6bc did not read it", (
     // 0.997303 / 0.936682 / 0.888489 on the aim one, and 0.997365 / 0.936488 /
     // 0.888087 there at 23 samples, so the lattice is not what remains).
     const axial = spanAt(0).centre;
-    expect(spanAt(2.25).centre / axial).toBeCloseTo(0.997400, 6);
+    expect(spanAt(2.25).centre / axial).toBeCloseTo(0.997406, 6);
     expect(spanAt(4.5).centre / axial).toBeCloseTo(0.937047, 6);
     expect(spanAt(6).centre / axial).toBeCloseTo(0.889053, 6);
   });
@@ -339,8 +339,8 @@ describe("§ 6bd.4 — the error of one pupil has one sign", () => {
       });
       return four.weightedEmittedFlux / one.weightedEmittedFlux;
     };
-    expect(ratioAt(0)).toBeCloseTo(1.000000012, 8);
-    expect(ratioAt(2.25)).toBeCloseTo(0.99987847, 8);
+    expect(ratioAt(0)).toBeCloseTo(1.000000007, 8);
+    expect(ratioAt(2.25)).toBeCloseTo(0.99987853, 8);
     expect(ratioAt(4.5)).toBeCloseTo(0.99991930, 8);
     // stated as the finding rather than as three numbers
     expect(ratioAt(2.25)).toBeLessThan(1);
@@ -471,7 +471,7 @@ describe("§ 6bd.6 — what the patches buy is the phase, not the clip", () => {
     // throughput profile and no traced wavefront has the small half of the
     // effect everywhere.
     const axis = split(0);
-    expect(axis.amplitude).toBeCloseTo(1.346e-4, 7);
+    expect(axis.amplitude).toBeCloseTo(1.351e-4, 7);
     expect(axis.amplitude).toBeLessThan(axis.full / 100);
     // and the phase half alone misses the whole by less than the amplitude half
     expect(Math.abs(axis.phase - axis.full)).toBeLessThan(axis.amplitude);

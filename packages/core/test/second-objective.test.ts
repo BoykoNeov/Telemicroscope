@@ -467,9 +467,9 @@ describe("§ 6bk.1 — the seed reaches the render, and the control does not mov
     expect(F4_CORR_EDGE().rendered).toBeCloseTo(0.015120893109409818, 7);
     expect(F4_CORR_EDGE().free).toBeCloseTo(0.01294880299314637, 7);
     expect(F4_CORR_EDGE().rendOverFree).toBeCloseTo(1.1677442898523582, 4);
-    expect(F4_CORR_AXIS().rendOverFree).toBeCloseTo(1349.1479887815217, 3);
+    expect(F4_CORR_AXIS().rendOverFree).toBeCloseTo(1383.141941582124, 3);
     expect(F4_CORR_EDGE().freeGain).toBeCloseTo(55.02939054528365, 1);
-    expect(F4_CORR_AXIS().freeGain).toBeCloseTo(1.0077052971181015, 4);
+    expect(F4_CORR_AXIS().freeGain).toBeCloseTo(1.007039735203195, 4);
     // …and § 6bi's headline that a scanner's own calibration makes it 11% WORSE.
     expect(F4_CORR_EDGE().scannerVsRaw).toBeCloseTo(1.0995244139390026, 5);
 
@@ -656,7 +656,7 @@ describe("§ 6bk.5 — the flat field's two shares are the APERTURE's, and § 6b
     expect(Math.abs(F4_AX_EDGE().rendOverFree / F4_CORR_EDGE().rendOverFree - 1)).toBeLessThan(2e-3);
   });
 
-  it("on the axis the two flat fields differ 1351× at NA 0.10 and 1.42× at NA 0.20 — they coincided on the aim layout", () => {
+  it("on the axis the two flat fields differ 1385× at NA 0.10 and 1.42× at NA 0.20 — they coincided on the aim layout", () => {
     // § 6bi.3's headline was that on the axis the rendered and free fields swap
     // rank outright, 1193×, because the throughput is even in field radius and
     // therefore flat there while the rasterizer's Jacobian is not. Double the
@@ -666,10 +666,10 @@ describe("§ 6bk.5 — the flat field's two shares are the APERTURE's, and § 6b
     //
     // § 2r.2 WEAKENED. On the aim layout the NA 0.20 split was 0.99933 — the
     // two fields coincided, a 1195× collapse. On the exit layout it is 1.416:
-    // the aperture still collapses the split 954×, and the two fields no longer
+    // the aperture still collapses the split 978×, and the two fields no longer
     // land on top of each other. (1.857 and 657× until § 2u: the density's fit
     // had dropped its off-axis rim nodes, and the axial split is a residue.)
-    expect(F4_AX_AXIS().rendOverFree).toBeCloseTo(1351.0278706270865, 3);
+    expect(F4_AX_AXIS().rendOverFree).toBeCloseTo(1385.0696624191917, 3);
     expect(F20_AX_AXIS().rendOverFree).toBeCloseTo(1.4159142921470034, 7);
     expect(F4_AX_AXIS().rendOverFree / F20_AX_AXIS().rendOverFree).toBeGreaterThan(600);
     expect(F20_AX_AXIS().rendOverFree).toBeGreaterThan(1.4);
@@ -690,12 +690,12 @@ describe("§ 6bk.5 — the flat field's two shares are the APERTURE's, and § 6b
     expect(F20_AX_EDGE().rendOverFree / F20_AX_AXIS().rendOverFree).toBeLessThan(1.3);
   });
 
-  it("and MAGNIFICATION barely touches it — 1.15× across the 2.5× (1.136× on the aim layout)", () => {
+  it("and MAGNIFICATION barely touches it — 1.09× across the 2.5× (1.136× on the aim layout)", () => {
     // Against the aperture's thousandfold, on the same readout at the same field
     // positions. This is what § 6bk.2's separation buys: the split is a property
     // of the aperture and not of the objective's power.
-    expect(F10_CORR_AXIS().rendOverFree).toBeCloseTo(1549.023787322189, 3);
-    expect(F10_CORR_AXIS().rendOverFree / F4_CORR_AXIS().rendOverFree).toBeCloseTo(1.148149647186729, 5);
+    expect(F10_CORR_AXIS().rendOverFree).toBeCloseTo(1508.9125068175138, 3);
+    expect(F10_CORR_AXIS().rendOverFree / F4_CORR_AXIS().rendOverFree).toBeCloseTo(1.0909310617039967, 5);
     expect(F10_CORR_EDGE().rendOverFree).toBeCloseTo(1.1547558095010866, 6);
   });
 
@@ -711,7 +711,7 @@ describe("§ 6bk.5 — the flat field's two shares are the APERTURE's, and § 6b
     // equally, so there is no swap — the control's split is an edge-of-field one
     // and the fast lens's is not split by anything like it. (2.76× and 2.52×,
     // "about equally", until § 2u.)
-    expect(F4_AX_AXIS().freeGain).toBeCloseTo(1.0076786329475662, 6);
+    expect(F4_AX_AXIS().freeGain).toBeCloseTo(1.007015373172117, 6);
     expect(F4_AX_EDGE().freeGain).toBeCloseTo(71.87243048996875, 4);
     expect(F20_AX_AXIS().freeGain).toBeCloseTo(4.066072733732504, 3);
     expect(F20_AX_EDGE().freeGain).toBeCloseTo(2.9731424820942416, 6);
@@ -744,10 +744,10 @@ describe("§ 6bk.6 — the scanner verdict's SIGN travels and its size does not"
     // The size is another matter entirely: from doing nothing at all to 21% worse.
     expect(F20_AX_AXIS().scannerVsRaw).toBeCloseTo(1.000896563934938, 6);
     expect(F20_AX_EDGE().scannerVsRaw).toBeCloseTo(1.1339198384323084, 6);
-    expect(F10_CORR_AXIS().scannerVsRaw).toBeCloseTo(1.1760601081616318, 6);
+    expect(F10_CORR_AXIS().scannerVsRaw).toBeCloseTo(1.1759964719379172, 6);
     expect(F10_CORR_EDGE().scannerVsRaw).toBeCloseTo(1.0960895892787776, 6);
     const sizes = all.map((f) => f.scannerVsRaw);
-    expect(Math.max(...sizes) / Math.min(...sizes)).toBeCloseTo(1.1750066395852667, 5);
+    expect(Math.max(...sizes) / Math.min(...sizes)).toBeCloseTo(1.1749430208904372, 5);
   });
 
   it("and § 6bj's registration cost is the lens's — 41.8× to 132.9× over the three", () => {

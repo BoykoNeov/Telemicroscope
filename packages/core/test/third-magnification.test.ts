@@ -639,29 +639,32 @@ describe("§ 6bl.6 — the flat field on a third lens, and a gain that crossed b
     //
     // § 2r.2 REVERSED. On the aim layout the 20× read 0.97221 against the
     // control's 1.01788: below one. On the exit layout it reads 1.0282 against
-    // the control's 1.00807 — above one, and above the control: along the
+    // the control's 1.007040 — above one, and above the control: along the
     // magnification lever the axial gain RISES, so there is no crossing to find.
-    expect(F20_AXIS().freeGain).toBeCloseTo(1.0282949673416564, 7);
+    expect(F20_AXIS().freeGain).toBeCloseTo(1.0294799052202075, 7);
     expect(F20_AXIS().freeGain).toBeGreaterThan(1);
-    expect(F20_AXIS().freeGain).toBeGreaterThan(1.00807);
-    expect(1.00807 / F20_AXIS().freeGain).toBeCloseTo(0.9803315507865007, 5);
+    expect(F20_AXIS().freeGain).toBeGreaterThan(1.007040);
+    expect(1.007040 / F20_AXIS().freeGain).toBeCloseTo(0.9782026777730959, 5);
 
     // At the edge it still buys nearly everything, as on the control.
     expect(F20_EDGE().freeGain).toBeCloseTo(169.96514389437942, 4);
     expect(F20_EDGE().freeGain / F20_AXIS().freeGain).toBeGreaterThan(100);
   });
 
-  it("and § 6bk.5's 'magnification barely touches the split' holds across 5×, at 1.185×", () => {
+  it("and § 6bk.5's 'magnification barely touches the split' holds across 5×, at 1.099×", () => {
     // § 6bk measured 1.136× across 2.5× and called it barely-anything beside the
-    // aperture's 1195×. Across twice the lever it is 1.185× — still nothing, and
-    // now known to be SATURATING rather than merely small: 1.136× over the first
-    // 2.5× and 1.043× more over the next 2×.
-    expect(F20_AXIS().rendOverFree).toBeCloseTo(1582.57962757457, 4);
-    // § 6bk.5's control and 10× at the corrected stage, and its aperture
-    // collapse — 1220.1048 over 1.8565748 — of which this is under a tenth.
-    expect(F20_AXIS().rendOverFree / 1218.4117).toBeCloseTo(1.29889, 4);
-    expect(F20_AXIS().rendOverFree / 1549.3136).toBeCloseTo(1.02147, 4);
-    expect(F20_AXIS().rendOverFree / 1218.4117).toBeLessThan(1220.1048 / 1.8565748 / 10);
+    // aperture's 1195× (aim layout). Across twice the lever it is 1.099× — still
+    // nothing, and SATURATING rather than merely small: 1.091× over the first
+    // 2.5× and 1.007× more over the next 2×. (Until § 2v this rung divided by
+    // the control's and the 10×'s splits as they read before § 2t, 1218.4117 and
+    // 1549.3136, and read 1.24738 and 0.98096 on them.)
+    expect(F20_AXIS().rendOverFree).toBeCloseTo(1519.8217898567166, 4);
+    // § 6bk.5's control and 10× at the corrected stage (`second-objective`), and
+    // its aperture collapse — 1385.0697 over 1.4159143 — of which this is under
+    // a tenth.
+    expect(F20_AXIS().rendOverFree / 1383.1419).toBeCloseTo(1.09882, 4);
+    expect(F20_AXIS().rendOverFree / 1508.9125).toBeCloseTo(1.00723, 4);
+    expect(F20_AXIS().rendOverFree / 1383.1419).toBeLessThan(1385.0697 / 1.4159143 / 10);
 
     // And at the edge the split is flat outright — the 10× and the 20× agree to 0.2%.
     expect(F20_EDGE().rendOverFree).toBeCloseTo(1.1529062250026698, 6);
@@ -673,15 +676,15 @@ describe("§ 6bl.6 — the flat field on a third lens, and a gain that crossed b
     // scanner's repeating per-tile flat field is right for a stage scan and wrong
     // for a field-scanned mosaic, which is a statement about the GEOMETRY and not
     // the glass. Ten measurements over four lenses now, never once below one.
-    expect(F20_AXIS().scannerVsRaw).toBeCloseTo(1.189989355829002, 6);
+    expect(F20_AXIS().scannerVsRaw).toBeCloseTo(1.1897709480458394, 6);
     expect(F20_EDGE().scannerVsRaw).toBeCloseTo(1.0924426014715394, 6);
     expect(F20_AXIS().scannerVsRaw).toBeGreaterThanOrEqual(1);
     expect(F20_EDGE().scannerVsRaw).toBeGreaterThanOrEqual(1);
     // On the aim layout it stayed inside § 6bk.6's 1.209× ceiling. § 2r.2: the
     // exit layout's ceiling over § 6bk's eight is 1.1761 (the 10× on the axis),
     // and the 20× on the axis passes it by 1.2%.
-    expect(F20_AXIS().scannerVsRaw).toBeGreaterThan(1.1760789);
-    expect(F20_AXIS().scannerVsRaw / 1.1760789).toBeLessThan(1.012);
+    expect(F20_AXIS().scannerVsRaw).toBeGreaterThan(1.1759965);
+    expect(F20_AXIS().scannerVsRaw / 1.1759965).toBeLessThan(1.012);
   });
 
   it("and § 6bg's focus correction still helps on the third lens, as on every other", () => {

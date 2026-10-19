@@ -6,6 +6,7 @@ import { aimRay, pupilGrid } from "../../src/pupil/aiming";
 import { opdMap, exitApertureSine, exitCoordinate, exitRim, canonicalApertureSine } from "../../src/pupil/opd";
 import { laidPupil, type PupilLayout } from "../../src/wave/psf";
 import { exitDensity } from "../../src/wave/exit-density";
+import { rimOutline, rimPolygon } from "../../src/pupil/rim-outline";
 
 /**
  * § 2l — a traced pupil's transmitted energy with no FFT grid in it.
@@ -180,43 +181,35 @@ export function exitDensityEnergy(
 }
 
 /**
- * The area inside the exit layout's outline — the 32 traced rim rays joined
- * linearly in angle, as `exitCoordinatePupil`'s support joins them — against
- * the same construction on `rays` aimed rim points, which is the traced image
- * of the aim circle to the interpolation's own error. One scheme on both sides,
- * so neither carries a polygon's bias the other does not.
+ * The area inside the exit layout's outline — `exitCoordinatePupil`'s own,
+ * `rimOutline` through the 32 traced rim rays — against the same construction
+ * on `rays` aimed rim points, the traced image of the aim circle to the
+ * interpolation's own error. One scheme on both sides, so neither carries a
+ * bias the other does not. `polygon` reads § 2l–§ 2u's outline instead, the rim
+ * rays joined linearly in exit angle.
  */
 export function exitOutlineArea(
   system: OpticalSystem,
   fieldValue: number,
   wavelengthNm: number,
   rays?: number,
+  polygon = false,
 ): number {
   const c = asCompiled(system.prescription);
   const map = opdMap(system, fieldValue, wavelengthNm, pupilGrid(21));
   const sigma = exitApertureSine(system, wavelengthNm);
   const rim =
     rays === undefined
-      ? exitRim(system, map).map((p) => [p.px / sigma, p.py / sigma] as const)
+      ? exitRim(system, map)
       : Array.from({ length: rays }, (_, k) => {
           const a = (2 * Math.PI * k) / rays;
           const res = traceRay(c, aimRay(system, map.pupil, fieldValue, { px: Math.cos(a), py: Math.sin(a) }, wavelengthNm, {}));
           if (res.status !== "ok" || !res.ray) throw new Error("exitOutlineArea: a rim ray did not trace");
           const e = exitCoordinate(map, toImageSpace(c, res.ray));
           if (e === null) throw new Error("exitOutlineArea: a rim ray missed the reference sphere");
-          return [e[0] / sigma, e[1] / sigma] as const;
+          return { px: e[0], py: e[1], reach: 1 };
         });
-  const pts = rim.map(([x, y]) => ({ a: Math.atan2(y, x), r: Math.hypot(x, y) })).sort((u, v) => u.a - v.a);
-  // ½∮ r(φ)² dφ, r linear in φ between rim angles: exact per segment.
-  let area = 0;
-  for (let k = 0; k < pts.length; k++) {
-    const p = pts[k]!;
-    const q = pts[(k + 1) % pts.length]!;
-    let span = q.a - p.a;
-    if (span <= 0) span += 2 * Math.PI;
-    area += (span * (p.r * p.r + p.r * q.r + q.r * q.r)) / 6;
-  }
-  return area;
+  return (polygon ? rimPolygon(rim, sigma) : rimOutline(rim, sigma)).area;
 }
 
 /** Gauss–Legendre nodes and weights on [0, 1], by Newton on Pₙ. */

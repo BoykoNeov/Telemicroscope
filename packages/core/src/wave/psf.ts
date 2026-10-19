@@ -2,6 +2,7 @@ import { fft2d, fftShift2d, isPowerOfTwo } from "../math/fft";
 import { OpticalSystem } from "../trace/system";
 import { AimOptions, pupilGrid } from "../pupil/aiming";
 import { OpdMap, OpdSample, exitApertureSine, exitRim, opdMap, vignetteMask } from "../pupil/opd";
+import { rimOutline } from "../pupil/rim-outline";
 import { MAX_ZERNIKE_TERMS, ZernikeFit, fitZernike, wavefrontSampler } from "./zernike";
 import { OpdSampling, opdSampling } from "./fidelity";
 import { withPhaseScreen, type PhaseScreen } from "./seeing";
@@ -1042,8 +1043,9 @@ export function laidPupil(
  * caller-built pupils have; through § 2f's off-axis mirror segment that miscounted
  * the vesica by 6e-4 and grew with the grid.
  *
- * The EDGE is the traced rim (`exitRim`), interpolated in angle — on the axis of
- * a symmetric system a circle to rounding, whatever the mapping. The masks that
+ * The EDGE is the traced rim (`exitRim`) joined by `rimOutline` — the curve
+ * through the rim rays, interpolated in aim angle (§ 2v); on the axis of a
+ * symmetric system a circle to rounding, whatever the mapping. The masks that
  * belong to the entrance pupil — obstruction, vanes, vignetting — are tested
  * where a fitted inverse sends the point back to the aim; that fit is only
  * built when one of them is present. On § 2f's mirror it is exact to 1e-15 — the
@@ -1065,7 +1067,7 @@ export function exitCoordinatePupil(
   // Every traced sample: off the axis the rim leaves the unit circle, and the
   // support below is that rim (§ 2t).
   const fit = fitZernike(exitSamples, options.zernikeTerms ?? 28, "samples");
-  const support = rimSupport(exitRim(system, map, aim), sigma);
+  const support = rimOutline(exitRim(system, map, aim), sigma).inside;
 
   const vignette =
     map.lost > 0
@@ -1102,49 +1104,6 @@ export function exitCoordinatePupil(
     laidMap: exitMap,
     apertureSine: sigma,
     density,
-  };
-}
-
-/**
- * Inside the traced rim? The rim is a closed curve around the chief ray (the
- * origin), sampled at `RIM_RAYS` angles; its radius is interpolated linearly in
- * angle, which is exact for a circle and good to the curve's own curvature
- * otherwise.
- */
-function rimSupport(
-  rim: readonly { readonly px: number; readonly py: number }[],
-  sigma: number,
-): (px: number, py: number) => boolean {
-  const pts = rim
-    .map((p) => {
-      const x = p.px / sigma;
-      const y = p.py / sigma;
-      return { a: Math.atan2(y, x), r: Math.hypot(x, y) };
-    })
-    .sort((u, v) => u.a - v.a);
-  const n = pts.length;
-  const angles = Float64Array.from(pts, (p) => p.a);
-  const radii = Float64Array.from(pts, (p) => p.r);
-  return (px, py) => {
-    const r = Math.hypot(px, py);
-    if (r === 0) return true;
-    const a = Math.atan2(py, px);
-    // First rim angle above a; the one before it (wrapping) brackets it.
-    let lo = 0;
-    let hi = n;
-    while (lo < hi) {
-      const mid = (lo + hi) >> 1;
-      if (angles[mid]! <= a) lo = mid + 1;
-      else hi = mid;
-    }
-    const j = lo % n;
-    const i = (lo - 1 + n) % n;
-    let span = angles[j]! - angles[i]!;
-    let at = a - angles[i]!;
-    if (span <= 0) span += 2 * Math.PI;
-    if (at < 0) at += 2 * Math.PI;
-    const edge = radii[i]! + ((radii[j]! - radii[i]!) * at) / span;
-    return r <= edge;
   };
 }
 

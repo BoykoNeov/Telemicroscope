@@ -238,9 +238,12 @@ describe("§ 2q.4 — the edge is located, not counted", () => {
 
   it("on the exit layout the 4×'s on-axis frame reads the light's own span, not the grid's", () => {
     // The reading that needed it. Sixteen patch pupils across the on-axis frame
-    // (24 samples, 550 nm). Counted, 1.31e-4 of the light; located, 9.91e-9 at 8
-    // sub-samples and 9.73e-9 at 32, against 1.460e-8 grid-free — 4.7e-9 apart,
-    // the interior lattice's own share, and no longer moving with the sub-grid.
+    // (24 samples, 550 nm). Counted, 1.31e-4 of the light; located, 1.700e-8 at 8
+    // sub-samples, 9.44e-9 at 32 and 1.004e-8 at 128, against 1.460e-8 grid-free:
+    // within 6e-9, the interior lattice's own share. Per tile, 8 sub-samples sit
+    // within 4.1e-9 of 32, of either sign — on § 2v's outline, the traced rim;
+    // on the polygon before it every tile erred the same way (1.0e-9 to 4.0e-9),
+    // the span cancelled them, and 8 and 32 agreed to 1.8e-10 (9.91e-9, 9.73e-9).
     // (4.76e-9, 5.44e-9 and 9.49e-9 until § 2u fitted the density's every node.)
     // On the aim layout all three read 1.97e-8. Before § 2q.5 the grid-free span
     // was 2.43e-6 and the located 2.48e-6: the rim nodes' densities, whose
@@ -275,7 +278,8 @@ describe("§ 2q.4 — the edge is located, not counted", () => {
     expect(truth).toBeCloseTo(1.46035e-8, 12);
     expect(Math.abs(span(located8) - truth)).toBeLessThan(6e-9);
     expect(Math.abs(span(located32) - truth)).toBeLessThan(6e-9);
-    expect(Math.abs(span(located8) - span(located32))).toBeLessThan(1e-9);
+    // Tile by tile, 8 sub-samples locate the light to within 5e-9 of 32.
+    for (let i = 0; i < located8.length; i++) expect(Math.abs(located8[i]! / located32[i]! - 1)).toBeLessThan(5e-9);
     expect(span(counted) / truth).toBeGreaterThan(25);
   });
 });

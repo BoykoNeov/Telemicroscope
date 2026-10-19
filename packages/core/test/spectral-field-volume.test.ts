@@ -459,8 +459,8 @@ describe("§ 6be — the third axis", () => {
       // 7.96e-4, the off-axis rim back in the fit, and the others were not re-read.) The traced bundle off the axis is displaced
       // from its chief ray by a share that is a colour (the test below), and the
       // aim layout, which lays every rim on the unit circle, could not see it.
-      expect(interaction(0.4)).toBeCloseTo(7.962862e-4, 7);
-      expect(interaction(0.8)).toBeCloseTo(7.236205e-3, 7);
+      expect(interaction(0.4)).toBeCloseTo(7.949718e-4, 7);
+      expect(interaction(0.8)).toBeCloseTo(7.233703e-3, 7);
       expect(interaction(1.1)).toBeCloseTo(6.479721e-3, 7);
 
       expect(interaction(0.4)).toBeGreaterThan(3e-4);
@@ -717,7 +717,7 @@ describe("§ 6be — the third axis", () => {
   });
 
   describe("§ 6be.6 — the amplitude half: achromatic inside the clip, 0.2% chromatic past it", () => {
-    it("2.7e-7 across the band out to 2 mm, 0.16–0.23% past 2.25 mm, on every lattice", () => {
+    it("3.1e-7 across the band out to 2 mm, 0.16–0.23% past 2.25 mm, on every lattice", () => {
       const lambdas = [430, 480, 530, DESIGN, RED];
       const shadingAt = (ps: number, rs: readonly number[]) => {
         const profiles = lambdas.map((nm) => {
@@ -742,9 +742,10 @@ describe("§ 6be — the third axis", () => {
       const read = (row: readonly number[], r: number) => row[radii.indexOf(r)]!;
 
       for (const row of table) {
-        // Inside the clip: achromatic to 2.7e-7 on every lattice (1.7e-7 on the
-        // aim layout; the exit layout's displaced rim is a colour, § 2q.6).
-        for (const r of [0, 1, 2]) expect(read(row, r)).toBeLessThan(2.8e-7);
+        // Inside the clip: achromatic to 3.1e-7 on every lattice (2.7e-7 until
+        // § 2v's outline, 1.7e-7 on the aim layout; the exit layout's displaced
+        // rim is a colour, § 2q.6).
+        for (const r of [0, 1, 2]) expect(read(row, r)).toBeLessThan(3.2e-7);
         // The onset § 6be.2 reads in the pupil's rim, read here in what it
         // transmits: under 1e-6 at 2.00 mm, over 5e-4 at 2.25 mm.
         expect(read(row, 2)).toBeLessThan(1e-6);
@@ -759,8 +760,8 @@ describe("§ 6be — the third axis", () => {
         }
       }
       // (1.68784e-7 and 1.68891e-7 on the aim layout.)
-      expect(read(table[0]!, 2)).toBeCloseTo(2.50128e-7, 11);
-      expect(read(table[2]!, 2)).toBeCloseTo(2.0829e-7, 11);
+      expect(read(table[0]!, 2)).toBeCloseTo(3.14478e-7, 11);
+      expect(read(table[2]!, 2)).toBeCloseTo(1.3035e-7, 11);
 
       // And it does NOT fall as the lattice refines: on the exit layout it is
       // one number on all three, to 1.2e-4 of itself. The counted edge read
@@ -809,7 +810,7 @@ describe("§ 6be — the third axis", () => {
       // and the field is 2.2 mm across, so § 6be.3's spread is a MOSAIC
       // quantity and no patch count within one frame reaches it.
       expect(2 * half).toBeCloseTo(0.10334, 4);
-      expect(tilt).toBeLessThan(0.25 * 0.242900);
+      expect(tilt).toBeLessThan(0.25 * 0.242905);
     });
   });
 
