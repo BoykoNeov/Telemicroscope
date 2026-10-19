@@ -568,8 +568,8 @@ describe("§ 6bj.6 — the aberration is the anchor's, everywhere, and uniform i
     // aim layout it was also the BEST tile, so the same collapse was a gain
     // everywhere — "same mechanism, opposite verdict". On the exit layout it
     // reads the LARGEST of the nine, 0.34088 against the eight around it from
-    // 0.33337 (0.33287–0.33344 before § 2t): REVERSED at § 2r.2. § 2x traced it
-    // to where the guard looks, not to the glass — the rung below.
+    // 0.33337 (0.33287–0.33344 before § 2t): REVERSED at § 2r.2. § 2x explained
+    // it by which rim nodes the lattice lights off the axis — the rung below.
     const axisField = AXIS_FIELD_BLANK.tiles.map((t) => t.volume.maxGridPhaseStepWaves);
     expect(Object.is(AXIS_STAGE_BLANK.maxGridPhaseStepWaves, axisField[4])).toBe(true);
     expect(Object.is(AXIS_STAGE_BLANK.maxGridPhaseStepWaves, Math.max(...axisField))).toBe(true);

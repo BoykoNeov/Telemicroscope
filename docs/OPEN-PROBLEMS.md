@@ -899,8 +899,9 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     ρ = 1 and its inward neighbour. Off the axis the rim step tilts ±2% across
     the pupil, and the exit layout lights only the gentle side's rim node, so
     the guard reports the gentle pair; the stage is not it. On a pair every
-    tile lights the anchor is the gentlest, the aim layout's ordering, so
-    § 6bj.6's reversal was the guard's sampling. The eight sit 0.0506 mm out
+    tile lights, the anchor's steepest side is the least steep of the nine —
+    the aim layout's ordering — so § 6bj.6's reversal stands as a reading of
+    the guard and is explained by which rim nodes it lights. The eight sit 0.0506 mm out
     (object side), not 0.13. The first hypothesis (nodes leaving the rim) was
     refuted on the way.
 40. **§ 6bo.2's plateau interaction moves 11.6% at a matched field while its
