@@ -939,7 +939,7 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     margin. The re-run moved ~300 readings, restated there; three exactness
     claims were investigated, not restated. `exitDensity`'s √-light fit still
     keeps the disc — item 35's candidate, left to it.
-43. **Off the axis the exit layout's outline moves light across the rim.** Found
+43. ~~**Off the axis the exit layout's outline moves light across the rim.**~~ **Closed at [§ 2y](VALIDATION.md#step-2y--the-outline-turns-at-the-rims-corners)**: each corner bisected in aim angle, each arc a Chebyshev polynomial — 1e-15 of the area misplaced over π on all four cornered rims read, 1.4e-12 on a rim cut all round. Left, and recorded there rather than opened: a cut narrower than the rim rays' spacing that no arc node lands in is not seen, as before. Found
     at [§ 2u](VALIDATION.md#step-2u--the-densitys-fits-keep-every-node). ~~`rimSupport` joins the 32 traced rim rays with the radius
     linear in exit angle, and off the axis the traced rim is not centred on the
     chief ray, so the polygon cuts inside it on one side and reaches past it on
@@ -953,7 +953,7 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     moves every off-axis exit reading, so it is a step of its own.~~
 
     **Narrowed at [§ 2v](VALIDATION.md#step-2v--the-outline-is-the-rims-curve)** to rims whose reach varies.
-    Where every rim ray reaches the stop, `rimOutline` takes the trigonometric
+    ~~Where every rim ray reaches the stop, `rimOutline` takes the trigonometric
     curve in aim angle, and the strips are 3e-15 (2.5e-4 on the polygon). Where
     the reach varies — some azimuths' stop-rim ray does not exist and the edge is
     the farthest that does — the rim has a corner where the cut begins, the
@@ -967,7 +967,7 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     already bisects the radius — and interpolate piecewise between corners. A rim
     clipped at EVERY ray (`builder`'s 0.9946–0.9951, `fourth-corner`'s
     0.8969–0.9597) has no corner from the start of a cut and could take the curve
-    as it stands. Either moves the vignetted readings, a restatement of its own.
+    as it stands. Either moves the vignetted readings, a restatement of its own.~~
 44. ~~**Two measure chains cite § 6bp's readings from before § 2u.** Found at
     [§ 2v](VALIDATION.md#step-2v--the-outline-is-the-rims-curve)'s citation audit. `growth-measures` and `six-interactions` pin
     § 6bp.3's four `rendOverFree` splits at eight figures (`SPLIT_AXIS_BRANCH`
