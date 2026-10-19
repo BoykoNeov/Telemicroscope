@@ -832,13 +832,13 @@ describe("§ 6bo.5 — the plateau is field-free, so the refusal boundary is rea
 
 describe("§ 6bo.6 — the escape keeps its sign and loses a quarter of its size", () => {
   it("the branch's path overstates the aperture's effect by 1.28×", () => {
-    expect(E20_A() / E10_A()).toBeCloseTo(15.463978657993055, 8);
-    expect(E20M_A() / E10_A()).toBeCloseTo(11.80129162041572, 8);
-    expect(E20_A() / E20M_A()).toBeCloseTo(1.310363234414193, 9);
+    expect(E20_A() / E10_A()).toBeCloseTo(15.464114997240967, 8);
+    expect(E20M_A() / E10_A()).toBeCloseTo(11.801386630819795, 8);
+    expect(E20_A() / E20M_A()).toBeCloseTo(1.310364237779975, 9);
 
-    expect(E20_B() / E10_B()).toBeCloseTo(14.215880402622647, 8);
-    expect(E20M_B() / E10_B()).toBeCloseTo(10.668715833725262, 8);
-    expect(E20_B() / E20M_B()).toBeCloseTo(1.332482805257997, 9);
+    expect(E20_B() / E10_B()).toBeCloseTo(14.216019733384357, 8);
+    expect(E20M_B() / E10_B()).toBeCloseTo(10.668803742775122, 8);
+    expect(E20_B() / E20M_B()).toBeCloseTo(1.3324848854785054, 9);
   });
 
   it("and that 1.31× carries a pixel-count term, which is under 0.82% and not 31%", () => {
@@ -847,9 +847,9 @@ describe("§ 6bo.6 — the escape keeps its sign and loses a quarter of its size
     // same field, four times the pixels — the term is under 0.82% (0.78% on the
     // aim layout), so it is named rather than left implied, and the inflation is
     // 1.318× once it is removed (1.2902× on the aim layout).
-    expect(E20_A_FINE() / E20_A()).toBeCloseTo(1.0058991604268976, 9);
-    expect(E10_A_FINE() / E10_A()).toBeCloseTo(1.0081253809374655, 9);
-    expect(E20_A_FINE() / E20M_A()).toBeCloseTo(1.3180932773515108, 9);
+    expect(E20_A_FINE() / E20_A()).toBeCloseTo(1.0058991662311365, 9);
+    expect(E10_A_FINE() / E10_A()).toBeCloseTo(1.0081253141171167, 9);
+    expect(E20_A_FINE() / E20M_A()).toBeCloseTo(1.3180942942419756, 9);
     for (const t of [E20_A_FINE() / E20_A(), E10_A_FINE() / E10_A()]) expect(Math.abs(t - 1)).toBeLessThan(0.0082);
   });
 
@@ -867,11 +867,11 @@ describe("§ 6bo.6 — the escape keeps its sign and loses a quarter of its size
     // axial stage. Two stages a sweep step apart move one lens by 1.1% and the
     // other by under 8% (0.41% and 6.7% on the aim layout) — small against
     // 15.5×, and the first bound anyone has put on that convention.
-    expect(Math.abs(E10_B() / E10_A() - 1)).toBeCloseTo(0.011090041975067244, 9);
+    expect(Math.abs(E10_B() / E10_A() - 1)).toBeCloseTo(0.011089523157459036, 9);
     expect(Math.abs(E10_B() / E10_A() - 1)).toBeLessThan(0.012);
     expect(Math.abs(E20_B() / E20_A() - 1)).toBeLessThan(0.08);
-    expect(E10_A()).toBeCloseTo(0.02469557520302168, 9);
-    expect(E20_A()).toBeCloseTo(0.38189184788638975, 9);
+    expect(E10_A()).toBeCloseTo(0.024695375983782464, 9);
+    expect(E20_A()).toBeCloseTo(0.3818921341133148, 9);
   });
 });
 

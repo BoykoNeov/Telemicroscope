@@ -1,7 +1,7 @@
 import { fft2d, fftShift2d, isPowerOfTwo } from "../math/fft";
 import { OpticalSystem } from "../trace/system";
 import { AimOptions, pupilGrid } from "../pupil/aiming";
-import { OpdMap, OpdSample, exitApertureSine, exitRim, opdMap, vignetteMask } from "../pupil/opd";
+import { OpdMap, OpdSample, exitApertureSine, exitRim, exitRimArcs, opdMap, vignetteMask } from "../pupil/opd";
 import { rimOutline } from "../pupil/rim-outline";
 import { MAX_ZERNIKE_TERMS, ZernikeFit, fitZernike, wavefrontSampler } from "./zernike";
 import { OpdSampling, opdSampling } from "./fidelity";
@@ -1044,8 +1044,10 @@ export function laidPupil(
  * the vesica by 6e-4 and grew with the grid.
  *
  * The EDGE is the traced rim (`exitRim`) joined by `rimOutline` — the curve
- * through the rim rays, interpolated in aim angle (§ 2v); on the axis of a
- * symmetric system a circle to rounding, whatever the mapping. The masks that
+ * through the rim rays, interpolated in aim angle (§ 2v), or where the edge
+ * changes around the rim, its arcs between located corners (`exitRimArcs`,
+ * § 2y); on the axis of a symmetric system a circle to rounding, whatever the
+ * mapping. The masks that
  * belong to the entrance pupil — obstruction, vanes, vignetting — are tested
  * where a fitted inverse sends the point back to the aim; that fit is only
  * built when one of them is present. On § 2f's mirror it is exact to 1e-15 — the
@@ -1067,7 +1069,8 @@ export function exitCoordinatePupil(
   // Every traced sample: off the axis the rim leaves the unit circle, and the
   // support below is that rim (§ 2t).
   const fit = fitZernike(exitSamples, options.zernikeTerms ?? 28, "samples");
-  const support = rimOutline(exitRim(system, map, aim), sigma).inside;
+  const rim = exitRim(system, map, aim);
+  const support = rimOutline(rim, sigma, exitRimArcs(system, map, rim, aim)).inside;
 
   const vignette =
     map.lost > 0

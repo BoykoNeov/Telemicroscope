@@ -464,12 +464,12 @@ describe("§ 6bh.5 — the seam's focus step is a FIELD quantity", () => {
     // focus surface is EVEN in field radius, so its gradient vanishes on axis
     // and a seam there joins two tiles that wanted the same stage.
     expect(axis).toBeCloseTo(0.0001734352935287009, 14);
-    expect(edge).toBeCloseTo(0.006681259548172641, 13);
-    expect(edge / axis).toBeCloseTo(38.52306766538838, 10);
+    expect(edge).toBeCloseTo(0.0066810200678310006, 13);
+    expect(edge / axis).toBeCloseTo(38.52168686026638, 10);
   });
 
   it("and reaches a sixth of a depth of focus at the field edge", () => {
-    // 0.00401 against 0.15458 depths of focus (0.00416 and 0.15903 on the aim
+    // 0.00401 against 0.15457 depths of focus (0.00416 and 0.15903 on the aim
     // layout, § 2r.2). The axial figure is under
     // § 6be.2's 1.2e-3 mm estimator floor and is bookkeeping. The edge figure
     // LANDS AT half § 6bg.8's 0.3183 in-frame tilt, which is the same kind of
@@ -479,7 +479,7 @@ describe("§ 6bh.5 — the seam's focus step is a FIELD quantity", () => {
     // (32 against 48 pupil samples) at different radii, so the agreement is
     // suggestive and is not pinned as an identity.
     expect(seamStepMm(0) / DOF430).toBeCloseTo(0.004012556939997724, 13);
-    expect(seamStepMm(4) / DOF430).toBeCloseTo(0.15457600251075607, 12);
+    expect(seamStepMm(4) / DOF430).toBeCloseTo(0.154570461951581, 12);
     expect(seamStepMm(0)).toBeLessThan(1.2e-3);
   });
 });

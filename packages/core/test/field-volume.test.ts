@@ -288,8 +288,8 @@ describe("§ 6bd.3 — the field varies fastest where § 6bc did not read it", (
     // the aim layout, 23 samples read 3.2090e-3, 6.4833e-3 and 7.3036e-3 — the
     // rest of the gap is the frame, which is pupilSamples wide.
     expect(at225.span).toBeCloseTo(3.1435e-3, 6);
-    expect(at450.span).toBeCloseTo(6.6540e-3, 6);
-    expect(at600.span).toBeCloseTo(7.3148e-3, 6);
+    expect(at450.span).toBeCloseTo(6.6527e-3, 6);
+    expect(at600.span).toBeCloseTo(7.3134e-3, 6);
     // The comparison, stated so it cannot be read as a correction of § 6bc.4:
     // that rung's figure is the AXIS-to-2.25 mm ratio; this is the span across
     // one frame whose patch centres cover only these radii.
@@ -313,8 +313,8 @@ describe("§ 6bd.3 — the field varies fastest where § 6bc did not read it", (
     // 0.888087 there at 23 samples, so the lattice is not what remains).
     const axial = spanAt(0).centre;
     expect(spanAt(2.25).centre / axial).toBeCloseTo(0.997406, 6);
-    expect(spanAt(4.5).centre / axial).toBeCloseTo(0.937047, 6);
-    expect(spanAt(6).centre / axial).toBeCloseTo(0.889053, 6);
+    expect(spanAt(4.5).centre / axial).toBeCloseTo(0.9370693, 6);
+    expect(spanAt(6).centre / axial).toBeCloseTo(0.8890829, 6);
   });
 });
 
@@ -324,7 +324,7 @@ describe("§ 6bd.4 — the error of one pupil has one sign", () => {
     // cut-off segment grows as depth^{3/2} once it does — so the centre value
     // sits above its own frame average wherever the frame is (Jensen). The
     // staircase rim read 1.00112776 at 4.5 mm and called the sign radius-
-    // dependent; resolved, 0.99991930 there on the exit layout (§ 2q.6), and on
+    // dependent; resolved, 0.99991931 there on the exit layout (§ 2q.6), and on
     // the aim one 0.99986837, 0.999787 at 23 samples. On the axis the frame and
     // its centre agree to 2.3e-9 (the aim layout's 1e-8 the other way), under
     // the exit density's 7e-8 (§ 2q.5).
@@ -341,7 +341,7 @@ describe("§ 6bd.4 — the error of one pupil has one sign", () => {
     };
     expect(ratioAt(0)).toBeCloseTo(1.000000007, 8);
     expect(ratioAt(2.25)).toBeCloseTo(0.99987853, 8);
-    expect(ratioAt(4.5)).toBeCloseTo(0.99991930, 8);
+    expect(ratioAt(4.5)).toBeCloseTo(0.999919312, 8);
     // stated as the finding rather than as three numbers
     expect(ratioAt(2.25)).toBeLessThan(1);
     expect(ratioAt(4.5)).toBeLessThan(1);
@@ -520,8 +520,8 @@ describe("§ 6bd.7 — the haze fraction is the specimen's only if the specimen 
     expect(flat).toBeCloseTo(0.2, 12);
     // Resolved on the exit layout (§ 2q.6); the aim layout read 0.19937138 and
     // −3.1431e-3, the staircase 0.19927341 and −3.6329e-3.
-    expect(varied).toBeCloseTo(0.19938129, 7);
-    expect(varied / flat - 1).toBeCloseTo(-3.0935e-3, 6);
+    expect(varied).toBeCloseTo(0.19938142, 7);
+    expect(varied / flat - 1).toBeCloseTo(-3.0929e-3, 6);
     // and it is the throughput span that carries it — under the frame's
     // 6.6540e-3, the most the two halves could disagree by
     expect(Math.abs(varied / flat - 1)).toBeLessThan(6.6540e-3);

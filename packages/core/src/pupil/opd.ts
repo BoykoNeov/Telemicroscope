@@ -7,6 +7,7 @@ import { OpticalSystem } from "../trace/system";
 import { PupilGeometry, pupils, imagePlaneZ } from "./pupils";
 import { PupilPoint, AimOptions, aimRay, chiefRay } from "./aiming";
 import { lateralMagnification } from "./microscope";
+import { RimArc, STOP_EDGE, rimArcs } from "./rim-outline";
 
 /**
  * OPD — optical path difference at the exit pupil. This is the wave layer's
@@ -331,6 +332,24 @@ function unclippedExitCoordinate(
   wavelengthNm: number,
   options: AimOptions,
 ): readonly [number, number] | null {
+  const r = unclippedLanding(system, frame, pupil, fieldValue, point, wavelengthNm, options);
+  return typeof r === "string" ? null : r;
+}
+
+/**
+ * `unclippedExitCoordinate`, saying what stopped a ray that has none: its
+ * status and the surface it failed at ("miss@2"), "aim" where real aiming
+ * refuses the point, "exit" where it leaves with no crossing of the sphere.
+ */
+function unclippedLanding(
+  system: OpticalSystem,
+  frame: ExitFrame,
+  pupil: PupilGeometry,
+  fieldValue: number,
+  point: PupilPoint,
+  wavelengthNm: number,
+  options: AimOptions,
+): readonly [number, number] | string {
   const c = asCompiled(system.prescription);
   let res;
   try {
@@ -340,10 +359,10 @@ function unclippedExitCoordinate(
     );
   } catch {
     // Real aiming refuses a stop point no launch reaches: the same verdict.
-    return null;
+    return "aim";
   }
-  if (res.status !== "ok" || !res.ray) return null;
-  return exitCoordinate(frame, toImageSpace(c, res.ray));
+  if (res.status !== "ok" || !res.ray) return `${res.status}@${res.failedAt ?? "?"}`;
+  return exitCoordinate(frame, toImageSpace(c, res.ray)) ?? "exit";
 }
 
 /** Bisection steps for the reachable edge: 2⁻⁴⁰ of the pupil radius. */
@@ -365,9 +384,10 @@ function reachableExit(
   cy: number,
   wavelengthNm: number,
   options: AimOptions,
-): { readonly at: readonly [number, number]; readonly rho: number } {
+  steps = EDGE_STEPS,
+): { readonly at: readonly [number, number]; readonly rho: number; readonly edge: string } {
   const at = (rho: number) =>
-    unclippedExitCoordinate(
+    unclippedLanding(
       system,
       frame,
       pupil,
@@ -377,24 +397,36 @@ function reachableExit(
       options,
     );
   const rim = at(1);
-  if (rim !== null) return { at: rim, rho: 1 };
+  if (typeof rim !== "string") return { at: rim, rho: 1, edge: STOP_EDGE };
   let lo = 0;
   let hi = 1;
+  // What stops the ray just past the edge: the constraint the edge is made of.
+  let edge = rim;
   let best = at(0);
-  if (best === null) {
+  if (typeof best === "string") {
     throw new Error(`exit coordinate: the chief ray at field ${fieldValue} does not leave the system`);
   }
-  for (let i = 0; i < EDGE_STEPS; i++) {
+  for (let i = 0; i < steps; i++) {
     const mid = 0.5 * (lo + hi);
+    if (mid === lo || mid === hi) break;
     const d = at(mid);
-    if (d === null) hi = mid;
-    else {
+    if (typeof d === "string") {
+      hi = mid;
+      edge = d;
+    } else {
       lo = mid;
       best = d;
     }
   }
-  return { at: best, rho: lo };
+  return { at: best, rho: lo, edge };
 }
+
+/**
+ * Bisection steps for an arc's node (§ 2y): to the last bit. At `EDGE_STEPS` a
+ * cut ray on the DIN 4× lands up to 8.9e-13 from where it does at the last bit,
+ * which is above the arcs' 1e-13 tolerance.
+ */
+const EDGE_STEPS_FULL = 64;
 
 /**
  * The traced image-space aperture SINE — the number that turns a ray's
@@ -548,6 +580,13 @@ export const RIM_RAYS = 32;
 /** A rim ray's landing, and how far out along its aim azimuth it was reachable (1 = the stop's rim). */
 export interface RimPoint extends PupilPoint {
   readonly reach: number;
+  /**
+   * What the edge is made of along this azimuth: `STOP_EDGE` where the stop's
+   * rim ray exists, otherwise what stops a ray just past the reach ("miss@2" —
+   * its status and surface). Where it changes around the rim the rim has a
+   * corner (§ 2y).
+   */
+  readonly edge: string;
 }
 
 /**
@@ -574,6 +613,7 @@ export function exitRim(
     const {
       at: [x, y],
       rho,
+      edge,
     } = reachableExit(
       system,
       map,
@@ -584,7 +624,33 @@ export function exitRim(
       map.wavelengthNm,
       options,
     );
-    out.push({ px: x, py: y, reach: rho });
+    out.push({ px: x, py: y, reach: rho, edge });
   }
   return out;
+}
+
+/**
+ * The rim as arcs between its corners, where what makes the edge changes
+ * around `rim` (§ 2y) — `rimArcs` over this field's own traces, its corners
+ * bisected in aim angle and its cut arcs' reach to the last bit; undefined where
+ * one thing makes the whole edge, which `rimOutline` takes as one curve.
+ */
+export function exitRimArcs(
+  system: OpticalSystem,
+  map: OpdMap,
+  rim: readonly RimPoint[],
+  options: AimOptions = {},
+): readonly RimArc[] | undefined {
+  const along = (theta: number): PupilPoint => ({ px: Math.cos(theta), py: Math.sin(theta) });
+  return rimArcs(rim, {
+    stop: (theta) => {
+      const z = unclippedLanding(system, map, map.pupil, map.fieldValue, along(theta), map.wavelengthNm, options);
+      return typeof z === "string" ? null : z;
+    },
+    edge: (theta) => {
+      const { px, py } = along(theta);
+      const r = reachableExit(system, map, map.pupil, map.fieldValue, px, py, map.wavelengthNm, options, EDGE_STEPS_FULL);
+      return { px: r.at[0], py: r.at[1], reach: r.rho, edge: r.edge };
+    },
+  });
 }

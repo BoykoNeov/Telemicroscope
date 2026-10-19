@@ -3,10 +3,10 @@ import { traceRay } from "../../src/trace/sequential";
 import { asCompiled } from "../../src/trace/compile";
 import { toImageSpace } from "../../src/trace/axis";
 import { aimRay, pupilGrid } from "../../src/pupil/aiming";
-import { opdMap, exitApertureSine, exitCoordinate, exitRim, canonicalApertureSine } from "../../src/pupil/opd";
+import { opdMap, exitApertureSine, exitCoordinate, exitRim, exitRimArcs, canonicalApertureSine } from "../../src/pupil/opd";
 import { laidPupil, type PupilLayout } from "../../src/wave/psf";
 import { exitDensity } from "../../src/wave/exit-density";
-import { rimOutline, rimPolygon } from "../../src/pupil/rim-outline";
+import { STOP_EDGE, rimOutline, rimPolygon } from "../../src/pupil/rim-outline";
 
 /**
  * § 2l — a traced pupil's transmitted energy with no FFT grid in it.
@@ -207,9 +207,10 @@ export function exitOutlineArea(
           if (res.status !== "ok" || !res.ray) throw new Error("exitOutlineArea: a rim ray did not trace");
           const e = exitCoordinate(map, toImageSpace(c, res.ray));
           if (e === null) throw new Error("exitOutlineArea: a rim ray missed the reference sphere");
-          return { px: e[0], py: e[1], reach: 1 };
+          return { px: e[0], py: e[1], reach: 1, edge: STOP_EDGE };
         });
-  return (polygon ? rimPolygon(rim, sigma) : rimOutline(rim, sigma)).area;
+  if (polygon) return rimPolygon(rim, sigma).area;
+  return rimOutline(rim, sigma, rays === undefined ? exitRimArcs(system, map, rim) : undefined).area;
 }
 
 /** Gauss–Legendre nodes and weights on [0, 1], by Newton on Pₙ. */

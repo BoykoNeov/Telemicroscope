@@ -20,8 +20,8 @@ const EXIT = { layout: "exit", edgeSamples: 8, edgeRule: "crossing" } as const;
  * § 6cc — the escape's high-anchor fall, which is the slow cells running dry.
  *
  * § 6br.6 measured the guard-band escape's interaction over five anchor fields —
- * 0.2449024, 0.3666603, 0.3914965, 0.2998767, 0.1096853 on the exit layout's
- * located rim since § 2r.2, restated at § 2w (0.2462866, 0.3596838, 0.4108834, 0.3100469,
+ * 0.2449032, 0.3666597, 0.3915111, 0.2998738, 0.1096845 on the exit layout's
+ * located rim since § 2r.2, restated at § 2y (0.2462866, 0.3596838, 0.4108834, 0.3100469,
  * 0.1249815 on the aim layout's point-sampled one) — and left the top end
  * open, in terms: "**The high-anchor fall has no account.** The low end is a
  * saturation of a bounded fraction and is pinned as such; at the large anchor
@@ -45,11 +45,11 @@ const EXIT = { layout: "exit", edgeSamples: 8, edgeRule: "crossing" } as const;
  *
  * ## The fall is the window's, and it is stronger than published
  *
- * Held at one sampling the interaction runs **0.4262243, 0.3599127, 0.2284366,
- * 0.1096853** — monotone, and 3.89× end to end where § 6br.6's curve falls
+ * Held at one sampling the interaction runs **0.4262212, 0.3599208, 0.2284388,
+ * 0.1096845** — monotone, and 3.89× end to end where § 6br.6's curve falls
  * 3.57× over the same four (§ 6cc.1). So the fall is not a sampling artefact,
  * and the sampling has been masking some of it: at the k = 1 box the
- * fine-sampled reading is 0.4262243 against the ladder's own 0.3914965, 9%
+ * fine-sampled reading is 0.4262212 against the ladder's own 0.3915111, 9%
  * higher (§ 6cc.2). And the floor is the light's and not the grid's: halving the
  * pixel scale at the top anchor's own field moves it 0.21%, 66 times less than
  * the turn it would have to explain, and moves a cell that has NOT floored by
@@ -288,7 +288,7 @@ describe("§ 6cc.0 — one render is the whole anchor ladder at one sampling", (
     for (const cell of CELLS) {
       expect(Math.abs(boxed(cell, 4) / top[cell].escape - 1)).toBeLessThan(1e-11);
     }
-    expect(interact(boxedQuartet(4))).toBeCloseTo(0.10968529225040409, 7);
+    expect(interact(boxedQuartet(4))).toBeCloseTo(0.10968454479102531, 7);
     // And every cell is under 0.1 there, which is § 6br.6's own observation and
     // the reason it could not appeal to the bound at 1.
     for (const cell of CELLS) expect(top[cell].escape).toBeLessThan(0.1);
@@ -298,19 +298,19 @@ describe("§ 6cc.0 — one render is the whole anchor ladder at one sampling", (
 describe("§ 6cc.1 — held at one sampling the fall is still there, and stronger", () => {
   it("falls monotonically over the four boxes, by 3.81×", () => {
     const got = [1, 2, 3, 4].map((k) => interact(boxedQuartet(k)));
-    expect(got[0]).toBeCloseTo(0.4262243212060407, 7);
-    expect(got[1]).toBeCloseTo(0.35991269953439087, 7);
-    expect(got[2]).toBeCloseTo(0.22843655204110602, 7);
-    expect(got[3]).toBeCloseTo(0.10968529225040409, 7);
+    expect(got[0]).toBeCloseTo(0.42622116795887205, 7);
+    expect(got[1]).toBeCloseTo(0.3599208206005352, 7);
+    expect(got[2]).toBeCloseTo(0.22843883806066156, 7);
+    expect(got[3]).toBeCloseTo(0.10968454479102531, 7);
     for (let n = 1; n < got.length; n++) expect(got[n]!).toBeLessThan(got[n - 1]!);
     // 3.89x against § 6br.6's own curve's 3.57x over the same four anchors
-    // (0.3914965 to 0.1096853), so the anchor's OTHER effect was hiding some of
+    // (0.3915111 to 0.1096845), so the anchor's OTHER effect was hiding some of
     // this one rather than causing it. (3.81x against 3.29x on the aim layout's
     // point-sampled rim, § 2r.2.) § 6br.6's two ends come from
     // `support/cited.ts`, asserted where § 6br.6 measures them; until § 2w they
     // were literals here, a ratio of two copies that no reading could fail.
     expect(got[0]! / got[3]!).toBeCloseTo(3.8859150641500815, 4);
-    expect(ESCAPE_MATCHED / ESCAPE_AT_QUADRUPLE_ANCHOR).toBeCloseTo(3.569270576155609, 4);
+    expect(ESCAPE_MATCHED / ESCAPE_AT_QUADRUPLE_ANCHOR).toBeCloseTo(3.5694281932927017, 4);
   });
 });
 
@@ -323,9 +323,9 @@ describe("§ 6cc.2 — and the sampling pushes the other way", () => {
     // as `pupilSamples` alone (§ 6bw.2), so the field IS the sampling — but one
     // render read at a sub-box can.
     const q1 = Object.fromEntries(CELLS.map((c) => [c, rendered(c, 1)])) as Record<Cell, number>;
-    expect(interact(q1)).toBeCloseTo(0.3914964862760292, 7);
-    expect(interact(boxedQuartet(1))).toBeCloseTo(0.4262243212060407, 7);
-    expect(interact(boxedQuartet(1)) / interact(q1) - 1).toBeCloseTo(0.08874021138169841, 4);
+    expect(interact(q1)).toBeCloseTo(0.39151110654320326, 7);
+    expect(interact(boxedQuartet(1))).toBeCloseTo(0.42622116795887205, 7);
+    expect(interact(boxedQuartet(1)) / interact(q1) - 1).toBeCloseTo(0.08865664558570718, 4);
     // Every cell reads LOWER at the finer sampling — the coarse pupil is putting
     // light outside the box that the fine one does not — and by enough that
     // § 6br.5's 0.75% pixel band, taken at a held `pupilSamples`, says nothing
@@ -346,15 +346,15 @@ describe("§ 6cc.3 — the mechanism: the slow cells run out of light to lose", 
       expect(q[2]![cell]).toBeLessThan(q[1]![cell]);
       expect(q[3]![cell]).toBeGreaterThan(q[2]![cell]);
     }
-    expect(q[3]!.s20).toBeCloseTo(0.006072567662485873, 9);
-    expect(q[3]!.s10).toBeCloseTo(0.002996909719839347, 9);
+    expect(q[3]!.s20).toBeCloseTo(0.00607271837187584, 9);
+    expect(q[3]!.s10).toBeCloseTo(0.0029969291615397076, 9);
     // The two fast cells are still falling hard at the last box, with a fifth
     // and a tenth of their light still outside it two boxes earlier.
     for (const cell of ["f20", "f10"] as const) {
       for (let n = 1; n < 4; n++) expect(q[n]![cell]).toBeLessThan(q[n - 1]![cell]);
     }
-    expect(q[3]!.f20).toBeCloseTo(0.01661876257935979, 9);
-    expect(q[3]!.f10).toBeCloseTo(0.07477416713691054, 9);
+    expect(q[3]!.f20).toBeCloseTo(0.016619168484772184, 9);
+    expect(q[3]!.f10).toBeCloseTo(0.07477513235072952, 9);
     // So the 20x aperture lever collapses where the 10x gives less ground:
     // 19.25 -> 2.74 (7.0x) against 53.48 -> 24.95 (2.1x). That difference IS the
     // fall. (On the aim layout's point-sampled rim 20.86 -> 4.70 against 56.00 ->
@@ -362,10 +362,10 @@ describe("§ 6cc.3 — the mechanism: the slow cells run out of light to lose", 
     // cell reads 13% more escape at the top box and its lever falls further.)
     const l20 = q.map((v) => v.f20 / v.s20);
     const l10 = q.map((v) => v.f10 / v.s10);
-    expect(l20[1]!).toBeCloseTo(19.24900730762499, 4);
+    expect(l20[1]!).toBeCloseTo(19.24964114840793, 4);
     expect(l20[3]!).toBeCloseTo(2.736694509313498, 4);
-    expect(l10[1]!).toBeCloseTo(53.482434302893175, 4);
-    expect(l10[3]!).toBeCloseTo(24.950423645367238, 4);
+    expect(l10[1]!).toBeCloseTo(53.482988609243314, 4);
+    expect(l10[3]!).toBeCloseTo(24.950583854412134, 4);
     expect(l20[1]! / l20[3]!).toBeGreaterThan(4);
     expect(l10[1]! / l10[3]!).toBeLessThan(2.5);
     expect(l20[1]! / l20[3]! / (l10[1]! / l10[3]!)).toBeGreaterThan(3);
@@ -384,16 +384,16 @@ describe("§ 6cc.4 — which is what the four energy profiles look like", () => 
     };
     // 98.5% and 99.2% slow against 82.0% and 72.1% fast (§ 2r.2; on the aim
     // layout's point-sampled rim 98.5%, 99.3%, 79.4% and 69.0%).
-    expect(at("s20", 0.75)).toBeCloseTo(0.9845036000764102, 9);
-    expect(at("s10", 0.75)).toBeCloseTo(0.992361568485066, 9);
-    expect(at("f20", 0.75)).toBeCloseTo(0.8199035732188048, 9);
-    expect(at("f10", 0.75)).toBeCloseTo(0.7208013881497832, 9);
+    expect(at("s20", 0.75)).toBeCloseTo(0.9845036583397804, 9);
+    expect(at("s10", 0.75)).toBeCloseTo(0.9923616150627229, 9);
+    expect(at("f20", 0.75)).toBeCloseTo(0.8199022490463747, 9);
+    expect(at("f10", 0.75)).toBeCloseTo(0.7208008077775754, 9);
     // And by 1.85 mm the slow cells are inside two thirds of a percent of all
     // their light while the fast 10x is still 7% short (a quarter of a percent
     // and 10% on the aim layout).
-    expect(at("s20", 1.85)).toBeCloseTo(0.9937818465309778, 9);
-    expect(at("s10", 1.85)).toBeCloseTo(0.9969308819753098, 9);
-    expect(at("f10", 1.85)).toBeCloseTo(0.9281670578538632, 9);
+    expect(at("s20", 1.85)).toBeCloseTo(0.9937816979071584, 9);
+    expect(at("s10", 1.85)).toBeCloseTo(0.9969308636413197, 9);
+    expect(at("f10", 1.85)).toBeCloseTo(0.9281661010728476, 9);
     // The ordering is the aperture's, not the magnification's: both fast cells
     // sit below both slow ones at every radius read here.
     for (const mm of [0.75, 1.85, 2.6] as const) {
@@ -423,7 +423,7 @@ describe("§ 6cc.5 — and the floor is the light's, not the grid's", () => {
     // layout's point-sampled rim 0.19% against 2.68%, fourteen times; the turn
     // is the third and fourth boxes' own readings, § 6cc.3.)
     const turn = boxed("s20", 4) / boxed("s20", 3);
-    expect(turn - 1).toBeCloseTo(0.13861323045598795, 6);
+    expect(turn - 1).toBeCloseTo(0.1386449248553392, 6);
     expect(turn - 1).toBeGreaterThan(60 * (floored - 1));
     // And the control settles it: a cell that has NOT floored moves by the same
     // 0.18%, so this residual is the render's own and has nothing to do with

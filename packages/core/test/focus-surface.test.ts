@@ -312,7 +312,7 @@ describe("§ 6bf — the focus surface, offered", () => {
       expect(blue[0]).toBeCloseTo(-0.063294, 5);
       expect(blue[2]).toBeCloseTo(-0.058938, 5);
       expect(blue[3]).toBeCloseTo(-0.062470, 5);
-      expect(spread(blue)).toBeCloseTo(0.077689, 4);
+      expect(spread(blue)).toBeCloseTo(0.077624, 4);
       expect(Math.abs(blue[1]!)).toBeGreaterThan(Math.abs(blue[0]!));
       expect(Math.abs(blue[2]!)).toBeLessThan(Math.abs(blue[1]!));
       expect(Math.abs(blue[3]!)).toBeGreaterThan(Math.abs(blue[2]!));
@@ -338,14 +338,14 @@ describe("§ 6bf — the focus surface, offered", () => {
       // On the exit layout (§ 2q.6); the aim layout read 0.044873, 0.067953 and 0.116512.
       expect(two).toBeCloseTo(0.045107, 5);
       expect(four).toBeCloseTo(0.067835, 5);
-      expect(ten).toBeCloseTo(0.114081, 5);
+      expect(ten).toBeCloseTo(0.114036, 5);
 
       // f = 75, 37.5 and 15 mm. All three pairs give the same exponent to 4%,
       // and none of them gives 1.
       const p = (f1: number, c1: number, f2: number, c2: number) =>
         Math.log(c2 / c1) / Math.log(f1 / f2);
       const exponents = [p(75, two, 37.5, four), p(37.5, four, 15, ten), p(75, two, 15, ten)];
-      expect(exponents[0]).toBeCloseTo(0.588770, 5);
+      expect(exponents[0]).toBeCloseTo(0.588707, 5);
       expect(spread(exponents)).toBeLessThan(0.045);
       // The claim is the BAND, not one pair: three independent pairs of
       // objectives agree on the exponent to 4%, and 1 is nowhere in it. (Point-
@@ -359,7 +359,7 @@ describe("§ 6bf — the focus surface, offered", () => {
 
       // The negative control on the claim: a form that merely scaled would put
       // the 10×'s coefficient at 2.5× the 4×'s. It is 1.68× (1.71× on the aim layout).
-      expect(ten / four).toBeCloseTo(1.681634, 5);
+      expect(ten / four).toBeCloseTo(1.681047, 5);
       expect(ten / four).toBeLessThan(2);
     });
 
@@ -367,7 +367,7 @@ describe("§ 6bf — the focus surface, offered", () => {
       const four = coefficients(SURFACE_4, 1);
       const ten = coefficients(SURFACE_10, 0);
       // On the exit layout (§ 2q.6); 0.487979, 0.034726 and 14.05× on the aim one.
-      expect(spread(ten)).toBeCloseTo(0.521958, 4);
+      expect(spread(ten)).toBeCloseTo(0.522552, 4);
       expect(spread(four)).toBeCloseTo(0.037476, 4);
       expect(spread(ten) / spread(four)).toBeGreaterThan(13.5);
       // Monotone at every height — not a wobble.
@@ -382,8 +382,8 @@ describe("§ 6bf — the focus surface, offered", () => {
       // both near half the refusal threshold — so that defence is weaker than it
       // was, and what still answers "the estimator gave up" is the shape: a
       // monotone 52% with every sample under 0.53.
-      expect(worstPlateau(SURFACE_10, 0)).toBeCloseTo(0.529342, 5);
-      expect(worstPlateau(SURFACE_4, 1)).toBeCloseTo(0.423961, 5);
+      expect(worstPlateau(SURFACE_10, 0)).toBeCloseTo(0.529132, 5);
+      expect(worstPlateau(SURFACE_4, 1)).toBeCloseTo(0.423972, 5);
       expect(worstPlateau(SURFACE_10, 0) / worstPlateau(SURFACE_4, 1)).toBeLessThan(1.25);
       expect(worstPlateau(SURFACE_10, 0)).toBeLessThan(0.55);
       // The 2× is the worst conditioned of the three, and point-sampled its
@@ -409,14 +409,14 @@ describe("§ 6bf — the focus surface, offered", () => {
       // On the exit layout (§ 2q.6); -0.166067, -0.113623 and 0.461552 on the aim one.
       const tenBlue = coefficients(SURFACE_10_BLUE, 0);
       expect(tenBlue[0]).toBeCloseTo(-0.164503, 5);
-      expect(tenBlue[3]).toBeCloseTo(-0.110613, 5);
-      expect(spread(tenBlue)).toBeCloseTo(0.487191, 4);
+      expect(tenBlue[3]).toBeCloseTo(-0.110569, 5);
+      expect(spread(tenBlue)).toBeCloseTo(0.487795, 4);
       for (let k = 1; k < tenBlue.length; k++) {
         expect(Math.abs(tenBlue[k]!)).toBeLessThan(Math.abs(tenBlue[k - 1]!));
       }
 
       const fourBlue = spread(coefficients(SURFACE_4, 0));
-      expect(fourBlue).toBeCloseTo(0.077689, 5);
+      expect(fourBlue).toBeCloseTo(0.077624, 5);
       expect(spread(tenBlue) / fourBlue).toBeGreaterThan(3);
       expect(spread(coefficients(SURFACE_10, 0)) / spread(coefficients(SURFACE_4, 1))).toBeGreaterThan(7);
     });
@@ -424,8 +424,8 @@ describe("§ 6bf — the focus surface, offered", () => {
 
   describe("§ 6bf.7 — the readout reports its own separability", () => {
     it("the interaction over the 4×'s grid, and the two-curve prediction is worth exactly that", () => {
-      expect(SURFACE_4.interactionMm).toBeCloseTo(7.790861e-3, 7);
-      expect(SURFACE_4.interactionDepths).toBeCloseTo(0.180247, 6);
+      expect(SURFACE_4.interactionMm).toBeCloseTo(7.786444e-3, 7);
+      expect(SURFACE_4.interactionDepths).toBeCloseTo(0.1801453, 6);
       // Point-sampled this read 2.15e-3 mm, under a twentieth of a depth of
       // focus, and stood for § 6be.2's "separates". Resolved it is § 6be's
       // restated coupling, on a grid of its own. On the aim layout: 6.4e-6 mm at
@@ -492,10 +492,10 @@ describe("§ 6bf — the focus surface, offered", () => {
       );
       expect(blue[0]!.focusMm).toBeCloseTo(0.532797, 6);
       expect(blue[1]!.focusMm).toBeCloseTo(0.521037, 6);
-      expect(blue[2]!.focusMm).toBeCloseTo(0.515530, 6);
+      expect(blue[2]!.focusMm).toBeCloseTo(0.5155295, 6);
       expect(blue[0]!.plateauDepths).toBeCloseTo(1.104836, 5);
       expect(blue[1]!.plateauDepths).toBeCloseTo(1.040547, 5);
-      expect(blue[2]!.plateauDepths).toBeCloseTo(0.937195, 5);
+      expect(blue[2]!.plateauDepths).toBeCloseTo(0.937186, 5);
       for (const h of [0, 0.35]) {
         expect(() => renderedBestFocus(two, 430, h, { ...SWEEP, maxPlateauDepths: 1 })).toThrow(/is a plateau/);
       }

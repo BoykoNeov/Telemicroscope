@@ -493,7 +493,7 @@ describe("§ 6bg — the correction applied", () => {
       expect(before).toBeCloseTo(6.391385e-3, 6);
       expect(after).toBeCloseTo(8.047678e-3, 6);
       const cost = after - before;
-      expect(cost).toBeCloseTo(1.656293e-3, 6);
+      expect(cost).toBeCloseTo(1.657023e-3, 6);
       expect(cost / before).toBeCloseTo(0.2591, 3);
 
       // The coupling § 6bb would have predicted, in closed form: each channel's
@@ -572,7 +572,7 @@ describe("§ 6bg — the correction applied", () => {
 
       // Off the axis one channel's own refocus walks its own image sideways.
       // -1.426154e-3 and 1.172581e-4 on the aim layout (§ 2q.6)
-      expect(field.blue).toBeCloseTo(-1.537118e-3, 7);
+      expect(field.blue).toBeCloseTo(-1.537390e-3, 7);
       expect(field.red).toBeCloseTo(1.196344e-4, 7);
       // On the axis the same stage moves do essentially nothing — 3.02e-6 mm,
       // under a thousandth of a pixel against over 0.4 of one off the axis. A
@@ -586,7 +586,7 @@ describe("§ 6bg — the correction applied", () => {
 
       // And the two shifts ARE the cost measured above: the channels are
       // rendered independently, so what moved the pair is what moved each.
-      expect(field.red - field.blue).toBeCloseTo(1.656293e-3, 6);
+      expect(field.red - field.blue).toBeCloseTo(1.657023e-3, 6);
     });
   });
 
@@ -712,7 +712,7 @@ describe("§ 6bg — the correction applied", () => {
           predictedFocusMm(SURFACE, 430, 1.0 - halfObjectMm),
       );
       // On the exit layout (§ 2q.6); the aim layout read 0.0134142 and 0.3103.
-      expect(across).toBeCloseTo(0.0133724, 6);
+      expect(across).toBeCloseTo(0.0133718, 6);
       expect(across / DOF430).toBeCloseTo(0.3094, 3);
       // § 6be.7 reads 0.389 of a depth of focus across a frame at 1.1 mm (0.392
       // on the aim layout, 0.409 point-sampled); this is the same quantity one

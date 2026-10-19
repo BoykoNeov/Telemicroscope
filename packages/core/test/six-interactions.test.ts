@@ -293,7 +293,7 @@ const KS = [1, 2, 4, 8] as const;
 const ESCAPE_AT_COMMON_ANCHOR = ESCAPE_AT_HALF_ANCHOR;
 
 /** § 6bn.3's six, as published — the departures, in the order it printed them. */
-const SIX_PUBLISHED = [1.0233, 1.0298, 1.0417, 1.091, 1.3313, 1.4237] as const;
+const SIX_PUBLISHED = [1.0233, 1.0298, 1.0417, 1.091, 1.3313, 1.4263] as const;
 
 interface Row {
   readonly name: string;
@@ -412,9 +412,9 @@ describe("§ 6bs.2 — the tally, computed: ONE reversed, FOUR understated, ONE 
     const moved = growth.filter((g) => g > 1);
     const still = growth.filter((g) => g <= 1);
     expect(still).toHaveLength(1);
-    expect(Math.max(...still)).toBeCloseTo(0.9255620792041432, 6);
-    expect(Math.min(...moved)).toBeCloseTo(1.1927656949367025, 6);
-    expect(Math.min(...moved) / Math.max(...still)).toBeCloseTo(1.2886933483298255, 6);
+    expect(Math.max(...still)).toBeCloseTo(0.9254428301223662, 6);
+    expect(Math.min(...moved)).toBeCloseTo(1.1926299463753631, 6);
+    expect(Math.min(...moved) / Math.max(...still)).toBeCloseTo(1.2887127195287345, 6);
     expect(Math.min(...moved) / Math.max(...still)).toBeGreaterThan(1);
   });
 });
@@ -457,7 +457,7 @@ describe("§ 6bs.3 — the six sit at THREE anchors, in the ratio 1 : 1.5 : 2", 
 });
 
 describe("§ 6bs.4 — five of the six go onto ONE anchor, to 0.8%, and the escape's verdict does not move", () => {
-  it("§ 6br.6's second anchor IS the other five's, and the escape reads 0.3666603 there", () => {
+  it("§ 6br.6's second anchor IS the other five's, and the escape reads 0.3666597 there", () => {
     // § 6br's family walks the same extent ladder this file does: its second
     // rung sits exactly where § 6bo and § 6bp took their quartets.
     expect(anchorOf(1)).toBeCloseTo(0.4714912114212198, 12);
@@ -489,10 +489,10 @@ describe("§ 6bs.4 — five of the six go onto ONE anchor, to 0.8%, and the esca
   });
 
   it("but the escape's SIZE moves 6.8% between the two anchors (14% on the aim layout), so the table is not one number", () => {
-    expect(ESCAPE_MATCHED / ESCAPE_AT_COMMON_ANCHOR).toBeCloseTo(1.0677101806866551, 4);
+    expect(ESCAPE_MATCHED / ESCAPE_AT_COMMON_ANCHOR).toBeCloseTo(1.067777856087451, 4);
     // On § 6br's own measure the understatement goes 1.919x to 2.049x.
-    expect(departure(ESCAPE_MATCHED) / departure(ESCAPE_BRANCH)).toBeCloseTo(1.9186093687821866, 5);
-    expect(departure(ESCAPE_AT_COMMON_ANCHOR) / departure(ESCAPE_BRANCH)).toBeCloseTo(2.048570803007278, 5);
+    expect(departure(ESCAPE_MATCHED) / departure(ESCAPE_BRANCH)).toBeCloseTo(1.918544441519787, 5);
+    expect(departure(ESCAPE_AT_COMMON_ANCHOR) / departure(ESCAPE_BRANCH)).toBeCloseTo(2.0485792705744936, 5);
   });
 });
 
@@ -534,14 +534,14 @@ describe("§ 6bs.6 — the six were reported in TWO growth measures, and they di
     expect(departureRatio(four[0]!)).toBeCloseTo(1.0055755327394178, 5);
     expect(departureRatio(four[1]!)).toBeCloseTo(1.242969315222853, 5);
     expect(departureRatio(four[2]!)).toBeCloseTo(1.130745695858167, 5);
-    expect(departureRatio(four[3]!)).toBeCloseTo(1.9186093687821866, 5);
+    expect(departureRatio(four[3]!)).toBeCloseTo(1.918544441519787, 5);
 
     // § 6bo's and § 6bp's. § 6br's 1.919 is the OTHER measure; on this one the
     // same readout is 4.69.
-    expect(distanceGrowth(four[0]!)).toBeCloseTo(1.1927656949367025, 5);
+    expect(distanceGrowth(four[0]!)).toBeCloseTo(1.1926299463753631, 5);
     expect(distanceGrowth(four[1]!)).toBeCloseTo(11.684598548101404, 5);
     expect(distanceGrowth(four[2]!)).toBeCloseTo(2.5682289563157634, 5);
-    expect(distanceGrowth(four[3]!)).toBeCloseTo(4.691103937616023, 5);
+    expect(distanceGrowth(four[3]!)).toBeCloseTo(4.69088206718376, 5);
   });
 
   it("and the two orderings were opposite at BOTH ends on the aim layout — on the exit they swap only the top two", () => {
@@ -634,8 +634,8 @@ describe("§ 6bs.8 — the plateau survived on the aim layout; on the exit it is
     };
     const moves = rows().map((r) => Math.abs(r.matched / r.branch - 1));
     expect(Math.min(...moves)).toBe(move("split, edge"));
-    expect(move("split, edge")).toBeCloseTo(0.005544618537235757, 9);
-    expect(move("split, axis")).toBeCloseTo(0.022653542177083263, 9);
+    expect(move("split, edge")).toBeCloseTo(0.005540710964773821, 9);
+    expect(move("split, axis")).toBeCloseTo(0.022792422557350145, 9);
   });
 
   it("and § 6bq.7 moves one of its own two apertures by 3.5% — under a third of its move", () => {
