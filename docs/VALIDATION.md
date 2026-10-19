@@ -45,6 +45,7 @@ whole ladder.
 | [2u](#step-2u--the-densitys-fits-keep-every-node) | Density fit dropped off-axis nodes. Every node fitted: laid pupil = density to 1.4e-6; item 35 narrowed to the lattice, 43 opened | `exit-density-rim` |
 | [2v](#step-2v--the-outline-is-the-rims-curve) | The 32-ray outline was a polygon off axis. Curve in aim angle: 2.5e-4 each way → 3e-15; item 43 narrowed to vignetted rims; stale citations found and fixed | `rim-outline`, `exit-density-rim` |
 | [2w](#step-2w--the-citations-assert-their-source) | Two measure chains cited readings stale since § 2u. Held once, asserted at source: classes hold; § 6bs.2's gap > 1.5× refuted (1.29×); item 44 closed | `support/cited`, `six-interactions` |
+| [2x](#step-2x--the-axial-anchors-largest-step) | Axial anchor's largest step. Off axis the rim step tilts ±2% and only the gentle side's rim node is lit: the guard's sampling, not the wavefront; item 39 closed | `stage-mosaic` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -5326,7 +5327,7 @@ still quotes its step as first published. Three mechanisms carry most of it.
 |---|---|---|
 | mosaic | § 6bh–§ 6bj, 93 readings | re-recorded; the escape 10.04% / 2.33%, 4.31×; § 6bi's free field 55× at the edge (121×), the cross ratio 836 180 |
 | mosaic | § 6bi: the achromatic ratio | 5.48e-5 — **weakened** |
-| mosaic | § 6bj.6: on the axis the stage scan's anchor is the best tile | the WORST of nine, 0.34088 against 0.33287–0.33344 — **reversed** (item 39) |
+| mosaic | § 6bj.6: on the axis the stage scan's anchor is the best tile | the WORST of nine, 0.34088 against 0.33287–0.33344 — ~~**reversed**~~ (item 39): the guard's sampling, not the wavefront — [§ 2x](#step-2x--the-axial-anchors-largest-step) |
 | second objective | § 6bk.5: the NA 0.20 split coincides on the axis (0.99933) and is 64.7 at the edge | 1.857 and 1.960 — the edge inversion **reversed**, the axial collapse 657× not 1195× |
 | second objective | § 6bk.5: the free field's roles swap with aperture | the fast lens 2.76× / 2.52×, no swap — **reversed** |
 | second objective | § 6bk.8: forced through, the fast lens's field drop changes sign | monotone, −0.0176 and −0.0555 mm, interaction 1.58× the control's — **reversed**; the refusal rests on the plateau alone |
@@ -5389,8 +5390,10 @@ layout's, the same field to 0.8%.
 
 ### What it leaves
 
-- **Why the exit layout's axial tile reads the largest phase step** of § 6bj.6's
-  nine (register item 39) — the eight around it sit 0.13 mm out.
+- ~~**Why the exit layout's axial tile reads the largest phase step** of § 6bj.6's
+  nine (register item 39) — the eight around it sit 0.13 mm out.~~ Closed at
+  [§ 2x](#step-2x--the-axial-anchors-largest-step): off the axis the guard
+  sees only the gentle side's rim pair; the eight sit 0.0506 mm out.
 - **What moves § 6bo.2's plateau interaction 11.6%** at a matched field when
   § 6bo.5's own field control holds to 0.82% (item 40) — the reason § 6bo.2
   gave, field-insensitivity, does not decide it.
@@ -5654,9 +5657,10 @@ meaning beside its six-digit pin; § 2q.6 set it by raising 0.15 to 0.18 when th
 reading went 0.148 → 0.1787. The reading is 0.1802 and the ceiling is 0.19, set
 the same way — a raised bound, recorded here so it can be overruled.
 
-**Register items it touched without closing:** item 39's axial anchor is still
+**Register items it touched without closing:** ~~item 39's axial anchor is still
 the largest phase step of nine (0.34088 against the eight from 0.33337, which
-moved from 0.33287), so it is not item 42's; item 33's in-clip coupling at
+moved from 0.33287), so it is not item 42's~~ (closed at
+[§ 2x](#step-2x--the-axial-anchors-largest-step)); item 33's in-clip coupling at
 h = 0.4 reads 7.96e-4 mm at 48 samples (7.71e-4 before).
 
 ### What it leaves
@@ -6040,6 +6044,7 @@ step covers the two chains item 44 named and `escape-window`'s ratio.
 ## Step 2x — the axial anchor's largest step
 
 Source: measurement only — no engine change
+· Tests: `stage-mosaic.test.ts` (§ 6bj.6's third rung, new)
 
 Register item 39 (§ 2r.2): on the exit layout § 6bj.6's axial stage scan reads
 `maxGridPhaseStepWaves` 0.34088 on its anchor tile, the largest of the nine,
@@ -6109,6 +6114,33 @@ gentler side. Two readings, each refuting on its own:
   of two on a corner), whose rim node is blocked, reads the largest —
   **refuted if** the four agree within 1%, or if a half-axis whose rim node
   survives reads the largest.
+
+**Holds.** Both readings, 430 nm, the same copied guard:
+
+- At the anchor's stage the eight move by −2.4e-4 (edge tiles) and −4.9e-4
+  (corners), away from the anchor and not toward it; the anchor at the eight's
+  stages reads 0.34112 and 0.34137. The gap, 7.2e-3 to the largest of the
+  eight, is not the stage.
+- On every one of the eight the half-axis along its offset reads the largest
+  and the surviving side the smallest: edge tile (+0.0506, 0) mm reads
+  0.239448 along +x, 0.229206 along −x and 0.23435 across; the corners
+  0.23966 / 0.22941. The anchor reads 0.234233 on all four to 1e-4. The steep
+  side's rim node is blocked on all eight; the gentle side's survives.
+
+So the wavefront off the axis tilts its rim step by ±2% across the pupil, and
+the exit layout's traced rim falls just inside the lattice's ρ = 1 node on
+the steep side, outside it on the gentle side. The guard forms only the gentle
+rim pair and reports 0.33337; the anchor's symmetric rim pair is 0.34088. On
+the aim layout, which lights all four rim nodes at every field, the same
+stages give the steep pair 0.34716–0.34747 and the anchor 0.34034, the
+anchor the smallest. On a pair every tile lights the anchor is the gentlest
+too. **§ 6bj.6's reversal at § 2r.2 is where the guard samples, not the
+wavefront**: the stage scan's axial anchor is not the worst tile of nine, and
+the readout cannot rank tiles whose rims cross the lattice differently.
+`stage-mosaic`'s § 6bj.6 carries the rim pairs `Object.is`-equal to the guard
+and the half-axis split. The guard is unchanged: it is a point-sample
+readout by design (`fluorescence.ts`), and whether a cut cell should enter it
+is a separate decision.
 
 ## Step 3a — the standard observer and thermal sources
 

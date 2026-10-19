@@ -886,14 +886,23 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     kernels' own `maxGridPhaseStepWaves`, refusing past half a wave; or the ratio
     converging over lattices once § 6l.14's quadrature is applied to the ±1-wave
     kernels as it is to the picture.
-39. **On the exit layout a stage scan's axial anchor tile reads the largest phase
+39. ~~**On the exit layout a stage scan's axial anchor tile reads the largest phase
     step of nine.** Found at [§ 2r.2](VALIDATION.md#-2r2--the-flip) (§ 6bj.6, reversed): 0.34088
     waves against the eight around it at 0.33287–0.33344 (from 0.33337 since
     [§ 2t](VALIDATION.md#step-2t--the-exit-layouts-fit-keeps-the-traced-rim), and the anchor still the largest — so not item 42's dropped
     rim, which the eight had and the axis had not), where the aim layout
     read it as the best. The eight sit 0.13 mm out and every tile reads the same
     ruler, so it is not the ruler. *What would pin it:* the step's map across the
-    tile — which grid cell carries it on the axis and off.
+    tile — which grid cell carries it on the axis and off.~~
+
+    ✅ **CLOSED at [§ 2x](VALIDATION.md#step-2x--the-axial-anchors-largest-step)**. On every tile the cell is a lattice node on
+    ρ = 1 and its inward neighbour. Off the axis the rim step tilts ±2% across
+    the pupil, and the exit layout lights only the gentle side's rim node, so
+    the guard reports the gentle pair; the stage is not it. On a pair every
+    tile lights the anchor is the gentlest, the aim layout's ordering, so
+    § 6bj.6's reversal was the guard's sampling. The eight sit 0.0506 mm out
+    (object side), not 0.13. The first hypothesis (nodes leaving the rim) was
+    refuted on the way.
 40. **§ 6bo.2's plateau interaction moves 11.6% at a matched field while its
     field control moves 0.82%.** Found at [§ 2r.2](VALIDATION.md#-2r2--the-flip). § 6bo.2 read
     the plateau's survival (0.89% on the aim layout) as the readout being

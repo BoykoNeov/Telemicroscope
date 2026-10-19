@@ -23,6 +23,10 @@ import {
 import { gaussianBallEmitter, uniformSlabs, type EmitterSlabs } from "../src/imaging/emitter-volume";
 import { boxcarBand } from "../src/imaging/emission";
 import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/designs/microscope";
+import { fieldPupilAt } from "../src/imaging/object-field";
+import { defocusWaves, objectDefocusing } from "../src/imaging/volume";
+import { objectNumericalAperture } from "../src/pupil/microscope";
+import { getMedium } from "../src/materials/catalog";
 
 /**
  * § 2r.2: the exit layout, on the located rim (§ 2q.4). Every reading below is
@@ -562,16 +566,67 @@ describe("§ 6bj.6 — the aberration is the anchor's, everywhere, and uniform i
 
     // On the axis the anchor is the field scan's own centre tile, bitwise. On the
     // aim layout it was also the BEST tile, so the same collapse was a gain
-    // everywhere — "same mechanism, opposite verdict". On the exit layout it is
-    // the WORST of the nine, 0.34088 against the eight around it from 0.33337 (0.33287–0.33344 before
-    // § 2t, whose fit keeps the rim the eight had dropped — item 39 is not that), so on the axis too
-    // the stage scan costs: REVERSED at § 2r.2, and why the axial tile reads the
-    // largest step is not traced (the eight around it sit 0.13 mm out).
+    // everywhere — "same mechanism, opposite verdict". On the exit layout it
+    // reads the LARGEST of the nine, 0.34088 against the eight around it from
+    // 0.33337 (0.33287–0.33344 before § 2t): REVERSED at § 2r.2. § 2x traced it
+    // to where the guard looks, not to the glass — the rung below.
     const axisField = AXIS_FIELD_BLANK.tiles.map((t) => t.volume.maxGridPhaseStepWaves);
     expect(Object.is(AXIS_STAGE_BLANK.maxGridPhaseStepWaves, axisField[4])).toBe(true);
     expect(Object.is(AXIS_STAGE_BLANK.maxGridPhaseStepWaves, Math.max(...axisField))).toBe(true);
     expect(Math.min(...axisField)).toBeCloseTo(0.33336818977193117, 12);
     expect(AXIS_STAGE_BLANK.maxGridPhaseStepWaves).toBeCloseTo(0.34088099768340685, 12);
+  });
+
+  it("and the anchor reads largest because off it the guard sees only the gentle side (§ 2x)", () => {
+    // Item 39. Each tile's 430 nm pupil, rebuilt the way `formVolumePlane` builds
+    // it — the guard's own readings come back `Object.is`-equal below, so these
+    // are the pupils it read. The lattice step is 1/16, so (±1, 0) and (0, ±1)
+    // sit exactly on ρ = 1.
+    const blue = (k: number) => {
+      const plane = AXIS_FIELD_BLANK.tiles[k]!.volume.planes[0]!;
+      const waves = defocusWaves(
+        0 - plane.focusMm,
+        objectNumericalAperture(SYSTEM, 430),
+        430,
+        getMedium("AIR").n(430),
+      );
+      return objectDefocusing(fieldPupilAt(SYSTEM, plane.frame, 0.5, 0.5, EXIT).pupil, 0)(waves);
+    };
+    const reading = (k: number) => AXIS_FIELD_BLANK.tiles[k]!.volume.planes[0]!.maxGridPhaseStepWaves;
+    /** |w(b·e) − w(a·e)| along the half-axis e. */
+    const step = (p: ReturnType<typeof blue>, ex: number, ey: number, a: number, b: number) =>
+      Math.abs(p.phaseWaves(b * ex, b * ey) - p.phaseWaves(a * ex, a * ey));
+    const anchor = blue(4);
+    const east = blue(5); // 0.0506 mm out along +x, object side
+
+    // Both readings are a rim pair: a node on ρ = 1 and its inward neighbour.
+    expect(Object.is(step(anchor, 0, 1, 0.9375, 1), reading(4))).toBe(true);
+    expect(Object.is(step(east, -1, 0, 1, 0.9375), reading(5))).toBe(true);
+
+    // Off the axis the wavefront is steeper on the side along the tile's offset
+    // and gentler opposite, by ±2%, on the pair (0.875 → 0.9375) every tile
+    // lights. The anchor's four sides agree, and its steepest is under the
+    // east tile's steep side — on that pair, the aim layout's ordering.
+    const inner = (p: ReturnType<typeof blue>) =>
+      [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ].map(([ex, ey]) => step(p, ex!, ey!, 0.875, 0.9375));
+    const ax = inner(anchor)[0]!;
+    expect(Math.max(...inner(anchor)) / Math.min(...inner(anchor))).toBeLessThan(1 + 1e-4);
+    const [eastSteep, eastGentle] = inner(east);
+    expect(eastSteep).toBeCloseTo(0.239448, 5);
+    expect(eastGentle).toBeCloseTo(0.229206, 5);
+    expect(ax).toBeCloseTo(0.234233, 5);
+    expect(eastSteep).toBe(Math.max(...inner(east)));
+
+    // And the exit layout lights the rim node on the gentle side only: the steep
+    // side's is blocked, so the guard never forms the steep rim pair, and what
+    // it reports is the gentle one's 0.33337 under the anchor's 0.34088.
+    expect(east.amplitude(1, 0)).toBe(0);
+    expect(east.amplitude(-1, 0)).toBeGreaterThan(0);
   });
 });
 
