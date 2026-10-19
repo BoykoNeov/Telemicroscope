@@ -6037,6 +6037,35 @@ the source files: importing a `.test.ts` registers its tests a second time.)
 Citations of other readings elsewhere in the ladder are still copies; this
 step covers the two chains item 44 named and `escape-window`'s ratio.
 
+## Step 2x — the axial anchor's largest step
+
+Source: measurement only — no engine change
+
+Register item 39 (§ 2r.2): on the exit layout § 6bj.6's axial stage scan reads
+`maxGridPhaseStepWaves` 0.34088 on its anchor tile, the largest of the nine,
+against 0.33337 for the smallest of the eight around it, 0.13 mm out.
+
+**Hypothesis** (written and committed before any reading was taken). The
+guard compares point samples on the lattice, whose step is 2/`pupilSamples`,
+so at 32 samples nodes sit exactly on ρ = 1 at (±1, 0) and (0, ±1). On the
+axis those nodes transmit, and the largest neighbour step is a pair that
+contains one of them. On the eight surrounding tiles the traced rim moves
+off them, the nodes are blocked, and the largest step is one cell further in.
+The anchor's excess is then a property of which lattice points happen to sit
+on the rim, not of the aberration. The prediction is falsifiable in three ways:
+
+- **Refuted if** the anchor's largest pair contains no node within 1e-9 of
+  ρ = 1;
+- **or if** with the pairs touching such nodes excluded, the anchor still
+  reads above the largest of the eight;
+- **or if** the same kernel formed 1e-6 mm off the axis still reads within
+  1e-3 of 0.34088 — a cause in the optics moves smoothly with field, while a
+  node leaving the rim jumps.
+
+A side prediction, not part of the refutation: on the aim layout, which lays
+the rim at ρ = 1 at every field, all nine tiles transmit the same number of
+nodes.
+
 ## Step 3a — the standard observer and thermal sources
 
 The layer that makes the hero image *visible*. Purple fringing is not new
