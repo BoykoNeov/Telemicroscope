@@ -44,7 +44,7 @@ whole ladder.
 | [2t](#step-2t--the-exit-layouts-fit-keeps-the-traced-rim) | Exit fit dropped the off-axis rim. Every traced sample fitted: the step 3.2e-5 → 4e-12 waves, item 42 closed; ~300 readings restated | `object-field`, `stage-mosaic`, `escape-window` |
 | [2u](#step-2u--the-densitys-fits-keep-every-node) | Density fit dropped off-axis nodes. Every node fitted: laid pupil = density to 1.4e-6; item 35 narrowed to the lattice, 43 opened | `exit-density-rim` |
 | [2v](#step-2v--the-outline-is-the-rims-curve) | The 32-ray outline was a polygon off axis. Curve in aim angle: 2.5e-4 each way → 3e-15; item 43 narrowed to vignetted rims; stale citations found and fixed | `rim-outline`, `exit-density-rim` |
-| [2w](#step-2w--the-citations-assert-their-source) | Two measure chains cited readings stale since § 2u. Held once, asserted at source: verdicts hold, § 6bs.2's gap 1.52× → 1.29×; item 44 closed | `support/cited`, `six-interactions` |
+| [2w](#step-2w--the-citations-assert-their-source) | Two measure chains cited readings stale since § 2u. Held once, asserted at source: classes hold; § 6bs.2's gap > 1.5× refuted (1.29×); item 44 closed | `support/cited`, `six-interactions` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -5988,6 +5988,11 @@ unchanged. **Refuted by** any row changing class or any of those orderings
 changing; a gap that an assertion bounds falling through its bound is a weakened
 claim, recorded as one.
 
+*Written after the readings.* This hypothesis and its refutation rule were
+drafted once the corrected readings were in, so the rule's carve-out for
+bounds was chosen knowing one bound had fallen. Judged by what § 2r.2 itself
+asserted — the cut's gap above 1.5 — that claim is refuted, not weakened.
+
 | Cited | was | now (source) |
 |---|---|---|
 | § 6bp.3 axial split, branch / matched | 0.629422825 / 0.683910386 | 0.7024134 / 0.7183256 (`matched-flat-field`) |
@@ -6002,7 +6007,8 @@ family, cited at six figures, had not moved. `escape-window`'s § 6cc.1 had the
 same defect in a smaller form: § 6br.6's end-to-end fall asserted as one copied
 literal over another, which no reading could fail.
 
-**Holds.** No row changes class, no ordering changes, and the edge split is
+**Holds in part.** The classification holds; § 2r.2's size of the cut does
+not. No row changes class, no ordering changes, and the edge split is
 still both the nearest neighbour of the cut and the smallest mover. What moved
 is the axial split's own row, which is the cut's one side:
 
@@ -6016,9 +6022,10 @@ is the axial split's own row, which is the cut's one side:
 | § 6bt.5, the effect's spread across the four understated | 166× | 165× |
 | § 6bs.8, the axial split's move | 8.7% | 2.3% |
 
-**One bound moved, flagged so it can be overruled:** § 6bs.2 asserted the cut's
-gap above 1.5; it reads 1.2887 and is now pinned there, with the gap still
-asserted above 1. The cut separates the six, by less than § 2r.2 wrote.
+**One claim refuted, flagged so it can be overruled:** § 6bs.2 asserted the
+cut's gap above 1.5; it reads 1.2887 and is now pinned there, with the gap
+still asserted above 1 — the classification's claim kept, § 2r.2's size claim
+dropped. The cut separates the six, by less than § 2r.2 wrote.
 
 **What changed so it cannot happen again.** The eleven readings, § 6br.6's
 k = 4 escape that `escape-window` divides by, and § 6bs.7's family live in

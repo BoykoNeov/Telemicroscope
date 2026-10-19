@@ -973,10 +973,10 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
 
     **Closed at [§ 2w](VALIDATION.md#step-2w--the-citations-assert-their-source)**, both halves. Eleven cited readings, all stale since
     § 2u, now live in `test/support/cited.ts`, asserted by the file that
-    measures each and imported by the files that cite them. Every verdict
-    holds; § 6bs.2's cut separates by 1.29× rather than 1.52×, and its "above
-    1.5" bound went with it. Citations elsewhere in the ladder are still
-    copies.
+    measures each and imported by the files that cite them. The six keep
+    their classes; § 6bs.2's claim that the cut separates them by more than
+    1.5× is refuted (1.29×, was 1.52×), and its bound went with it. Citations
+    elsewhere in the ladder are still copies.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;
