@@ -6287,6 +6287,65 @@ collapses on the second interval. `stop-default`'s two 60 s rungs timed out on
 the recorder run only, under the full pool — the load-sensitive pair on record
 — and pass on the plain full run.
 
+## Step 2z — real aiming for the finite presets
+
+Source: engine change
+
+Register item 31: the finite presets aim every pupil coordinate at the
+PARAXIAL entrance pupil, whose rim is not the stop's traced edge, so an
+emitter's collected power on the exit layout is the power of the cone the aim
+launches — 1.1% short of the stop's on the DIN 4×/0.10's axis, more off it.
+
+**What was read before the hypothesis** (it sets the scope). A probe of every
+catalogue row, the rim ray's object-space sine under real aiming over the
+paraxial one: the DIN 4×/0.10 1.0042–1.0065 on the axis across 486–656 nm, the
+three infinity 4×/10×/20× 1.0067–1.0078 (1.011–1.013 at their field edges),
+the Lister 40×/0.20 1.0045 (its stop is its curved first surface); the oil
+100×/1.25 and /1.40 1.00000 (stop on the flat front face, where a plane target
+is the stop); and the paraxial aim OVERFILLS the DIN 4×/0.15 (0.991–0.997) and
+4×/0.20 (0.94–0.95, its rim ray landing 9.5% past the stop's rim at 550 nm).
+Three things fall out of the probe, none of them a reading:
+
+- **Every telecentric preset has its entrance pupil exactly at infinity at its
+  design wavelength**, and § 1.5.3's real aiming, a solve for a target on the
+  entrance-pupil plane, refused there. § 2z.1 solves for a slope from the object
+  point instead.
+- **Some stop points no ray reaches.** At 1.1 mm the DIN 4×/0.10's +x rim lies
+  past the crown element's knife edge, where its two spheres meet; the paraxial
+  aim's ray there is traced and lost. Real aiming now refuses such a point by
+  name (`UnreachableStopPoint`) and a bundle counts it lost, as the paraxial
+  ray was; it is never aimed the paraxial way instead.
+- **The frame's ruler moves.** `canonicalApertureSine` is the axial rim ray's
+  exit sine, so every exit-layout frame on these presets changes scale by the
+  rim ratio — a restatement of most finite readings, not a side effect of one.
+
+§ 2z.2's referee counts the collected power in object-space directions — the
+edge along each bearing bisected, T/N integrated, no pupil coordinate or aim in
+it — pinned to a bare aperture's closed forms to 1.5e-12 and to a lattice count
+where a lens cuts the aperture (1.1e-5).
+
+**Hypothesis.** With `rayAiming: "real"` on every finite-conjugate microscope
+preset, an emitter pupil's light on the exit layout is the power the stop
+passes: P = energy·ν²/(π·n²·PS²) — `incoherentPsf`'s `energy` at pupil samples
+PS, in § 2n's units, ν the frame's `canonicalApertureSine`, n the object
+medium's index — equals the referee's. **Refuted by** any real-aimed reading
+off the referee by more than **2e-5**, at PS 128, edgeSamples 8, `"crossing"`,
+on: the DIN 4×/0.10 un-field-sized and sized for FN 18, at 0, 2.25, 4.5 and
+6 mm, at 550 nm and at its design wavelength (pupil at infinity); the infinity
+4×/0.10 at 0 and 2.25 mm; the Lister 40×/0.20 at 0 and 0.225 mm. Also refuted
+if the overfilled DIN 4×/0.15 and 4×/0.20 move their axial light by more than
+2e-5 between the two aims (the stop already clipped the overfill; only their
+rulers should move), or if the oil rows' light moves by more than 1e-12. The
+paraxial aim is the negative control: on the 4×/0.10's axis the same reading
+falls short of the referee by more than 0.5%.
+
+Written after the probe, the engine change and the referee's pins, and before
+any reading of P on these lenses. The threshold: the located outline keeps an
+area to 5e-8 (§ 2q.4), the DIN 4×'s density fit is good to 7e-8 (§ 2u), and the
+interior cells' midpoint sum of a density that varies by ~1% across the pupil
+errs by ~1e-6 at 128 — 2e-5 is room for what that misses, and fifty times
+below the 1.1% the aim costs.
+
 ## Step 3a — the standard observer and thermal sources
 
 The layer that makes the hero image *visible*. Purple fringing is not new
