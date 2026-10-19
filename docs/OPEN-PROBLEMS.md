@@ -939,7 +939,7 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     margin. The re-run moved ~300 readings, restated there; three exactness
     claims were investigated, not restated. `exitDensity`'s √-light fit still
     keeps the disc — item 35's candidate, left to it.
-43. ~~**Off the axis the exit layout's outline moves light across the rim.**~~ **Closed at [§ 2y](VALIDATION.md#step-2y--the-outline-turns-at-the-rims-corners)**: each corner bisected in aim angle, each arc a Chebyshev polynomial — 1e-15 of the area misplaced over π on all four cornered rims read, 1.4e-12 on a rim cut all round. Left, and recorded there rather than opened: a cut narrower than the rim rays' spacing that no arc node lands in is not seen, as before. Found
+43. ~~**Off the axis the exit layout's outline moves light across the rim.**~~ **Closed at [§ 2y](VALIDATION.md#step-2y--the-outline-turns-at-the-rims-corners)**: each corner bisected in aim angle, each arc a Chebyshev polynomial — 1e-15 of the area misplaced over π on all four cornered rims read, 1.4e-12 on a rim cut all round. Left: a cut narrower than the rim rays' spacing that no arc node lands in is not seen, as before — item 45. Found
     at [§ 2u](VALIDATION.md#step-2u--the-densitys-fits-keep-every-node). ~~`rimSupport` joins the 32 traced rim rays with the radius
     linear in exit angle, and off the axis the traced rim is not centred on the
     chief ray, so the polygon cuts inside it on one side and reaches past it on
@@ -987,6 +987,16 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     their classes; § 6bs.2's claim that the cut separates them by more than
     1.5× is refuted (1.29×, was 1.52×), and its bound went with it. Citations
     elsewhere in the ladder are still copies.
+45. **A cut narrower than the rim rays' spacing is not seen.** Found at
+    [§ 2y](VALIDATION.md#step-2y--the-outline-turns-at-the-rims-corners). The outline finds a corner only where two neighbouring rim rays
+    report different edges, or where a node of an arc lands in the cut; a cut
+    that falls between two rays and that no node reaches keeps the stop's rim
+    across it. § 2y's closed-form rung pins the miss: a cut 1e-3 deep, 9.4e-4
+    out in exit radius — as the polygon and the curve missed it. Nothing in the
+    suite is known to hit it (no survey can say, since the rays are what would
+    see it). *Pin:* first a fixture with such a cut — a small aperture far
+    off the beam — then a check of the rim between rays, e.g. the reach of a
+    ray at each gap's midpoint.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;

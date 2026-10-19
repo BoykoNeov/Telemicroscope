@@ -6217,7 +6217,7 @@ the stop between neither, 1.6e-15. A corner between two rays that read the
 same edge is found when an arc's node lands in its cut (a 3e-3-deep cut between
 rays 20 and 21: 1.6e-15). **What it cannot see:** a cut no rim ray and no node
 lands in. A 1e-3-deep one between rays keeps the stop's rim across it, 9.4e-4
-out — as the polygon and the curve did; the rung records it.
+out — as the polygon and the curve did; the rung records it (register item 45).
 
 **Four things the construction does that the hypothesis did not name.**
 
@@ -6237,8 +6237,10 @@ out — as the polygon and the curve did; the rung records it.
 
 **Cost.** Locating and tracing the arcs is 1 024 to 7 590 traces, 3 to 12 ms,
 per vignetted pupil (the 10×/0.20 at 0.5 mm the most: a 65-node arc whose every
-node bisects its reach, and a two-cut corner). In the suite that is ~5 300
-rims, under a minute of worker time beside the ~12 100 s a full run takes.
+node bisects its reach, and a two-cut corner). Across the suite's ~5 300 such
+rims that is an ESTIMATE of 15–65 s of worker time — five timed cases times the
+survey's count, not measured in the suite — beside the 77 s the old rim tracing
+measured and the ~12 100 s a full run takes.
 
 ### What the full run moved
 
