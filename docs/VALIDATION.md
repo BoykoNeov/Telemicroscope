@@ -6066,6 +6066,50 @@ A side prediction, not part of the refutation: on the aim layout, which lays
 the rim at ρ = 1 at every field, all nine tiles transmit the same number of
 nodes.
 
+**Refuted.** A copy of `incoherentPsf`'s guard loop, fed each tile's own
+pupil (`fieldPupilAt` at the frame's centre, `objectDefocusing` at the plane's
+stage), reproduces every tile's and every plane's reading `Object.is`-equal,
+so the readings below are the guard's own. The 430 nm plane carries the
+maximum on all nine tiles.
+
+- The anchor's largest pair does contain a rim node, (0, 0.9375)–(0, 1).
+- But the mechanism is wrong on both counts. The eight are not stripped of rim
+  nodes: each keeps the one or two on the side away from its own offset —
+  tile (0, −0.0506) mm (object side) keeps (0, +1), tile (+0.0506, 0) keeps
+  (−1, 0) — and on every one of the eight the largest pair contains that
+  surviving node. Lit nodes: 797 on the anchor, 795 on the corner tiles, 794
+  on the edge tiles.
+- With rim nodes excluded, the anchor reads 0.30423 against 0.31087–0.31315
+  for the eight: the aim layout's ordering, anchor smallest.
+- The third clause fires. 1e-6 mm (image side) off the axis along a diagonal
+  reads 0.341086, 2.05e-4 from 0.34088 and inside the 1e-3 the clause set;
+  1e-3 mm along x reads 0.340825 with one rim node left. Along x or y at 1e-6
+  the reading is bitwise the axis's, but that test cannot discriminate: on the
+  axis a quarter turn maps the lattice onto itself.
+
+So the excess is not a node leaving the rim. The cell that carries it is
+located, which is what item 39 asked for: a node on ρ = 1 and its inward
+neighbour, on every tile. Two corrections to the register's wording: the eight
+sit 0.0506 mm out along each axis (object side), not 0.13 mm; and on the aim
+layout, with every tile at this chain's exit-layout stage, all nine light 797
+nodes and the anchor reads 0.34034 against 0.34716–0.34747 — those are not the
+aim chain's own readings, because the stages are this chain's.
+
+**Second hypothesis** (written and committed before its reading; the last
+probe of this step, whatever it shows). Off the axis the rim step depends on
+direction, and the exit layout's lit rim nodes leave the guard only the
+gentler side. Two readings, each refuting on its own:
+
+- **Not the stage.** Each field-scan tile has its own stage. Formed at the
+  anchor's stage, the eight's maximum moves by less than half of the gap,
+  3.8e-3 — **refuted if** the swap closes half the gap or more.
+- **The steep side is the blocked one.** On each of the eight, the step at
+  the pair (0.875 → 0.9375) on the four half-axes, which every tile lights:
+  a half-axis pointing along the tile's own offset (one on an edge tile, one
+  of two on a corner), whose rim node is blocked, reads the largest —
+  **refuted if** the four agree within 1%, or if a half-axis whose rim node
+  survives reads the largest.
+
 ## Step 3a — the standard observer and thermal sources
 
 The layer that makes the hero image *visible*. Purple fringing is not new
