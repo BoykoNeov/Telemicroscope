@@ -136,19 +136,21 @@ export function emitterLaunchEnergy(
  * The exit density's own light — `ExitDensity.amplitude`, the source's power
  * with no throughput — carried back onto the aim disc as `exactPupilEnergy`
  * carries the laid pupil. Its gap to `emitterLaunchEnergy(…, { throughput:
- * false })` is the density lattice's and its fit's alone.
+ * false })` is the density lattice's and its fit's alone; `lattice` refines
+ * the first (§ 2u).
  */
 export function exitDensityEnergy(
   system: OpticalSystem,
   fieldValue: number,
   wavelengthNm: number,
   rule: { readonly radial: number; readonly angular: number } = { radial: 24, angular: 128 },
+  lattice?: number,
 ): number {
   const c = asCompiled(system.prescription);
   const map = opdMap(system, fieldValue, wavelengthNm, pupilGrid(21));
   if (map.lost > 0) throw new Error("exitDensityEnergy: the map vignettes");
   const sigma = exitApertureSine(system, wavelengthNm);
-  const density = exitDensity(system, map, sigma);
+  const density = exitDensity(system, map, sigma, lattice === undefined ? {} : { lattice });
   const at = (px: number, py: number): readonly [number, number] => {
     const res = traceRay(c, aimRay(system, map.pupil, fieldValue, { px, py }, wavelengthNm, {}));
     if (res.status !== "ok" || !res.ray) throw new Error("exitDensityEnergy: a node did not trace");

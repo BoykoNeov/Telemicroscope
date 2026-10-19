@@ -94,7 +94,11 @@ const RINGS = 2;
  *
  * √(|P|²·T), with T each node's traced throughput, is then fitted over the
  * nodes' exit coordinates — the transform asks for it at grid points, not at
- * nodes — and √(|P|²) alone when a rung asks for the source's light.
+ * nodes — and √(|P|²) alone when a rung asks for the source's light. Over EVERY
+ * in-disc node (§ 2u): off the axis the exit coordinate of an aim-disc node can
+ * pass radius 1 — 45 of the oil 100×'s 317 at 20 µm — and a unit-disc fit left
+ * them out, so the two fits extrapolated to the rim and parted by 4.4e-5 of the
+ * light there, as the wavefront's fit did until § 2t.
  *
  * ## The units
  *
@@ -252,7 +256,12 @@ export function exitDensity(
   system: OpticalSystem,
   map: OpdMap,
   apertureSine: number,
-  options: { readonly source?: PupilSource; readonly aim?: AimOptions } = {},
+  options: {
+    readonly source?: PupilSource;
+    readonly aim?: AimOptions;
+    /** The lattice's resolution across the diameter, odd — `DENSITY_GRID` unless a rung refines it (§ 2u). */
+    readonly lattice?: number;
+  } = {},
 ): ExitDensity {
   const aim = options.aim ?? {};
   const source = options.source ?? "emitter";
@@ -263,7 +272,8 @@ export function exitDensity(
   const real = system.rayAiming === "real";
   const epZ = pupil.entrance.z;
 
-  const n = DENSITY_GRID;
+  const n = options.lattice ?? DENSITY_GRID;
+  if (!Number.isInteger(n) || n < 3 || n % 2 === 0) throw new Error(`exit density: lattice must be odd and ≥ 3, got ${n}`);
   const h = 2 / (n - 1);
   const half = (n - 1) / 2;
   const span = half + RINGS;
@@ -394,7 +404,7 @@ export function exitDensity(
 
   const terms = [MAX_ZERNIKE_TERMS, 28, 15, 10, 6, 3].find((t) => nodes.length >= 2 * t) ?? 1;
   const fitOf = (light: (q: (typeof nodes)[number]) => number) =>
-    wavefrontSampler(fitZernike(nodes.map((q) => ({ px: q.ex, py: q.ey, waves: Math.sqrt(light(q)) })), terms));
+    wavefrontSampler(fitZernike(nodes.map((q) => ({ px: q.ex, py: q.ey, waves: Math.sqrt(light(q)) })), terms, "samples"));
   const light = fitOf((q) => q.density * q.throughput);
   let bare: ((ex: number, ey: number) => number) | null = null;
 

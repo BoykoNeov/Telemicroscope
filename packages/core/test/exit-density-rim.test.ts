@@ -8,7 +8,7 @@ import { traceRay } from "../src/trace/sequential";
 import { asCompiled, compile } from "../src/trace/compile";
 import { exitDensity } from "../src/wave/exit-density";
 import { laidPupil } from "../src/wave/psf";
-import { exitCoordinate } from "../src/pupil/opd";
+import { exitCoordinate, exitRim } from "../src/pupil/opd";
 import { toImageSpace } from "../src/trace/axis";
 import { LINE_D } from "../src/materials/dispersion";
 import { emitterLaunchEnergy, exactPupilEnergy, exitDensityEnergy } from "./support/exitEnergy";
@@ -213,6 +213,116 @@ describe("§ 2q.5 — the exit layout's light is the launches' light", () => {
     expect(bare).toBeCloseTo(-1.581e-4, 6);
     expect(laid).toBeCloseTo(-1.595e-4, 6);
     expect(Math.abs(laid - bare)).toBeLessThan(2e-6);
+  });
+});
+
+/**
+ * § 2u — register item 35, split three ways on the oil 100× off the axis.
+ *
+ * Item 35 read the oil's exit-layout light short of the launches' and named
+ * three residues: the 21-node lattice, a √-fit slipping off the axis, and a
+ * 32-ray rim clipping the aim disc's image. **Hypothesis:** the slip is the
+ * density's fits keeping only nodes inside exit radius 1, which off the axis an
+ * aim-disc node can pass (28, 34 and 45 of 317 at 10, 15 and 20 µm); fitted over
+ * every node, (a) the laid pupil tracks the density to the throughput's own
+ * 1.4e-6 at every field, as it does on the axis, and (b) what is left is the
+ * lattice's, inside 1e-6 of the launches at 61 nodes from 0 to 20 µm. **Refuted
+ * by** |laid − bare| above 2e-6 off the axis, or a 61-node departure above 1e-6.
+ *
+ * And the third residue is not a loss: the 32-ray outline is the rim's polygon
+ * in angle, which off the axis cuts inside the traced image on one side and
+ * reaches past it on the other, by nearly the same light.
+ */
+const oilField = (): OpticalSystem =>
+  infinityCorrectedMicroscope({
+    objective: oilImmersionObjective({ magnification: 100, numericalAperture: 1.25, tubeFocalLengthMm: 200 }),
+    tubeLens: tubeLens({ focalLengthMm: 200 }),
+    objectHeightsMm: [0, 0.02],
+  }).system;
+
+describe("§ 2u — the density's fits keep every node", () => {
+  it.each([
+    [0.01, -1.506e-4],
+    [0.015, -1.416e-4],
+    [0.02, -1.298e-4],
+  ] as const)("the oil 100× at %s mm: the laid pupil is the density's light to 2e-6, where it parted by up to 4.4e-5", (h, light) => {
+    // Unit-disc fits read the density −1.803e-4, −1.881e-4, −2.194e-4 and the
+    // laid pupil −1.553e-4, −1.514e-4, −1.753e-4: the two fits extrapolating to
+    // the rim, apart. Every node fitted, the laid pupil reads −1.520e-4,
+    // −1.430e-4, −1.312e-4 — the density's light and the throughput's −1.4e-6.
+    const system = oilField();
+    const bare = exitDensityEnergy(system, h, L) / emitterLaunchEnergy(system, h, L, { throughput: false }) - 1;
+    const laid = exactPupilEnergy(system, h, L, "exit") / emitterLaunchEnergy(system, h, L, { throughput: true }) - 1;
+    expect(bare).toBeCloseTo(light, 6);
+    expect(Math.abs(laid - bare)).toBeLessThan(2e-6);
+  });
+
+  it("what is left is the lattice's: at 61 nodes across, the light is the launches' to 1e-6 from 0 to 20 µm", () => {
+    // −5.23e-7, −4.79e-7, −4.25e-7, −3.50e-7, where 21 nodes read −1.58e-4 to
+    // −1.30e-4 (and fourth order at 61, § 2q.5, −1.6e-5 on the axis).
+    const system = oilField();
+    for (const h of [0, 0.01, 0.015, 0.02]) {
+      const bare = exitDensityEnergy(system, h, L, undefined, 61) / emitterLaunchEnergy(system, h, L, { throughput: false }) - 1;
+      expect(Math.abs(bare)).toBeLessThan(1e-6);
+    }
+  });
+
+  it("the 32-ray outline moves light at 20 µm and nearly loses none: 2.5e-4 cut, 2.4e-4 taken in", () => {
+    // Per exit angle φ: the outline's radius as `rimSupport` interpolates it, and
+    // the traced rim's — the aim-circle ray landing at φ, bisected in aim angle.
+    // The light between them is |P(rim)|²·(r_p² − r_t²)/2 per radian, a strip
+    // under 2e-4 deep in exit radius. At 1024 angles: 2.526e-4 cut, 2.396e-4
+    // reached past, −1.30e-5 net; at 720 rim rays 4.98e-7 and 4.73e-7, the
+    // polygon's 1/N². Item 35's "clips 3.5e-4 and then 6.4e-4" counted one side.
+    const system = oilField();
+    const h = 0.02;
+    const c = asCompiled(system.prescription);
+    const map = opdMap(system, h, L, pupilGrid(21));
+    const sigma = exitApertureSine(system, L);
+    const density = exitDensity(system, map, sigma);
+    const pts = exitRim(system, map)
+      .map((p) => ({ a: Math.atan2(p.py, p.px), r: Math.hypot(p.px, p.py) / sigma }))
+      .sort((u, v) => u.a - v.a);
+    const outline = (a: number) => {
+      let j = pts.findIndex((p) => p.a > a);
+      if (j < 0) j = 0;
+      const i = (j - 1 + pts.length) % pts.length;
+      let span = pts[j]!.a - pts[i]!.a;
+      let at = a - pts[i]!.a;
+      if (span <= 0) span += 2 * Math.PI;
+      if (at < 0) at += 2 * Math.PI;
+      return pts[i]!.r + ((pts[j]!.r - pts[i]!.r) * at) / span;
+    };
+    const rimAt = (t: number) => {
+      const res = traceRay(c, aimRay(system, map.pupil, h, { px: Math.cos(t), py: Math.sin(t) }, L));
+      const e = exitCoordinate(map, toImageSpace(c, res.ray!))!;
+      return [e[0] / sigma, e[1] / sigma] as const;
+    };
+    const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
+    const N = 256;
+    let cut = 0;
+    let past = 0;
+    for (let k = 0; k < N; k++) {
+      const phi = -Math.PI + (2 * Math.PI * (k + 0.5)) / N;
+      let lo = phi - 0.5;
+      let hi = phi + 0.5;
+      for (let it = 0; it < 55; it++) {
+        const m = (lo + hi) / 2;
+        const e = rimAt(m);
+        if (wrap(Math.atan2(e[1], e[0]) - phi) < 0) lo = m;
+        else hi = m;
+      }
+      const e = rimAt((lo + hi) / 2);
+      const rt = Math.hypot(e[0], e[1]);
+      const rp = outline(phi);
+      const dl = ((density.amplitude(e[0], e[1]) ** 2 * (rp * rp - rt * rt)) / 2) * ((2 * Math.PI) / N);
+      if (dl < 0) cut -= dl;
+      else past += dl;
+    }
+    const total = emitterLaunchEnergy(system, h, L, { throughput: false });
+    expect(cut / total).toBeCloseTo(2.526e-4, 6);
+    expect(past / total).toBeCloseTo(2.396e-4, 6);
+    expect(Math.abs(past - cut) / total).toBeLessThan(2e-5);
   });
 });
 

@@ -79,8 +79,8 @@ const EXIT = { layout: "exit", edgeSamples: 8, edgeRule: "crossing" } as const;
 describe("§ 6bq.1 — the branch column reproduces, and the 10× ceiling is where § 6bn.1 put it", () => {
   it("§ 6bo.5's seven plateau depths come back unchanged", () => {
     const published = [
-      0.3722815616422731, 0.42476740698848536, 0.6023875557712574, 1.1187669867217187,
-      1.2959870056577374, 1.5885913163297871, 2.3140296636294875,
+      0.3722815616422731, 0.42476740698848536, 0.6023875557712574, 1.1187707034456464,
+      1.2959938930517378, 1.5886088481161025, 2.3137713181431914,
     ];
     LADDER.forEach((na, i) => expect(D(20, na, 128, 48)).toBeCloseTo(published[i]!, 12));
   });
@@ -125,7 +125,7 @@ describe("§ 6bq.4 — a finer ladder narrows § 6bo.5's bracket, and the ladder
   it("three inserted apertures cut the 20× bracket from three steps to one", () => {
     expect(D(20, 0.16, 128, 48)).toBeCloseTo(0.8870602039570573, 12);
     expect(D(20, 0.17, 128, 48)).toBeCloseTo(0.8633348891438541, 12);
-    expect(D(20, 0.19, 128, 48)).toBeCloseTo(1.160058688584179, 12);
+    expect(D(20, 0.19, 128, 48)).toBeCloseTo(1.1600612775856871, 12);
 
     // § 6bo.5 could say only "between 0.15 and 0.18". At this frame it is
     // between 0.17 and 0.18 — and § 6bq.6 shows that call is the frame's.
@@ -143,8 +143,8 @@ describe("§ 6bq.4 — a finer ladder narrows § 6bo.5's bracket, and the ladder
     // frame inverted between 0.19 and 0.20, by 0.13% (1.1759 against 1.1743).
     // On the exit layout that step rises 11%, and the inversion is one step
     // lower, where the larger frame's shelf now falls too: 9.5% at this frame.
-    expect(D(20, 0.19, 64, 24)).toBeCloseTo(1.2094004504471114, 12);
-    expect(D(20, 0.2, 64, 24)).toBeCloseTo(1.3431651971276746, 12);
+    expect(D(20, 0.19, 64, 24)).toBeCloseTo(1.2094000920008314, 12);
+    expect(D(20, 0.2, 64, 24)).toBeCloseTo(1.3431649813016484, 12);
     expect(D(20, 0.2, 64, 24)).toBeGreaterThan(D(20, 0.19, 64, 24));
     expect(D(20, 0.16, 64, 24)).toBeCloseTo(0.9270027796311074, 12);
     expect(D(20, 0.17, 64, 24)).toBeCloseTo(0.8468994247028685, 12);
@@ -166,7 +166,7 @@ describe("§ 6bq.4 — a finer ladder narrows § 6bo.5's bracket, and the ladder
     // rung; these eight are what it was measured on.
     expectReproduces(ten, [
       0.37615334937848366, 0.46654675712193866, 0.9817631998807098, 1.0419741268651355,
-      1.1386009379305801, 1.270064014967424, 1.4286062660796581, 2.018702331964637,
+      1.138601718633904, 1.270068843565863, 1.4285749609398368, 2.0186944804329108,
     ]);
     for (let i = 1; i < ten.length; i++) expect(ten[i]!).toBeGreaterThan(ten[i - 1]!);
   });
@@ -212,12 +212,12 @@ describe("§ 6bq.6 — the boundary is bracketed at 10× and at 20×, and it RIS
     // device. On the exit layout all three refuse, in a band 4.6% wide, so the
     // 20× boundary is bracketed as the 10× one is: (0.17, 0.18], unanimous.
     const refusing = FRAMES.map(([size, ps]) => D(20, 0.18, size, ps));
-    expectReproduces(refusing, [1.0696938554178719, 1.1187669867217187, 1.086151909417324]);
+    expectReproduces(refusing, [1.0696970919321755, 1.1187707034456464, 1.086154796580342]);
     expect(straddlesOne(refusing)).toBe(false);
     for (const d of refusing) expect(d).toBeGreaterThan(1);
 
     const [lo, hi] = band(refusing);
-    expect(hi / lo).toBeCloseTo(1.0458758653752167, 12);
+    expect(hi / lo).toBeCloseTo(1.0458761754926622, 12);
 
     // The bracket that survives the refusal: 0.17 passes and 0.19 refuses, at
     // both frames each was measured on.
@@ -254,8 +254,8 @@ describe("§ 6bq.7 — § 6bo.5's field control sampled the flat apertures", () 
     // and at a uniform 2×, which only its NA 0.10 control was.
     const moved = LADDER.map((na) => D(20, na, 128, 48) / D(20, na, 64, 24));
     expectReproduces(moved, [
-      0.9988262742778071, 0.9991892705494844, 0.9940905395032201, 1.0458758653752167,
-      0.9648753618908332, 0.705655266393562, 1.191674493985443,
+      0.9988262742778071, 0.9991892705494844, 0.9940905395032201, 1.0458761754926622,
+      0.9648806446664523, 0.7056325132435267, 1.1916726283390513,
     ]);
 
     // § 6bo.5's 0.10 reading, to twelve digits — the same lens, the same pair of
@@ -277,7 +277,7 @@ describe("§ 6bq.7 — § 6bo.5's field control sampled the flat apertures", () 
   it("the generalisation fails: 0.08% to 29.4% — and, on this layout, none of it crosses the threshold", () => {
     const off = LADDER.map((na) => Math.abs(D(20, na, 128, 48) / D(20, na, 64, 24) - 1));
     expect(Math.min(...off)).toBeCloseTo(0.0008107294505156348, 12);
-    expect(Math.max(...off)).toBeCloseTo(0.294344733606438, 12);
+    expect(Math.max(...off)).toBeCloseTo(0.2943674867564733, 12);
 
     // "Under 3%" holds for three of the seven and fails for four — including
     // NA 0.20, which § 6bo.5 measured at 0.82% by halving the field where this
@@ -311,8 +311,8 @@ describe("§ 6bq.7 — § 6bo.5's field control sampled the flat apertures", () 
 describe("§ 6bq.8 — both ceilings refuse, which closes § 6bn's above-the-ceiling item", () => {
   it("the highest aperture that builds at 10× refuses, as the 20× one does", () => {
     // § 6bn.1 raised the ceiling and § 6bn measured only the 20×/0.25 half.
-    expect(D(10, 0.22, 128, 48)).toBeCloseTo(2.018702331964637, 12);
-    expect(D(20, 0.25, 128, 48)).toBeCloseTo(2.3140296636294875, 12);
+    expect(D(10, 0.22, 128, 48)).toBeCloseTo(2.0186944804329108, 12);
+    expect(D(20, 0.25, 128, 48)).toBeCloseTo(2.3137713181431914, 12);
     for (const d of [D(10, 0.22, 128, 48), D(20, 0.25, 128, 48)]) expect(d).toBeGreaterThan(1);
   });
 

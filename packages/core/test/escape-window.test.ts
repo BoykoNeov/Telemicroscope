@@ -287,7 +287,7 @@ describe("§ 6cc.0 — one render is the whole anchor ladder at one sampling", (
     for (const cell of CELLS) {
       expect(Math.abs(boxed(cell, 4) / top[cell].escape - 1)).toBeLessThan(1e-11);
     }
-    expect(interact(boxedQuartet(4))).toBeCloseTo(0.10968617819220525, 7);
+    expect(interact(boxedQuartet(4))).toBeCloseTo(0.10968529225040409, 7);
     // And every cell is under 0.1 there, which is § 6br.6's own observation and
     // the reason it could not appeal to the bound at 1.
     for (const cell of CELLS) expect(top[cell].escape).toBeLessThan(0.1);
@@ -297,10 +297,10 @@ describe("§ 6cc.0 — one render is the whole anchor ladder at one sampling", (
 describe("§ 6cc.1 — held at one sampling the fall is still there, and stronger", () => {
   it("falls monotonically over the four boxes, by 3.81×", () => {
     const got = [1, 2, 3, 4].map((k) => interact(boxedQuartet(k)));
-    expect(got[0]).toBeCloseTo(0.42622813691422473, 7);
-    expect(got[1]).toBeCloseTo(0.35988186179588194, 7);
-    expect(got[2]).toBeCloseTo(0.22843532413422973, 7);
-    expect(got[3]).toBeCloseTo(0.10968617819220525, 7);
+    expect(got[0]).toBeCloseTo(0.4262243212060407, 7);
+    expect(got[1]).toBeCloseTo(0.35991269953439087, 7);
+    expect(got[2]).toBeCloseTo(0.22843655204110602, 7);
+    expect(got[3]).toBeCloseTo(0.10968529225040409, 7);
     for (let n = 1; n < got.length; n++) expect(got[n]!).toBeLessThan(got[n - 1]!);
     // 3.89x against § 6br.6's own curve's 3.57x over the same four anchors
     // (0.3914878 to 0.1096861), so the anchor's OTHER effect was hiding some of
@@ -320,8 +320,8 @@ describe("§ 6cc.2 — and the sampling pushes the other way", () => {
     // as `pupilSamples` alone (§ 6bw.2), so the field IS the sampling — but one
     // render read at a sub-box can.
     const q1 = Object.fromEntries(CELLS.map((c) => [c, rendered(c, 1)])) as Record<Cell, number>;
-    expect(interact(q1)).toBeCloseTo(0.391487770455029, 7);
-    expect(interact(boxedQuartet(1))).toBeCloseTo(0.42622813691422473, 7);
+    expect(interact(q1)).toBeCloseTo(0.3914964862760292, 7);
+    expect(interact(boxedQuartet(1))).toBeCloseTo(0.4262243212060407, 7);
     expect(interact(boxedQuartet(1)) / interact(q1) - 1).toBeCloseTo(0.08874021138169841, 4);
     // Every cell reads LOWER at the finer sampling — the coarse pupil is putting
     // light outside the box that the fine one does not — and by enough that
@@ -343,15 +343,15 @@ describe("§ 6cc.3 — the mechanism: the slow cells run out of light to lose", 
       expect(q[2]![cell]).toBeLessThan(q[1]![cell]);
       expect(q[3]![cell]).toBeGreaterThan(q[2]![cell]);
     }
-    expect(q[3]!.s20).toBeCloseTo(0.006072568399835387, 9);
-    expect(q[3]!.s10).toBeCloseTo(0.002996910400610231, 9);
+    expect(q[3]!.s20).toBeCloseTo(0.006072567662485873, 9);
+    expect(q[3]!.s10).toBeCloseTo(0.002996909719839347, 9);
     // The two fast cells are still falling hard at the last box, with a fifth
     // and a tenth of their light still outside it two boxes earlier.
     for (const cell of ["f20", "f10"] as const) {
       for (let n = 1; n < 4; n++) expect(q[n]![cell]).toBeLessThan(q[n - 1]![cell]);
     }
-    expect(q[3]!.f20).toBeCloseTo(0.01661655470479262, 9);
-    expect(q[3]!.f10).toBeCloseTo(0.07476366947038493, 9);
+    expect(q[3]!.f20).toBeCloseTo(0.01661876257935979, 9);
+    expect(q[3]!.f10).toBeCloseTo(0.07477416713691054, 9);
     // So the 20x aperture lever collapses where the 10x gives less ground:
     // 19.25 -> 2.74 (7.0x) against 53.48 -> 24.95 (2.1x). That difference IS the
     // fall. (On the aim layout's point-sampled rim 20.86 -> 4.70 against 56.00 ->
@@ -359,10 +359,10 @@ describe("§ 6cc.3 — the mechanism: the slow cells run out of light to lose", 
     // cell reads 13% more escape at the top box and its lever falls further.)
     const l20 = q.map((v) => v.f20 / v.s20);
     const l10 = q.map((v) => v.f10 / v.s10);
-    expect(l20[1]!).toBeCloseTo(19.247738304942736, 4);
-    expect(l20[3]!).toBeCloseTo(2.7363302606352566, 4);
-    expect(l10[1]!).toBeCloseTo(53.48349272254132, 4);
-    expect(l10[3]!).toBeCloseTo(24.946901293619067, 4);
+    expect(l20[1]!).toBeCloseTo(19.24900730762499, 4);
+    expect(l20[3]!).toBeCloseTo(2.736694509313498, 4);
+    expect(l10[1]!).toBeCloseTo(53.482434302893175, 4);
+    expect(l10[3]!).toBeCloseTo(24.950423645367238, 4);
     expect(l20[1]! / l20[3]!).toBeGreaterThan(4);
     expect(l10[1]! / l10[3]!).toBeLessThan(2.5);
     expect(l20[1]! / l20[3]! / (l10[1]! / l10[3]!)).toBeGreaterThan(3);
@@ -381,16 +381,16 @@ describe("§ 6cc.4 — which is what the four energy profiles look like", () => 
     };
     // 98.5% and 99.2% slow against 82.0% and 72.1% fast (§ 2r.2; on the aim
     // layout's point-sampled rim 98.5%, 99.3%, 79.4% and 69.0%).
-    expect(at("s20", 0.75)).toBeCloseTo(0.9845035978973786, 9);
-    expect(at("s10", 0.75)).toBeCloseTo(0.9923615667307798, 9);
-    expect(at("f20", 0.75)).toBeCloseTo(0.8199118239097982, 9);
-    expect(at("f10", 0.75)).toBeCloseTo(0.7208050685299927, 9);
+    expect(at("s20", 0.75)).toBeCloseTo(0.9845036000764102, 9);
+    expect(at("s10", 0.75)).toBeCloseTo(0.992361568485066, 9);
+    expect(at("f20", 0.75)).toBeCloseTo(0.8199035732188048, 9);
+    expect(at("f10", 0.75)).toBeCloseTo(0.7208013881497832, 9);
     // And by 1.85 mm the slow cells are inside two thirds of a percent of all
     // their light while the fast 10x is still 7% short (a quarter of a percent
     // and 10% on the aim layout).
-    expect(at("s20", 1.85)).toBeCloseTo(0.9937818457757165, 9);
-    expect(at("s10", 1.85)).toBeCloseTo(0.9969308812777086, 9);
-    expect(at("f10", 1.85)).toBeCloseTo(0.9281771608682953, 9);
+    expect(at("s20", 1.85)).toBeCloseTo(0.9937818465309778, 9);
+    expect(at("s10", 1.85)).toBeCloseTo(0.9969308819753098, 9);
+    expect(at("f10", 1.85)).toBeCloseTo(0.9281670578538632, 9);
     // The ordering is the aperture's, not the magnification's: both fast cells
     // sit below both slow ones at every radius read here.
     for (const mm of [0.75, 1.85, 2.6] as const) {

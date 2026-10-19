@@ -42,6 +42,7 @@ whole ladder.
 | [2r](#step-2r--the-mosaic-chain-on-the-exit-layout) | Sweep rim per stage; mosaic chain flipped; field seam. Laid once; 28 reversed; the aim ruler's, 0 on exit | `sweep-plan`, `field-seam-zero` |
 | [2s](#step-2s--the-default-itself-for-finite-conjugates) | Mosaic drops its layout; condenser spread; exit fit's rim; the flip. Forwarded; the slope's 1/N⁴; item 42; exit everywhere, oil cells 32 | `mosaic-layout`, `condenser-source`, `object-field`, `builder` |
 | [2t](#step-2t--the-exit-layouts-fit-keeps-the-traced-rim) | Exit fit dropped the off-axis rim. Every traced sample fitted: the step 3.2e-5 → 4e-12 waves, item 42 closed; ~300 readings restated | `object-field`, `stage-mosaic`, `escape-window` |
+| [2u](#step-2u--the-densitys-fits-keep-every-node) | Density fit dropped off-axis nodes. Every node fitted: laid pupil = density to 1.4e-6; item 35 narrowed to the lattice, 43 opened | `exit-density-rim` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -4994,9 +4995,10 @@ both. Every one is on the exit layout or downstream of it.
 - ~~**The volume and focus-surface flip itself** — the rest of this step, on the
   corrected density.~~ Landed at [§ 2q.6](#-2q6--the-flip).
 - **The oil 100×'s exit-layout light is short by 1.6e-4 on axis** — the 21-node
-  lattice on its cubic map — and off axis two older residues show: the √-fit
+  lattice on its cubic map — ~~and off axis two older residues show: the √-fit
   slips by 6e-5 to 1.6e-4 of the light at 10–20 µm, and at 15–20 µm the 32-ray
-  rim clips 3–6e-4 of the aim disc's image (register item 35).
+  rim clips 3–6e-4 of the aim disc's image~~ (register item 35). The slip went at
+  [§ 2u](#step-2u--the-densitys-fits-keep-every-node), and the rim moves light rather than losing it (item 43).
 - **§ 2j.3's ray histogram reads 1.0–1.3e-3 high** on the oil's half-radius
   light, for both sources — more than § 2i.4's pixel edge, untraced (register
   item 36).
@@ -5657,11 +5659,130 @@ h = 0.4 reads 7.96e-4 mm at 48 samples (7.71e-4 before).
 
 ### What it leaves
 
-- **`exitDensity`'s √-light fit** keeps the unit disc. Its nodes are exit
+- ~~**`exitDensity`'s √-light fit** keeps the unit disc. Its nodes are exit
   coordinates too, so off the axis it drops the same rim; register item 35 names
   "a fit that keeps the nodes past exit radius 1" as the candidate for its
-  second residue, and that change is item 35's to make against its own numbers.
+  second residue, and that change is item 35's to make against its own numbers.~~
+  Every node fitted at [§ 2u](#step-2u--the-densitys-fits-keep-every-node).
 - The readings that moved inside their tolerances.
+
+## Step 2u — the density's fits keep every node
+
+Source: engine change — `exitDensity` fits √(|P|²·T) and √(|P|²) over every in-disc node (`"samples"`) where it kept only nodes inside exit radius 1, and takes a `lattice` option for the rungs (`wave/exit-density.ts`)
+· Tests: `packages/core/test/exit-density-rim.test.ts` (§ 2u's three rungs); `stage-mosaic.test.ts` (§ 6bj.4's two arithmetic bounds); the restatements in the files named below
+
+Register item 35 (§ 2q.5) read the oil 100×'s exit-layout light short of the
+launches' — the change of variables ∫|P|²dA_exit = ∫p·T·|∂c/∂a|dA_aim, which
+owes nothing to the exit coordinate — and named three residues: the 21-node
+lattice, a √-fit slipping off the axis, and a 32-ray rim clipping the aim
+disc's image. It named the pin too: the same identity with the lattice refined
+and the rim at 720 rays, separating the three. § 2t had left the candidate for
+the second: the density's nodes are exit coordinates, and off the axis an
+aim-disc node can land past exit radius 1 — 28, 34 and 45 of 317 at 10, 15 and
+20 µm — where `fitZernike`'s disc dropped it.
+
+**Hypothesis.** The slip is those dropped nodes: fitted over every node, (a) the
+laid pupil tracks the density to the throughput's own 1.4e-6 at every field, as
+on the axis, and (b) what is left is the lattice's, inside 1e-6 of the launches
+at 61 nodes from 0 to 20 µm. **Refuted by** |laid − bare| above 2e-6 off the
+axis, or a 61-node departure above 1e-6.
+
+| oil 100×, light against the launches | 0 µm | 10 µm | 15 µm | 20 µm |
+|---|---|---|---|---|
+| density, unit-disc fit (before) | −1.581e-4 | −1.803e-4 | −1.881e-4 | −2.194e-4 |
+| laid pupil, unit-disc fit (before) | −1.595e-4 | −1.553e-4 | −1.514e-4 | −1.753e-4 |
+| density, every node (after) | −1.581e-4 | −1.506e-4 | −1.416e-4 | −1.298e-4 |
+| laid pupil, every node (after) | −1.595e-4 | −1.520e-4 | −1.430e-4 | −1.312e-4 |
+| density, every node, 61-node lattice | −5.2e-7 | −4.8e-7 | −4.2e-7 | −3.5e-7 |
+| density, unit-disc fit, 61-node lattice (size) | | 2.4e-5 | 4.5e-5 | 7.7e-5 |
+
+Holds. Before, the two fits — the bare light and the light times throughput —
+extrapolated to the rim separately and parted by 2.5e-5 to 4.4e-5; after, they
+differ by the throughput's −1.4e-6 at every field. On the axis no node passes
+radius 1 and nothing moved, to the bit. The last row is the control: on a fine
+lattice the unit-disc fit still slips, so the slip was the fit's, not the
+lattice's. Everything left at 21 nodes is the lattice's, and it changes with
+field — −1.58e-4 on the axis, −1.30e-4 at 20 µm.
+
+**The rim does not lose light; it moves it.** Read per exit angle — the outline's
+radius as `rimSupport` interpolates it against the traced rim's, the aim-circle
+ray landing at that angle — the 32-ray outline cuts 2.53e-4 of the light inside
+the traced image at 20 µm and reaches 2.40e-4 past it on the other side,
+−1.3e-5 net (1.25e-4 and 1.22e-4 at 10 µm). At 720 rays both are 5e-7, linear
+interpolation's 1/N². Its area agrees with a 720-ray outline to 2.6e-6, which is
+why no area check saw it, and the § 2l integral's 24 Gauss–Legendre radii never
+land in a strip under 2e-4 deep — so the laid pupil's light could not show it
+either way. That is register item 43, a placement error, and not this step's.
+
+**Item 35's own numbers were not reproduced.** It quoted the fit slipping 6e-5 and
+1.6e-4 at 10 and 20 µm, the rim clipping 3.5e-4 and 6.4e-4 at 15 and 20 µm, and
+the light at 20 µm reading −5.0e-4. The construction was not recorded; the
+readings above are the same at § 2q.5's own commit (a2a180b) as at § 2t's, so
+nothing since moved them. A one-sided count of the rim strip added to the
+density's −2.2e-4 would come to about that, but that is a guess, and the entry's
+off-axis numbers are withdrawn rather than restated.
+
+### What the full run moved
+
+Run under § 2t's recorder (a failed comparison logged, not thrown): **352
+readings in 19 files**, every one off-axis and on the exit layout, almost all the
+mosaic and flat-field chains pinned to 7–12 digits and restated at the same
+digits; three more the recorder logged in `doublet-wall` were its own artefact —
+an `expect` inside a `try` the bisection catches — and the same three appear
+with the change switched off. A second round moved 11 readings computed from
+cited constants (§ 6bm's six in `second-interval`, § 6bn's cells), and a third
+moved 7 behind § 6bk.8's refusal, which had stopped its rung before them — among
+them the fast lens's axial stage, 0.1208236 → 0.1208356 mm, which six more
+readings in `second-objective` take as their input. Those constants now carry
+one value in every file that cites them. Readings that moved
+inside their tolerances were not audited, as at § 2s and § 2t.
+
+**The flat-field chain moved by findings' size, not digits.** Its readings are
+ratios of two flat fields' spans, and an axial span is a residue — the axial
+throughput span is 6.1e-8 of a throughput of order 1 — so a fit that slipped by
+3e-5 of the light off the axis was a large part of what they read:
+
+| Reading | before | after |
+|---|---|---|
+| § 6bi.3, the control's axial rendered over free | 1218× | 1349× |
+| § 6bk.5, the fast lens's axial split / its edge split | 1.857 / 1.960 | 1.416 / 1.829 |
+| § 6bk.5, the fast lens's free-field gain, axis / edge | 2.76× / 2.52× | 4.07× / 2.97× |
+| § 6bk.5, magnification's effect on the axial split | 1.27× | 1.148× |
+| § 6bm, the axial flat-field interaction (first / second interval) | 1.6115 / 1.5888 | 1.5089 / 1.5425 |
+| § 6bp.3, the matched field's axial interaction, branch → family | 1.5888 → 1.4622 | 1.4441 → 1.4109 |
+| § 6bp.5, the free-field gain's interaction, branch → family | 1.648 → 1.606–1.617 | 1.546 → 1.532–1.542 |
+
+Four worded claims did not survive and are amended where they stand: the fast
+lens's split is no longer "the same at both" positions (1.29× apart) and its
+free field does not help "about equally" (1.37× apart); § 6bp.3's members sit
+0.98% nearer 1 than the branch, not 7.3%, against a 6.5%-wide family; and
+§ 6bp.5's move is under the family's own width, so its direction is unanimous
+and its size is not determined. § 6bm's axial interaction now RISES on the
+second interval where it fell. No sign reversed and no verdict crossed 1.
+
+**Three claims of exactness, investigated rather than restated:**
+
+- **§ 2r.1**'s best focus with no plan anywhere, re-read with the plan switched
+  off in `renderFieldVolume`: 0.18926908474842344 mm, bitwise the planned sweep's.
+- **§ 6bj.4**'s free field flat to 2e-12 read 2.08e-12, and its corrected seam
+  "two ulps at most" read 2.7. Both bounds were readings: the first is the mean
+  of 66564 equal values, and the seam is read off row sums of 258 pixels each
+  within one ulp of the mean. They are now the arithmetic's own bounds — n·ε/2
+  for the sum (Higham's γₙ, 7.4e-12) and 2·ulp/m + (size − 1)·ε for the seam —
+  derived, not fitted, and **raised, flagged here so they can be overruled**. The
+  per-pixel claim, one ulp, is unchanged and holds.
+- **§ 2k**'s laid-pupil amplitude sum, bitwise, is 744.5653414552702; the phase
+  sum did not move.
+
+§ 6br.1's rounded-cell escape interaction now agrees with the exact one to six
+digits and differs in the seventh (it was seven and the eighth) — the rounding
+of the cells falling differently again, pinned at the precision each earns.
+
+### What it leaves
+
+- **The density lattice** — register item 35, narrowed to it: −1.6e-4 of the oil
+  100×'s light at 21 nodes, inside 1e-6 at 61, which is 9× the density's traces.
+- **The outline's displacement** — register item 43, opened here.
 
 ## Step 3a — the standard observer and thermal sources
 

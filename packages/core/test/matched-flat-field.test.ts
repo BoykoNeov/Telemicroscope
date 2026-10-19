@@ -440,17 +440,17 @@ const extentOf = (system: OpticalSystem, size: number, ps: number): number =>
 
 // --- § 6bm's and § 6bn's published readings, cited -------------------------
 /** § 6bm.6's axial-stage split and free-field gain on the 10×/0.10. */
-const ROF_AXIS_10 = 1549.0900;
-const FREE_AXIS_10 = 1.026429;
+const ROF_AXIS_10 = 1548.8019;
+const FREE_AXIS_10 = 1.026474;
 /** § 6bn.3's edge splits, 10×/0.10 and 10×/0.20. */
 const ROF_EDGE_10 = 1.15512475;
-const ROF_EDGE_10F = 1.30209381;
+const ROF_EDGE_10F = 1.30208604;
 /** § 6bn.6's four readings on the two 20× lenses. */
-const ROF_AXIS_20 = 1584.9528;
-const ROF_AXIS_20F = 2.44623118;
+const ROF_AXIS_20 = 1582.7393;
+const ROF_AXIS_20F = 2.51655830;
 const ROF_EDGE_20 = 1.15336140;
-const ROF_EDGE_20F = 1.26252076;
-const FREE_AXIS_20 = 1.0277089;
+const ROF_EDGE_20F = 1.26249445;
+const FREE_AXIS_20 = 1.0277568;
 /** § 6bm.7's axial vertex on the fast 10×. */
 const AXC_10F = 0.06585078;
 /** § 6bn.3's two render-free interactions, and § 6bo.2's matched ones. */
@@ -587,49 +587,50 @@ describe("§ 6bp.2 — only two of the four cells move, and the other two are bi
 });
 
 describe("§ 6bp.3 — the split does not reverse; on the aim layout its interaction was understated tenfold", () => {
-  it("the axial interaction goes 1.5888 to 1.4622 — OVERstated — and the family spans 6.5%", () => {
+  it("the axial interaction goes 1.4441 to 1.4109 — OVERstated — and the family spans 6.5%", () => {
     const branch = branchInteraction("rendOverFree", "axis");
     const family = across("rendOverFree", "axis");
-    expect(branch).toBeCloseTo(0.6294228247267614, 8);
+    expect(branch).toBeCloseTo(0.6924906219723689, 8);
     // § 6bn.3 published this as a departure of 1.0063.
-    expect(departure(branch)).toBeCloseTo(1.5887549926906408, 5);
-    expect(family[0]!).toBeCloseTo(0.6825362942631105, 8);
-    expect(family[1]!).toBeCloseTo(0.7193264952572868, 8);
-    expect(family[2]!).toBeCloseTo(0.6839103855777939, 8);
-    expect(family[3]!).toBeCloseTo(0.6755857610995357, 8);
+    expect(departure(branch)).toBeCloseTo(1.4440628772008137, 5);
+    expect(family[0]!).toBeCloseTo(0.7074084284463806, 8);
+    expect(family[1]!).toBeCloseTo(0.7449952967606916, 8);
+    expect(family[2]!).toBeCloseTo(0.7087666306997183, 8);
+    expect(family[3]!).toBeCloseTo(0.6993018137273531, 8);
     // No reversal: both columns below 1. What changes is the size.
     expect(branch).toBeLessThan(1);
     for (const f of family) expect(f).toBeLessThan(1);
-    expect(departure(family[2]!)).toBeCloseTo(1.4621803460941687, 5);
+    expect(departure(family[2]!)).toBeCloseTo(1.410901637698104, 5);
     // § 2r.2 REVERSED. On the aim layout the matched field moved the axial
     // interaction from 1.0063 to 1.0477 — its distance from 1 grew 7.6×, with
     // the family agreeing to 0.53%. On the exit layout the distance SHRINKS, to
-    // 0.785 of the branch's: the branch path overstated it. And the family is
-    // 6.5% wide against an 8.7% move, so the size is the sampling's as much as
-    // the field's; what is determined is the direction — every member sits
-    // nearer 1 than the branch, the nearest 7.3% from it.
-    expect((departure(family[2]!) - 1) / (departure(branch) - 1)).toBeCloseTo(0.7850093851880195, 6);
+    // 0.925 of the branch's: the branch path overstated it. And the family is
+    // 6.5% wide against a 2.4% move, so the size is the sampling's more than the
+    // field's; what is determined is the direction — every member sits nearer 1
+    // than the branch, the nearest 0.98% from it. (1.5888 to 1.4622, 0.785, an
+    // 8.7% move and 7.3% until § 2u fitted the density's every node.)
+    expect((departure(family[2]!) - 1) / (departure(branch) - 1)).toBeCloseTo(0.9253230990355595, 6);
     for (const f of family) expect(departure(f)).toBeLessThan(departure(branch));
-    expect(spanOf(family)).toBeCloseTo(1.0647450202134026, 6);
-    expect(Math.min(...family) / branch).toBeGreaterThan(1.07);
+    expect(spanOf(family)).toBeCloseTo(1.06534157660737, 6);
+    expect(Math.min(...family) / branch).toBeCloseTo(1.009835789162869, 6);
   });
 
   it("the edge interaction goes 1.0298 to 1.0355, and separates by 6.6× (1.1377 and 21× on the aim layout)", () => {
     const branch = branchInteraction("rendOverFree", "edge");
     const family = across("rendOverFree", "edge");
-    expect(branch).toBeCloseTo(0.9710905499859738, 8);
-    expect(departure(branch)).toBeCloseTo(1.0297701758002482, 5);
-    expect(family[0]!).toBeCloseTo(0.9660407274472174, 8);
-    expect(family[1]!).toBeCloseTo(0.9659671125618478, 8);
-    expect(family[2]!).toBeCloseTo(0.9657474419982622, 8);
-    expect(family[3]!).toBeCloseTo(0.9665470889928027, 8);
+    expect(branch).toBeCloseTo(0.9710761152743042, 8);
+    expect(departure(branch)).toBeCloseTo(1.029785394029103, 5);
+    expect(family[0]!).toBeCloseTo(0.9659837525043911, 8);
+    expect(family[1]!).toBeCloseTo(0.9659115426606842, 8);
+    expect(family[2]!).toBeCloseTo(0.9656918686444873, 8);
+    expect(family[3]!).toBeCloseTo(0.9664914634472859, 8);
     for (const f of family) expect(f).toBeLessThan(1);
-    expect(departure(family[2]!)).toBeCloseTo(1.0354674074319727, 5);
+    expect(departure(family[2]!)).toBeCloseTo(1.0355269962080866, 5);
     // § 2r.2 WEAKENED. On the aim layout: fifteen times the branch's distance
     // from 1, the family spanning 0.60% against an 11.5% move — the cleanest
     // separation in the step. On the exit layout the distance grows 1.19×, and
     // the family spans 0.083% against a 0.55% move: still separated, 6.6×.
-    expect((departure(family[2]!) - 1) / (departure(branch) - 1)).toBeCloseTo(1.1913772068827766, 6);
+    expect((departure(family[2]!) - 1) / (departure(branch) - 1)).toBeCloseTo(1.1927656949367025, 6);
     expect(departure(family[2]!)).toBeGreaterThan(departure(branch));
     expect(spanOf(family)).toBeLessThan(1.0009);
     expect(Math.abs(family[2]! / branch - 1)).toBeGreaterThan(6 * (spanOf(family) - 1));
@@ -637,14 +638,14 @@ describe("§ 6bp.3 — the split does not reverse; on the aim layout its interac
 
   it("and the cells behind it, which move in the same direction at both positions", () => {
     // The two moving cells, so the quotient is not the only evidence.
-    expect(branchCell("10/0.20", "axis").rendOverFree).toBeCloseTo(3.7985279192641737, 7);
-    expect(matchedCell(Q128, "10/0.20", "axis").rendOverFree).toBeCloseTo(3.777212657359705, 7);
-    expect(branchCell("20/0.10", "axis").rendOverFree).toBeCloseTo(1584.9528301358928, 4);
-    expect(matchedCell(Q128, "20/0.10", "axis").rendOverFree).toBeCloseTo(1469.8633650444885, 4);
-    expect(branchCell("10/0.20", "edge").rendOverFree).toBeCloseTo(1.30209380712845, 7);
-    expect(matchedCell(Q128, "10/0.20", "edge").rendOverFree).toBeCloseTo(1.315118738019604, 7);
+    expect(branchCell("10/0.20", "axis").rendOverFree).toBeCloseTo(3.5561460505797453, 7);
+    expect(matchedCell(Q128, "10/0.20", "axis").rendOverFree).toBeCloseTo(3.7418479343753512, 7);
+    expect(branchCell("20/0.10", "axis").rendOverFree).toBeCloseTo(1582.7393169465458, 4);
+    expect(matchedCell(Q128, "20/0.10", "axis").rendOverFree).toBeCloseTo(1472.470193082607, 4);
+    expect(branchCell("10/0.20", "edge").rendOverFree).toBeCloseTo(1.302086039264602, 7);
+    expect(matchedCell(Q128, "10/0.20", "edge").rendOverFree).toBeCloseTo(1.3151685092484657, 7);
     expect(branchCell("20/0.10", "edge").rendOverFree).toBeCloseTo(1.153361401169396, 7);
-    expect(matchedCell(Q128, "20/0.10", "edge").rendOverFree).toBeCloseTo(1.1479078092475288, 7);
+    expect(matchedCell(Q128, "20/0.10", "edge").rendOverFree).toBeCloseTo(1.1479081632440236, 7);
   });
 });
 
@@ -664,19 +665,19 @@ describe("§ 6bp.4 — § 6bn.6's agreement was the two frames' sizes", () => {
     const twentyBranch = branchCell("20/0.10", "axis").freeGain;
     expect(ten).toBeCloseTo(FREE_AXIS_10, 6);
     expect(twentyBranch).toBeCloseTo(FREE_AXIS_20, 7);
-    expect(Math.abs(twentyBranch / ten - 1)).toBeCloseTo(0.0012468607681546118, 9);
+    expect(Math.abs(twentyBranch / ten - 1)).toBeCloseTo(0.0012496007722047064, 9);
 
     // The 10× cell IS the branch's sampling, so it does not move; the 20× does.
     expect(matchedCell(Q128, "10/0.10", "axis").freeGain).toBe(ten);
     const twenty128 = matchedCell(Q128, "20/0.10", "axis").freeGain;
     const twenty4px = matchedCell(Q4PX, "20/0.10", "axis").freeGain;
-    expect(twenty128).toBeCloseTo(1.019797838736566, 7);
-    expect(twenty4px).toBeCloseTo(1.0156767420900463, 7);
+    expect(twenty128).toBeCloseTo(1.0197766387243825, 7);
+    expect(twenty4px).toBeCloseTo(1.0156575125434197, 7);
 
     const gap128 = Math.abs(twenty128 / ten - 1);
     const gap4px = Math.abs(twenty4px / ten - 1);
-    expect(gap128).toBeCloseTo(0.006460499729329827, 6);
-    expect(gap4px).toBeCloseTo(0.010475484020552761, 6);
+    expect(gap128).toBeCloseTo(0.006524697598516593, 6);
+    expect(gap4px).toBeCloseTo(0.010537586277140076, 6);
     const published = Math.abs(twentyBranch / ten - 1);
     expect(gap128 / published).toBeGreaterThan(5);
     expect(gap4px / published).toBeGreaterThan(8);
@@ -698,23 +699,25 @@ describe("§ 6bp.4 — § 6bn.6's agreement was the two frames' sizes", () => {
 });
 
 describe("§ 6bp.5 — the free-field gain's axial interaction crossed 1 on the aim layout; on the exit it does not", () => {
-  it("0.2349 became between 6.98 and 8.08 on the aim layout; on the exit 1.648 becomes 1.606 to 1.617", () => {
+  it("0.2349 became between 6.98 and 8.08 on the aim layout; on the exit 1.546 becomes 1.532 to 1.542", () => {
     // § 2r.2 REVERSED. On the aim layout the branch read 0.2349 and every member
     // of the family read above 6 — a unanimous crossing, the family 15.7% wide.
     // On the exit layout the branch is already above 1, the family agrees to
-    // 0.69% and sits 2.3% under it: no crossing, and a small, determined move.
+    // 0.65% and sits 0.22–0.87% under it: no crossing, and a move whose direction
+    // is unanimous and whose size is under the family's own width. (1.648 and
+    // 1.606–1.617, "2.3% under it… a small, determined move", until § 2u.)
     const branch = branchInteraction("freeGain", "axis");
     const family = across("freeGain", "axis");
-    expect(branch).toBeCloseTo(1.6484013552406853, 8);
+    expect(branch).toBeCloseTo(1.5458484909103472, 8);
     expect(branch).toBeGreaterThan(1);
-    expect(family[0]!).toBeCloseTo(1.610407682280633, 7);
-    expect(family[1]!).toBeCloseTo(1.6061448323313263, 7);
-    expect(family[2]!).toBeCloseTo(1.6106678309681248, 7);
-    expect(family[3]!).toBeCloseTo(1.6172030970836024, 7);
+    expect(family[0]!).toBeCloseTo(1.535532660291426, 7);
+    expect(family[1]!).toBeCloseTo(1.5324752478545205, 7);
+    expect(family[2]!).toBeCloseTo(1.5362280435574098, 7);
+    expect(family[3]!).toBeCloseTo(1.542458408691322, 7);
     for (const f of family) expect(f).toBeGreaterThan(1);
     for (const f of family) expect(f).toBeLessThan(branch);
-    expect(spanOf(family)).toBeCloseTo(1.0068847059913064, 6);
-    expect(Math.max(...family) / branch).toBeLessThan(0.982);
+    expect(spanOf(family)).toBeCloseTo(1.0065144026637807, 6);
+    expect(Math.max(...family) / branch).toBeCloseTo(0.9978069764023065, 6);
   });
 
   it("and the cell that carries it rises 3.2% (it fell 29.6× on the aim layout)", () => {
@@ -724,9 +727,9 @@ describe("§ 6bp.5 — the free-field gain's axial interaction crossed 1 on the 
     // 1.9632.
     const b = branchCell("10/0.20", "axis").freeGain;
     const m = matchedCell(Q128, "10/0.20", "axis").freeGain;
-    expect(b).toBeCloseTo(1.9032168307228594, 5);
-    expect(m).toBeCloseTo(1.9632311138704768, 7);
-    expect(b / m).toBeCloseTo(0.9694308618462651, 6);
+    expect(b).toBeCloseTo(1.9695213791991408, 5);
+    expect(m).toBeCloseTo(1.9982685278416534, 7);
+    expect(b / m).toBeCloseTo(0.9856139711745535, 6);
     // Still above 1 in both: on the axis a free flat field helps this lens
     // either way.
     expect(m).toBeGreaterThan(1);
@@ -736,10 +739,10 @@ describe("§ 6bp.5 — the free-field gain's axial interaction crossed 1 on the 
 describe("§ 6bp.6 — two readouts were REFUSED on the aim layout; on the exit both read a sign", () => {
   it("the free-field gain at the EDGE straddled 1 across the family — on the exit it is 2.0–2.5 in all four", () => {
     const family = across("freeGain", "edge");
-    expect(family[0]!).toBeCloseTo(2.109914014094822, 8);
-    expect(family[1]!).toBeCloseTo(2.0445861293794843, 8);
-    expect(family[2]!).toBeCloseTo(2.118968639784403, 8);
-    expect(family[3]!).toBeCloseTo(2.501321280249308, 8);
+    expect(family[0]!).toBeCloseTo(2.10915420256068, 8);
+    expect(family[1]!).toBeCloseTo(2.0438438534253076, 8);
+    expect(family[2]!).toBeCloseTo(2.118200099271388, 8);
+    expect(family[3]!).toBeCloseTo(2.5004146549541297, 8);
     // On the aim layout which side of 1 it fell on was the pixel sampling's, so
     // that step stated no verdict on it — the reason measured and the band
     // published, more than 3× wide. § 2r.2 REVERSED: on the exit layout no
@@ -747,20 +750,20 @@ describe("§ 6bp.6 — two readouts were REFUSED on the aim layout; on the exit 
     // family's.
     expect(straddlesOne(family)).toBe(false);
     for (const f of family) expect(f).toBeGreaterThan(2);
-    expect(spanOf(family)).toBeCloseTo(1.2233875816268203, 6);
+    expect(spanOf(family)).toBeCloseTo(1.223388298848588, 6);
   });
 
   it("the scanner comparison has a sign at both positions; its axial size is the family's", () => {
     const axis = across("scannerVsRaw", "axis");
     const edge = across("scannerVsRaw", "edge");
-    expect(axis[0]!).toBeCloseTo(0.9853623793679741, 8);
-    expect(axis[1]!).toBeCloseTo(0.9878509235252021, 8);
-    expect(axis[2]!).toBeCloseTo(0.9866270642195938, 8);
-    expect(axis[3]!).toBeCloseTo(0.8901525583966042, 8);
-    expect(edge[0]!).toBeCloseTo(1.0111266827072378, 8);
-    expect(edge[1]!).toBeCloseTo(1.0113103634821274, 8);
-    expect(edge[2]!).toBeCloseTo(1.0108726700075652, 8);
-    expect(edge[3]!).toBeCloseTo(1.0124211329537234, 8);
+    expect(axis[0]!).toBeCloseTo(0.9855360899604856, 8);
+    expect(axis[1]!).toBeCloseTo(0.987935117622277, 8);
+    expect(axis[2]!).toBeCloseTo(0.9867784658255403, 8);
+    expect(axis[3]!).toBeCloseTo(0.8902951535123009, 8);
+    expect(edge[0]!).toBeCloseTo(1.011169836058982, 8);
+    expect(edge[1]!).toBeCloseTo(1.0113532696552527, 8);
+    expect(edge[2]!).toBeCloseTo(1.0109162116054267, 8);
+    expect(edge[3]!).toBeCloseTo(1.0124647567380738, 8);
     // On the aim layout the axial family spanned 3.97× — larger than the move
     // it would be used to claim — and at the edge it straddled 1. § 2r.2
     // REVERSED in part: on the exit layout every axial member is below 1 and
@@ -779,7 +782,7 @@ describe("§ 6bp.6 — two readouts were REFUSED on the aim layout; on the exit 
     // edge (0.083% against 0.55%) and not on the axis (6.5% against 8.7%,
     // § 6bp.3) — so the axial split's size, like the scanner's, is the
     // family's, while its direction is determined.
-    expect(spanOf(across("rendOverFree", "axis"))).toBeCloseTo(1.0647450202134026, 6);
+    expect(spanOf(across("rendOverFree", "axis"))).toBeCloseTo(1.06534157660737, 6);
     expect(spanOf(across("rendOverFree", "edge"))).toBeLessThan(1.0009);
     expect(straddlesOne(across("rendOverFree", "axis"))).toBe(false);
     expect(straddlesOne(across("rendOverFree", "edge"))).toBe(false);
@@ -815,8 +818,8 @@ describe("§ 6bp.7 — the scanner is still never once better, and its MARGIN wa
     const q128 = matchedCell(Q128, "20/0.10", "edge").scannerVsRaw;
     const q256 = matchedCell(Q256, "20/0.10", "edge").scannerVsRaw;
     expect(branch).toBeCloseTo(1.0924108461426232, 7);
-    expect(q128).toBeCloseTo(1.0900292764137234, 7);
-    expect(q256).toBeCloseTo(1.090781526743852, 7);
+    expect(q128).toBeCloseTo(1.0900294677841782, 7);
+    expect(q256).toBeCloseTo(1.0907823980461795, 7);
     const margins = [branch - 1, q128 - 1, q256 - 1];
     expect(Math.max(...margins) / Math.min(...margins)).toBeLessThan(1.03);
   });

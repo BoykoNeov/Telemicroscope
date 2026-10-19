@@ -220,15 +220,15 @@ describe("§ 6bi.2 — the seam's brightness step is a FIELD quantity", () => {
     // orders above it, and the recorded digits past that were the machine's,
     // not this engine's. `golden.ts` states the same fact about the image gate.
     // The edge reading cancels nothing and keeps its twelve.
-    expect(Math.abs(axis.acrossSeam / 0.000004065739060006166 - 1)).toBeLessThan(1e-7);
-    expect(edge.acrossSeam).toBeCloseTo(0.006537188212828841, 12);
-    expect(Math.abs(edge.acrossSeam / axis.acrossSeam / 1607.8720538496452 - 1)).toBeLessThan(1e-7);
+    expect(Math.abs(axis.acrossSeam / 0.000004064278117408728 - 1)).toBeLessThan(1e-7);
+    expect(edge.acrossSeam).toBeCloseTo(0.006537195612529986, 12);
+    expect(Math.abs(edge.acrossSeam / axis.acrossSeam / 1608.4518390926266 - 1)).toBeLessThan(1e-7);
   });
 
   it("and the whole picture is a staircase, not just its seams", () => {
     const axisField = renderedFlatField(SYSTEM, BLANK, AXIS_OPTIONS);
     const edgeField = renderedFlatField(SYSTEM, BLANK, EDGE_OPTIONS);
-    expect(axisField.span).toBeCloseTo(0.00008182068219019806, 10);
+    expect(axisField.span).toBeCloseTo(0.00008181792125723565, 10);
     expect(edgeField.span).toBeCloseTo(0.01512084440833761, 7);
   });
 
@@ -244,8 +244,8 @@ describe("§ 6bi.2 — the seam's brightness step is a FIELD quantity", () => {
       stageMm: () => 0,
     });
     const step = mosaicSeamStep(flat.composed, EDGE_GEOMETRY);
-    expect(step.acrossSeam).toBeCloseTo(0.006732802363298398, 12);
-    expect(step.acrossSeam / edge.acrossSeam).toBeCloseTo(1.029923285685071, 9);
+    expect(step.acrossSeam).toBeCloseTo(0.006732809753362543, 12);
+    expect(step.acrossSeam / edge.acrossSeam).toBeCloseTo(1.0299232503395828, 9);
   });
 });
 
@@ -257,7 +257,7 @@ describe("§ 6bi.3 — two flat fields, and the difference between them is the M
 
   it("at the field edge the pupil is most of the field, and the map the rest", () => {
     expect(edgeRendered.span).toBeCloseTo(0.01512084440833761, 7);
-    expect(edgeThroughput.span).toBeCloseTo(0.012948745076020495, 7);
+    expect(edgeThroughput.span).toBeCloseTo(0.012948802993138702, 7);
     expect(edgeRendered.span / edgeThroughput.span).toBeCloseTo(1.1677405502324736, 4);
   });
 
@@ -266,17 +266,17 @@ describe("§ 6bi.3 — two flat fields, and the difference between them is the M
     // scale is not, so a uniform density in the OBJECT is not uniform on the
     // image grid. 1218× says the whole of an axial flat field is the rasterizer
     // (1193× on the aim layout, § 2r.2).
-    expect(axisRendered.span).toBeCloseTo(0.00008182068219019806, 10);
+    expect(axisRendered.span).toBeCloseTo(0.00008181792125723565, 10);
     // The axial throughput span is the flat profile's residue — 6.5e-8 out of a
     // throughput of order 1 — so the same few ulps are 1.5e-8 of it. Bound set
     // three orders above that floor, because the number of accumulated
     // operations behind a rendered span is not bounded tightly enough to claim
     // less; it still keeps five figures of a seven-figure reading.
-    expect(Math.abs(axisThroughput.span / 6.715483080722135e-8 - 1)).toBeLessThan(1e-5);
+    expect(Math.abs(axisThroughput.span / 6.064411739545584e-8 - 1)).toBeLessThan(1e-5);
     // The ratio divides BY that residue, so it cannot be pinned tighter than the
     // residue is known: same bound, not the 4e-7 an absolute `toBeCloseTo` on
     // 1218 would have implied. 1218× is the finding and five figures state it.
-    expect(Math.abs(axisRendered.span / axisThroughput.span / 1218.3887167580504 - 1)).toBeLessThan(1e-5);
+    expect(Math.abs(axisRendered.span / axisThroughput.span / 1349.1485204361536 - 1)).toBeLessThan(1e-5);
   });
 
   it("and the pupil's ratio between two tiles is nearly ACHROMATIC — one slide, every channel", () => {
@@ -296,10 +296,10 @@ describe("§ 6bi.3 — two flat fields, and the difference between them is the M
       };
       return mean(n + 1) / mean(n);
     });
-    expect(ratios[0]!).toBeCloseTo(0.9937511483115038, 9);
+    expect(ratios[0]!).toBeCloseTo(0.9937511386910051, 9);
     const lo = Math.min(...ratios);
     const hi = Math.max(...ratios);
-    expect(Math.abs((hi - lo) / ((hi + lo) / 2) / 5.484033741322977e-5 - 1)).toBeLessThan(1e-6);
+    expect(Math.abs((hi - lo) / ((hi + lo) / 2) / 5.483663835470606e-5 - 1)).toBeLessThan(1e-6);
     expect((hi - lo) / ((hi + lo) / 2) / (1 - ratios[0]!)).toBeLessThan(0.01);
   });
 });
@@ -390,7 +390,7 @@ describe("§ 6bi.4 — division removes the amplitude and cannot touch the phase
       span: 0,
     };
     const after = mosaicSeamStep(flatFieldCorrect(EDGE_BLANK.composed, repeating), EDGE_GEOMETRY);
-    expect(after.acrossSeam).toBeCloseTo(0.007187778439847372, 8);
+    expect(after.acrossSeam).toBeCloseTo(0.007187783512334202, 8);
     expect(after.acrossSeam / before.acrossSeam).toBeCloseTo(1.099521415911169, 5);
 
     // …where the mosaic-wide field of the same render removes it exactly.
@@ -436,9 +436,9 @@ describe("§ 6bi.4 — division removes the amplitude and cannot touch the phase
     const fixed = moments(corrected.planes[0]!.intensity, EDGE_GEOMETRY.size);
     const brightness = (fixed.flux - raw.flux) / raw.flux;
     const width = (fixed.m2 - raw.m2) / raw.m2;
-    expect(brightness).toBeCloseTo(0.006992837593412031, 9);
-    expect(width).toBeCloseTo(-0.000012517629163954534, 11);
-    expect(Math.abs(brightness / width)).toBeCloseTo(558.6391401934512, 9);
+    expect(brightness).toBeCloseTo(0.006992845747157018, 9);
+    expect(width).toBeCloseTo(-0.000012517637844773444, 11);
+    expect(Math.abs(brightness / width)).toBeCloseTo(558.6394041649621, 9);
   });
 });
 
@@ -611,12 +611,12 @@ describe("§ 6bi.6 — the blend's cost is the MIXTURE, not the displacement", (
     // 0.062% on the aim layout's point-sampled rim, § 2r.2).
     expect(edge.m2A).toBeCloseTo(0.002133709878056041, 9);
     expect(edge.m2B).toBeCloseTo(0.002221875150651805, 9);
-    expect((edge.m2Mix - edge.m2A) / edge.m2A).toBeCloseTo(0.020660762808967503, 12);
+    expect((edge.m2Mix - edge.m2A) / edge.m2A).toBeCloseTo(0.020660766855638342, 12);
     // The axial fraction is 6.2e-4 of a second moment — a difference of two
     // readings of order 1.9e-3 that agree to four figures — so a few ulps in
     // them is ~2e-12 of the fraction. Bound three orders above that. 0.056% is
     // the claim and it is untouched.
-    expect(Math.abs((axis.m2Mix - axis.m2A) / axis.m2A / 0.0005586920533168165 - 1)).toBeLessThan(1e-9);
+    expect(Math.abs((axis.m2Mix - axis.m2A) / axis.m2A / 0.0005586920298583869 - 1)).toBeLessThan(1e-9);
   });
 
   it("and its field dependence is § 6bh.5's, read off the PIXELS and not the stage", () => {
@@ -626,12 +626,12 @@ describe("§ 6bi.6 — the blend's cost is the MIXTURE, not the displacement", (
     // NOT pinned as an identity: a second moment is not linear in defocus, and
     // the two are read on different quantities.
     const spread = (r: { m2A: number; m2B: number }): number => (r.m2B - r.m2A) / r.m2A;
-    expect(spread(edge)).toBeCloseTo(0.041320178297196, 12);
+    expect(spread(edge)).toBeCloseTo(0.041320186391029, 12);
     // Same cancellation as the fraction above — 1.2e-3 between two second
     // moments, so the same ~2e-12 floor — and the 37.20× divides by it, so it
     // is never pinned tighter than the quantity it divides by.
-    expect(Math.abs(spread(axis) / 0.001117385670876727 - 1)).toBeLessThan(1e-9);
-    expect(Math.abs(spread(edge) / spread(axis) / 36.97933432847337 - 1)).toBeLessThan(1e-8);
+    expect(Math.abs(spread(axis) / 0.0011173856239600716 - 1)).toBeLessThan(1e-9);
+    expect(Math.abs(spread(edge) / spread(axis) / 36.97934312470246 - 1)).toBeLessThan(1e-8);
   });
 });
 

@@ -602,10 +602,10 @@ describe("§ 6bo.2 — each lever's field factor is pure, and that is NOT enough
     const branch = interact(D_LO_SLOW(), D_LO_FAST(), DEPTHS()[0]!, DEPTHS()[4]!);
     const matched = interact(D_LO_SLOW(), D_LO_FAST_M(), D_HI_SLOW_M(), DEPTHS()[4]!);
 
-    expect(branch).toBeCloseTo(0.9166034818148291, 9);
-    expect(branch).toBeCloseTo(0.9166034818148291, 6); // § 6bn's plateauI
-    expect(matched).toBeCloseTo(0.8106410585075915, 9);
-    expect(matched / branch).toBeCloseTo(0.8843966607049787, 8);
+    expect(branch).toBeCloseTo(0.9166284391500286, 9);
+    expect(branch).toBeCloseTo(0.9166284391500286, 6); // § 6bn's plateauI
+    expect(matched).toBeCloseTo(0.810640661739918, 9);
+    expect(matched / branch).toBeCloseTo(0.8843721480991895, 8);
 
     // On the aim layout the matched field moved it 0.89% (0.8614 → 0.8691),
     // and the argument was: the plateau is the readout § 6bo.5 measures to be
@@ -614,7 +614,7 @@ describe("§ 6bo.2 — each lever's field factor is pure, and that is NOT enough
     // § 6bo.5's field control holds tighter still (0.82%), and the interaction
     // moves 11.6% anyway, so field-insensitivity does not decide it. What does
     // is not traced here (OPEN-PROBLEMS item 24).
-    expect(Math.abs(matched / branch - 1)).toBeCloseTo(0.11560333929502131, 8);
+    expect(Math.abs(matched / branch - 1)).toBeCloseTo(0.11562785190081049, 8);
     expect(Math.abs(matched / branch - 1)).toBeGreaterThan(0.1);
     expect(matched).toBeLessThan(1);
     expect(branch).toBeLessThan(1);
@@ -766,10 +766,10 @@ describe("§ 6bo.5 — the plateau is field-free, so the refusal boundary is rea
     expect(DEPTHS()[0]).toBeCloseTo(0.3722815616422731, 9);
     expect(DEPTHS()[1]).toBeCloseTo(0.42476740698848536, 9);
     expect(DEPTHS()[2]).toBeCloseTo(0.6023875557712574, 9);
-    expect(DEPTHS()[3]).toBeCloseTo(1.1187669867217187, 9);
-    expect(DEPTHS()[4]).toBeCloseTo(1.2959870056577374, 9);
-    expect(DEPTHS()[5]).toBeCloseTo(1.5885913163297871, 9);
-    expect(DEPTHS()[6]).toBeCloseTo(2.3140296636294875, 9);
+    expect(DEPTHS()[3]).toBeCloseTo(1.1187707034456464, 9);
+    expect(DEPTHS()[4]).toBeCloseTo(1.2959938930517378, 9);
+    expect(DEPTHS()[5]).toBeCloseTo(1.5886088481161025, 9);
+    expect(DEPTHS()[6]).toBeCloseTo(2.3137713181431914, 9);
 
     for (let i = 1; i < DEPTHS().length; i++) expect(DEPTHS()[i]!).toBeGreaterThan(DEPTHS()[i - 1]!);
 
@@ -798,7 +798,7 @@ describe("§ 6bo.5 — the plateau is field-free, so the refusal boundary is rea
     // Aperture held, field changed — the control the cost never had.
     expect(P15_WIDER().plateauDepths / DEPTHS()[2]!).toBeCloseTo(0.9982339370394199, 9);
     expect(DEPTHS()[0]! / P10_SMALLFIELD().plateauDepths).toBeCloseTo(0.9988262742778071, 9);
-    expect(DEPTHS()[4]! / P20_BIGFIELD().plateauDepths).toBeCloseTo(0.9918185610828949, 9);
+    expect(DEPTHS()[4]! / P20_BIGFIELD().plateauDepths).toBeCloseTo(0.9918199747351615, 9);
 
     for (const r of [
       P15_WIDER().plateauDepths / DEPTHS()[2]!,
@@ -814,15 +814,15 @@ describe("§ 6bo.5 — the plateau is field-free, so the refusal boundary is rea
     const matchedBig = P20_BIGFIELD().plateauDepths / P10_BIGFIELD().plateauDepths;
     const matchedSmall = DEPTHS()[4]! / P10_SMALLFIELD().plateauDepths;
 
-    expect(convention).toBeCloseTo(3.4812011638198097, 9);
-    expect(matchedBig).toBeCloseTo(3.5099173381257742, 9);
-    expect(matchedSmall).toBeCloseTo(3.4771151884697065, 9);
+    expect(convention).toBeCloseTo(3.481219664317041, 9);
+    expect(matchedBig).toBeCloseTo(3.5099309884806527, 9);
+    expect(matchedSmall).toBeCloseTo(3.4771336672524282, 9);
 
     // The three span 2.64%, and the two matched-field ones span 1.52% — against
     // a readout whose SIGN flipped in § 6bo.3 under the same treatment.
     const all = [convention, matchedBig, matchedSmall];
-    expect(Math.max(...all) / Math.min(...all)).toBeCloseTo(1.0094337253378436, 9);
-    expect(matchedSmall / matchedBig).toBeCloseTo(0.9906544381260034, 9);
+    expect(Math.max(...all) / Math.min(...all)).toBeCloseTo(1.0094322865804986, 9);
+    expect(matchedSmall / matchedBig).toBeCloseTo(0.99065585011903, 9);
     expect(Math.max(...all) / Math.min(...all)).toBeLessThan(1.03);
     for (const r of all) expect(r).toBeGreaterThan(3);
   });
@@ -830,13 +830,13 @@ describe("§ 6bo.5 — the plateau is field-free, so the refusal boundary is rea
 
 describe("§ 6bo.6 — the escape keeps its sign and loses a quarter of its size", () => {
   it("the branch's path overstates the aperture's effect by 1.28×", () => {
-    expect(E20_A() / E10_A()).toBeCloseTo(15.46388866370067, 8);
-    expect(E20M_A() / E10_A()).toBeCloseTo(11.80123710169991, 8);
-    expect(E20_A() / E20M_A()).toBeCloseTo(1.3103616621238103, 9);
+    expect(E20_A() / E10_A()).toBeCloseTo(15.463978657993055, 8);
+    expect(E20M_A() / E10_A()).toBeCloseTo(11.80129162041572, 8);
+    expect(E20_A() / E20M_A()).toBeCloseTo(1.310363234414193, 9);
 
-    expect(E20_B() / E10_B()).toBeCloseTo(14.215830316092383, 8);
-    expect(E20M_B() / E10_B()).toBeCloseTo(10.668660799578563, 8);
-    expect(E20_B() / E20M_B()).toBeCloseTo(1.3324849841185262, 9);
+    expect(E20_B() / E10_B()).toBeCloseTo(14.215880402622647, 8);
+    expect(E20M_B() / E10_B()).toBeCloseTo(10.668715833725262, 8);
+    expect(E20_B() / E20M_B()).toBeCloseTo(1.332482805257997, 9);
   });
 
   it("and that 1.31× carries a pixel-count term, which is under 0.82% and not 31%", () => {
@@ -845,9 +845,9 @@ describe("§ 6bo.6 — the escape keeps its sign and loses a quarter of its size
     // same field, four times the pixels — the term is under 0.82% (0.78% on the
     // aim layout), so it is named rather than left implied, and the inflation is
     // 1.318× once it is removed (1.2902× on the aim layout).
-    expect(E20_A_FINE() / E20_A()).toBeCloseTo(1.0058991875896057, 9);
+    expect(E20_A_FINE() / E20_A()).toBeCloseTo(1.0058991604268976, 9);
     expect(E10_A_FINE() / E10_A()).toBeCloseTo(1.0081253809374655, 9);
-    expect(E20_A_FINE() / E20M_A()).toBeCloseTo(1.3180917313789062, 9);
+    expect(E20_A_FINE() / E20M_A()).toBeCloseTo(1.3180932773515108, 9);
     for (const t of [E20_A_FINE() / E20_A(), E10_A_FINE() / E10_A()]) expect(Math.abs(t - 1)).toBeLessThan(0.0082);
   });
 
@@ -865,11 +865,11 @@ describe("§ 6bo.6 — the escape keeps its sign and loses a quarter of its size
     // axial stage. Two stages a sweep step apart move one lens by 1.1% and the
     // other by under 8% (0.41% and 6.7% on the aim layout) — small against
     // 15.5×, and the first bound anyone has put on that convention.
-    expect(Math.abs(E10_B() / E10_A() - 1)).toBeCloseTo(0.01108953768311971, 9);
+    expect(Math.abs(E10_B() / E10_A() - 1)).toBeCloseTo(0.011090041975067244, 9);
     expect(Math.abs(E10_B() / E10_A() - 1)).toBeLessThan(0.012);
     expect(Math.abs(E20_B() / E20_A() - 1)).toBeLessThan(0.08);
-    expect(E10_A()).toBeCloseTo(0.024695577496857912, 9);
-    expect(E20_A()).toBeCloseTo(0.38188966089720244, 9);
+    expect(E10_A()).toBeCloseTo(0.02469557520302168, 9);
+    expect(E20_A()).toBeCloseTo(0.38189184788638975, 9);
   });
 });
 

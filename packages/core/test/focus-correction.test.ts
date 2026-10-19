@@ -358,7 +358,7 @@ describe("§ 6bg — the correction applied", () => {
       }
       const worstEven = Math.max(...errors.map((e) => Math.abs(e.even)));
       const worstOdd = Math.max(...errors.map((e) => Math.abs(e.odd)));
-      expect(worstEven).toBeCloseTo(1.290419e-4, 9);
+      expect(worstEven).toBeCloseTo(1.290404e-4, 9);
       expect(worstOdd).toBeCloseTo(1.409926e-3, 8);
       // The floor that decides it is the estimator's, and it has moved twice.
       // Point-sampled, § 6be.2 read 1.2e-3 mm and the odd variable landed ON it.

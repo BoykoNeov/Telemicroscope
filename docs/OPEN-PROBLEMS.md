@@ -821,17 +821,28 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     readings over a run of lattices, 40–64, converging smoothly; or item 32's
     grid-free referee applied to the 2×. A reading that keeps jumping between
     adjacent lattices refutes the frame as the lever.
-35. **The oil 100×'s exit-layout light is short, and off axis two residues
-    add.** Found at [§ 2q.5](VALIDATION.md#-2q5--the-ring-that-was-not-there), against the light read off the launches
+35. **The oil 100×'s exit-layout light is short~~, and off axis two residues
+    add~~.** Found at [§ 2q.5](VALIDATION.md#-2q5--the-ring-that-was-not-there), against the light read off the launches
     (∫p·T·|∂c/∂a|). On axis −1.58e-4: the 21-node density lattice on the oil's
     cubic map, at sixth order (−1.21e-3 at fourth; −1.6e-5 at 61 nodes, fourth).
-    Off axis the √-fit slips from its own nodes by 6e-5 at 10 µm and 1.6e-4 at
+    ~~Off axis the √-fit slips from its own nodes by 6e-5 at 10 µm and 1.6e-4 at
     20 µm, and from 15 µm the 32-ray rim clips 3.5e-4 and then 6.4e-4 of the aim
-    disc's image — the light at 20 µm reads −5.0e-4. The DIN 4× carries none of
-    these (7e-8 from 0 to 2 mm). *What would pin it:* the same identity with the
+    disc's image — the light at 20 µm reads −5.0e-4.~~ The DIN 4× carries none of
+    these (7e-8 from 0 to 2 mm). ~~*What would pin it:* the same identity with the
     lattice refined and the rim at 720 rays (§ 2l.2's construction), separating
     the three; a fit that keeps the nodes past exit radius 1 is the candidate for
-    the second.
+    the second.~~
+
+    **Narrowed at [§ 2u](VALIDATION.md#step-2u--the-densitys-fits-keep-every-node)**, by the separation the entry named. The slip was
+    the density's fits keeping only nodes inside exit radius 1 (45 of 317 past it
+    at 20 µm); every node is fitted now, and the laid pupil tracks the density to
+    the throughput's 1.4e-6 at every field, where it parted by up to 4.4e-5. The
+    rim's "clip" is not a loss but a displacement — item 43. What is left is the
+    lattice alone: −1.58e-4 on axis to −1.30e-4 at 20 µm, and inside 1e-6 of the
+    launches at 0–20 µm on 61 nodes. The entry's off-axis numbers were not
+    reproduced by § 2u's construction, which reads the same at § 2q.5's commit.
+    *What would pin it:* a lattice choice with its cost measured — 61 nodes is 9×
+    the density's traces per pupil — or a derivative that does not need one.
 36. **§ 2j.3's ray histogram reads the oil's half-radius light 1.0–1.3e-3 high.**
     Found at [§ 2q.5](VALIDATION.md#-2q5--the-ring-that-was-not-there): off the launches the light inside half the exit
     radius is 0.20521 (emitter) and 0.29608 (a field, the point's construction);
@@ -916,6 +927,18 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     margin. The re-run moved ~300 readings, restated there; three exactness
     claims were investigated, not restated. `exitDensity`'s √-light fit still
     keeps the disc — item 35's candidate, left to it.
+43. **Off the axis the exit layout's outline moves light across the rim.** Found
+    at [§ 2u](VALIDATION.md#step-2u--the-densitys-fits-keep-every-node). `rimSupport` joins the 32 traced rim rays with the radius
+    linear in exit angle, and off the axis the traced rim is not centred on the
+    chief ray, so the polygon cuts inside it on one side and reaches past it on
+    the other: on the oil 100× at 20 µm 2.53e-4 of the light cut and 2.40e-4
+    added, −1.3e-5 net (1.25e-4 and 1.22e-4 at 10 µm); at 720 rays 5.0e-7 and
+    4.7e-7, linear interpolation's 1/N². Its area matches a 720-ray outline to
+    2.6e-6, which is why an area check never saw it, and the § 2l integral's
+    nodes miss the strip. *Candidate:* the outline interpolated in AIM angle,
+    where the rim rays are evenly spaced and a trigonometric interpolant of the
+    landing points is exact to rounding on a smooth rim — or more rays. Either
+    moves every off-axis exit reading, so it is a step of its own.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;

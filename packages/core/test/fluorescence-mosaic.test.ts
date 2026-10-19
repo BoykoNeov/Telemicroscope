@@ -463,9 +463,9 @@ describe("§ 6bh.5 — the seam's focus step is a FIELD quantity", () => {
     // the field is the discriminator for the same reason it was in § 6bg.8: the
     // focus surface is EVEN in field radius, so its gradient vanishes on axis
     // and a seam there joins two tiles that wanted the same stage.
-    expect(axis).toBeCloseTo(0.00017343089344018514, 14);
-    expect(edge).toBeCloseTo(0.006681287791802715, 13);
-    expect(edge / axis).toBeCloseTo(38.52420788057022, 10);
+    expect(axis).toBeCloseTo(0.00017343088616258995, 14);
+    expect(edge).toBeCloseTo(0.006681288292193721, 13);
+    expect(edge / axis).toBeCloseTo(38.52421238239002, 10);
   });
 
   it("and reaches a sixth of a depth of focus at the field edge", () => {
@@ -478,8 +478,8 @@ describe("§ 6bh.5 — the seam's focus step is a FIELD quantity", () => {
     // but the factor is not derived here: the two are read on different grids
     // (32 against 48 pupil samples) at different radii, so the agreement is
     // suggestive and is not pinned as an identity.
-    expect(seamStepMm(0) / DOF430).toBeCloseTo(0.004012455140615653, 13);
-    expect(seamStepMm(4) / DOF430).toBeCloseTo(0.15457665594854003, 12);
+    expect(seamStepMm(0) / DOF430).toBeCloseTo(0.004012454972242973, 13);
+    expect(seamStepMm(4) / DOF430).toBeCloseTo(0.15457666752546514, 12);
     expect(seamStepMm(0)).toBeLessThan(1.2e-3);
   });
 });

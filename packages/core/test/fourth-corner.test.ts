@@ -438,9 +438,9 @@ const spanOf = (xs: readonly number[]): number => Math.max(...xs) - Math.min(...
 
 /** § 6bk's readings, cited. */
 const PLATEAU_4 = 0.839354;
-const PLATEAU_F = 2.656363;
+const PLATEAU_F = 2.657256;
 const PLATEAU_MM_4 = 3.6279502e-2;
-const PLATEAU_MM_F = 2.8645437e-2;
+const PLATEAU_MM_F = 2.8655060e-2;
 const COST_4 = 95.712993;
 const COST_F = 132.8979;
 const COST_10 = 41.775694;
@@ -448,7 +448,7 @@ const ANISO_4 = 40.754313;
 const ANISO_F = 81.766377;
 const ANISO_10 = 16.868779;
 const ESC_4 = 0.0644316;
-const ESC_F = 0.614210;
+const ESC_F = 0.614257;
 const ROF_AXIS_4 = 1220.0858;
 const ROF_AXIS_F = 1.8565748;
 const ROF_EDGE_4 = 1.1675136;
@@ -506,7 +506,7 @@ describe("§ 6bm.1 — the corner builds, the ruler barely moves, and every borr
     // The escape pair does double duty: it confirms this file's stage convention
     // is § 6bk's own, § 6bk.4 having measured the control at `SURF4.colourMm[0]`
     // and the fast lens at a `renderedBestFocus` vertex.
-    expect(AXF()).toBeCloseTo(0.1208236004, 9);
+    expect(AXF()).toBeCloseTo(0.1208356486, 9);
     expect(E4()).toBeCloseTo(ESC_4, 6);
     expect(EF()).toBeCloseTo(ESC_F, 6);
 
@@ -515,7 +515,7 @@ describe("§ 6bm.1 — the corner builds, the ruler barely moves, and every borr
     expect(C4().aniso).toBeCloseTo(ANISO_4, 4);
     expect(CF().aniso).toBeCloseTo(ANISO_F, 4);
 
-    expect(F10_CORR_AXIS().rendOverFree).toBeCloseTo(1549.3119, 3);
+    expect(F10_CORR_AXIS().rendOverFree).toBeCloseTo(1549.0238, 3);
     expect(spanOf(SURF10().colourMm) / Math.abs(SURF10().fieldDropMm[0]![2]!)).toBeCloseTo(2.118607, 5);
   });
 
@@ -548,7 +548,7 @@ describe("§ 6bm.2 — the corner refuses, and the plateau square says the lever
     // the narrowest of the four. So the refusal is the aperture's here, where
     // § 6bl.5's was magnification's at a fixed aperture.
     expect(() => renderedBestFocus(CORNER, 430, 0, SWEEP)).toThrow(/plateau/);
-    expect(PC().plateauDepths).toBeCloseTo(1.4286062660796581, 6);
+    expect(PC().plateauDepths).toBeCloseTo(1.4285749609398368, 6);
     expect(P10().plateauDepths).toBeCloseTo(0.37615334937848366, 6);
     expect(PC().plateauDepths).toBeGreaterThan(1);
     expect(P10().plateauDepths).toBeLessThan(1);
@@ -559,11 +559,11 @@ describe("§ 6bm.2 — the corner refuses, and the plateau square says the lever
     // cost the same factor at both magnifications.
     const apertureAt4 = PF().plateauDepths / P4().plateauDepths;
     const apertureAt10 = PC().plateauDepths / P10().plateauDepths;
-    expect(apertureAt4).toBeCloseTo(3.1647719564086656, 5);
-    expect(apertureAt10).toBeCloseTo(3.7979357845414303, 6);
+    expect(apertureAt4).toBeCloseTo(3.1658351104399682, 5);
+    expect(apertureAt10).toBeCloseTo(3.7978525601334248, 6);
     expect(
       interact(P4().plateauDepths, PF().plateauDepths, P10().plateauDepths, PC().plateauDepths),
-    ).toBeCloseTo(1.2000661775489407, 6);
+    ).toBeCloseTo(1.199636881784921, 6);
 
     // The same quotient read down the other lever, which is an arithmetic
     // identity — and the point of pinning it is that a mistranscribed cell would
@@ -571,8 +571,8 @@ describe("§ 6bm.2 — the corner refuses, and the plateau square says the lever
     const magAtSlow = P10().plateauDepths / P4().plateauDepths;
     const magAtFast = PC().plateauDepths / PF().plateauDepths;
     expect(magAtSlow).toBeCloseTo(0.44814637673622815, 6);
-    expect(magAtFast).toBeCloseTo(0.5378053093122529, 6);
-    expect(magAtFast / magAtSlow).toBeCloseTo(1.2000661775489407, 6);
+    expect(magAtFast).toBeCloseTo(0.5376129219710593, 6);
+    expect(magAtFast / magAtSlow).toBeCloseTo(1.1996368817849212, 6);
     expect(magAtFast / magAtSlow).toBeCloseTo(apertureAt10 / apertureAt4, 12);
   });
 
@@ -591,9 +591,9 @@ describe("§ 6bm.2 — the corner refuses, and the plateau square says the lever
     // In millimetres the interaction reads as a near-collapse: at 4× the aperture
     // nearly halves the physical plateau, and at 10× it buys 5%.
     expect(plateauMm(P10())).toBeCloseTo(0.016246495819687012, 8);
-    expect(plateauMm(PC())).toBeCloseTo(0.015392778567479426, 8);
-    expect(plateauMm(P4()) / plateauMm(PF())).toBeCloseTo(1.2665019324195521, 5);
-    expect(plateauMm(P10()) / plateauMm(PC())).toBeCloseTo(1.0554621927720866, 6);
+    expect(plateauMm(PC())).toBeCloseTo(0.015392441264545276, 8);
+    expect(plateauMm(P4()) / plateauMm(PF())).toBeCloseTo(1.266076614426627, 5);
+    expect(plateauMm(P10()) / plateauMm(PC())).toBeCloseTo(1.0554853216889613, 6);
   });
 });
 
@@ -610,7 +610,7 @@ describe("§ 6bm.3 — the plateau is the lens's, and three artefacts are ruled 
       probe: SLIM,
       slabs: uniformSlabs(-0.004, 0.004, 3),
     });
-    expect(slim.plateauDepths).toBeCloseTo(1.4273025689547785, 6);
+    expect(slim.plateauDepths).toBeCloseTo(1.4272711399476965, 6);
     expect(Math.abs(slim.plateauDepths / PC().plateauDepths - 1)).toBeLessThan(1e-3);
 
     // And on the lens that does NOT refuse, so the insensitivity is not something
@@ -628,8 +628,8 @@ describe("§ 6bm.3 — the plateau is the lens's, and three artefacts are ruled 
     // The other obvious floor: the plateau is about three sweep steps wide, so a
     // step-limited estimate would be the natural suspicion.
     const fine = renderedBestFocus(CORNER, 430, 0, { ...OPEN, stepMm: 0.0025 });
-    expect(fine.plateauDepths).toBeCloseTo(1.4250020392033869, 6);
-    expect(Math.abs(fine.plateauDepths / PC().plateauDepths - 1)).toBeCloseTo(0.002522897289371384, 9);
+    expect(fine.plateauDepths).toBeCloseTo(1.42497026615065, 6);
+    expect(Math.abs(fine.plateauDepths / PC().plateauDepths - 1)).toBeCloseTo(0.002523280113222337, 9);
     expect(Math.abs(fine.plateauDepths / PC().plateauDepths - 1)).toBeLessThan(3e-3);
   });
 
@@ -676,10 +676,10 @@ describe("§ 6bm.4 — six readouts, six interactions, and an ordering that span
 
     expect(departure(anisoI)).toBeCloseTo(1.0166451, 6);
     expect(departure(costI)).toBeCloseTo(1.1060587, 6);
-    expect(departure(flatAxisI)).toBeCloseTo(1.6114490887542507, 6);
-    expect(departure(escI)).toBeCloseTo(2.0073722492219583, 5);
-    expect(departure(plateauI)).toBeCloseTo(1.2000661775489407, 6);
-    expect(departure(flatEdgeI)).toBeCloseTo(1.4890385797106567, 5);
+    expect(departure(flatAxisI)).toBeCloseTo(1.5089040701372523, 6);
+    expect(departure(escI)).toBeCloseTo(2.007231511613516, 5);
+    expect(departure(plateauI)).toBeCloseTo(1.199636881784921, 6);
+    expect(departure(flatEdgeI)).toBeCloseTo(1.489049742478338, 5);
 
     // Not one of the six separates.
     for (const i of [anisoI, costI, flatAxisI, escI, plateauI, flatEdgeI]) {
@@ -691,7 +691,7 @@ describe("§ 6bm.4 — six readouts, six interactions, and an ordering that span
       .sort((a, b) => a - b);
     expect(ordered[0]!).toBe(departure(anisoI));
     expect(ordered[1]!).toBe(departure(costI));
-    expect(ordered[5]! / ordered[4]!).toBeCloseTo(1.245674469991672, 4);
+    expect(ordered[5]! / ordered[4]!).toBeCloseTo(1.3302578681698003, 4);
   });
 
   it("the guard band's interaction: 11.94× of aperture at 4× becomes 20.09× at 10×", () => {
@@ -700,9 +700,9 @@ describe("§ 6bm.4 — six readouts, six interactions, and an ordering that span
     // λ/NA had predicted less. The finding survives at 10× and its SIZE does not:
     // the same doubling costs 68% more at the higher magnification.
     expect(E10()).toBeCloseTo(0.02486537942352507, 7);
-    expect(EC()).toBeCloseTo(0.47581829689643174, 6);
-    expect(EF() / E4()).toBeCloseTo(9.532748419625632, 4);
-    expect(EC() / E10()).toBeCloseTo(19.135774636370975, 4);
+    expect(EC()).toBeCloseTo(0.475821632269932, 6);
+    expect(EF() / E4()).toBeCloseTo(9.533485238784204, 4);
+    expect(EC() / E10()).toBeCloseTo(19.135911986789957, 4);
     expect(EC() / E10()).toBeGreaterThan(EF() / E4());
     // And the sign of § 6bk.4's finding is the same on both — more, not less.
     expect(EF()).toBeGreaterThan(E4());
@@ -722,12 +722,12 @@ describe("§ 6bm.4 — six readouts, six interactions, and an ordering that span
     // less at 10× than at 4× — to 3.80 against 1.86, 2.05× apart — and at the
     // edge magnification moves the split 1.011× at NA 0.10 and 1.505× at NA
     // 0.20: larger at the fast aperture still, by 1.49×, not by fifty.
-    expect(F10_AXIS().rendOverFree).toBeCloseTo(1549.090016100403, 3);
-    expect(FC_AXIS().rendOverFree).toBeCloseTo(3.7985279192641737, 7);
-    expect(FC_AXIS().rendOverFree / ROF_AXIS_F).toBeCloseTo(2.045987007506605, 7);
+    expect(F10_AXIS().rendOverFree).toBeCloseTo(1548.8019272560082, 3);
+    expect(FC_AXIS().rendOverFree).toBeCloseTo(3.5561460505797453, 7);
+    expect(FC_AXIS().rendOverFree / ROF_AXIS_F).toBeCloseTo(1.9154337603740745, 7);
 
     expect(F10_EDGE().rendOverFree).toBeCloseTo(1.1551247460749423, 7);
-    expect(FC_EDGE().rendOverFree).toBeCloseTo(1.30209380712845, 7);
+    expect(FC_EDGE().rendOverFree).toBeCloseTo(1.302086039264602, 7);
     expect(ROF_EDGE_4 / F10_EDGE().rendOverFree).toBeCloseTo(1.0107266651026825, 4);
     expect(ROF_EDGE_F / FC_EDGE().rendOverFree).toBeCloseTo(1.5050109978801869, 4);
     expect(ROF_EDGE_F / FC_EDGE().rendOverFree).toBeGreaterThan(
@@ -785,11 +785,11 @@ describe("§ 6bm.6 — the free field's axial crossing was between 4× and 10× 
     //
     // § 2r.2 REVERSED. On the exit layout the three read 1.00807, 1.02690 and
     // 1.02825: all above 1, rising with magnification. There is no crossing.
-    expect(F10_CORR_AXIS().freeGain).toBeCloseTo(1.0269037176332898, 6);
+    expect(F10_CORR_AXIS().freeGain).toBeCloseTo(1.026949514861834, 6);
     expect(FREE_AXIS_4).toBeGreaterThan(1);
     expect(F10_CORR_AXIS().freeGain).toBeGreaterThan(FREE_AXIS_4);
     expect(FREE_AXIS_20).toBeGreaterThan(F10_CORR_AXIS().freeGain);
-    expect(FREE_AXIS_4 / F10_CORR_AXIS().freeGain).toBeCloseTo(0.9816597044982017, 6);
+    expect(FREE_AXIS_4 / F10_CORR_AXIS().freeGain).toBeCloseTo(0.9816159269870496, 6);
   });
 
   it("and the convention this comparison could have died on is worth 0.046%, measured on this lens", () => {
@@ -799,8 +799,8 @@ describe("§ 6bm.6 — the free field's axial crossing was between 4× and 10× 
     // physics result's clothes. Here both are measured on the 10× itself, and the
     // convention is worth 4.6e-4 against the 4×-to-10× step's 1.9e-2: 40×
     // smaller. (2.6e-4 against the aim layout's crossing of 4.7e-2.)
-    expect(F10_AXIS().freeGain).toBeCloseTo(1.0264290835530367, 6);
-    expect(F10_CORR_AXIS().freeGain / F10_AXIS().freeGain).toBeCloseTo(1.0004624581947248, 7);
+    expect(F10_AXIS().freeGain).toBeCloseTo(1.0264740716345158, 6);
+    expect(F10_CORR_AXIS().freeGain / F10_AXIS().freeGain).toBeCloseTo(1.0004631809418831, 7);
     expect(F10_CORR_AXIS().freeGain / F10_AXIS().freeGain - 1).toBeLessThan(
       0.03 * (F10_CORR_AXIS().freeGain / FREE_AXIS_4 - 1),
     );
@@ -818,11 +818,11 @@ describe("§ 6bm.6 — the free field's axial crossing was between 4× and 10× 
     // is 2.8 times it, and still a two-point trend beside an unquantified
     // difference — so the agreement is pinned as a reading and nothing is
     // inferred from it.
-    expect(F10_CORR_AXIS().freeGain / FREE_AXIS_20).toBeCloseTo(0.998694590237443, 7);
+    expect(F10_CORR_AXIS().freeGain / FREE_AXIS_20).toBeCloseTo(0.9987391294124499, 7);
     expect(
       Math.abs(F10_CORR_AXIS().freeGain / FREE_AXIS_20 - 1) /
         Math.abs(F10_CORR_AXIS().freeGain / F10_AXIS().freeGain - 1),
-    ).toBeCloseTo(2.8230390567997667, 3);
+    ).toBeCloseTo(2.722198764102475, 3);
   });
 
   it("the aperture's role-swap was the CONTROL's on the aim layout, and does not appear at 10×", () => {
@@ -834,10 +834,10 @@ describe("§ 6bm.6 — the free field's axial crossing was between 4× and 10× 
     // the edge. § 2r.2: on the exit layout the swap is gone at 4× too (§ 6bk.5),
     // and the fast 10× helps 1.9× on the axis and 7.8× at the edge — everywhere
     // still, and only its margin varies.
-    expect(FC_AXIS().freeGain).toBeCloseTo(1.9032168307228594, 4);
-    expect(FC_EDGE().freeGain).toBeCloseTo(7.770089025349636, 5);
-    expect(F10_EDGE().freeGain).toBeCloseTo(167.5246883388385, 4);
-    expect(FC_AXIS().freeGain / FC_EDGE().freeGain).toBeCloseTo(0.24494144462356648, 5);
+    expect(FC_AXIS().freeGain).toBeCloseTo(1.9695213791991408, 4);
+    expect(FC_EDGE().freeGain).toBeCloseTo(7.770510322940426, 5);
+    expect(F10_EDGE().freeGain).toBeCloseTo(167.5243107467924, 4);
+    expect(FC_AXIS().freeGain / FC_EDGE().freeGain).toBeCloseTo(0.2534610080092986, 5);
     expect(FC_AXIS().freeGain / FC_EDGE().freeGain).toBeLessThan(100);
     // Where the slow 10×'s own ratio, § 6bk.5's shape, clears 100.
     expect(F10_EDGE().freeGain / F10_AXIS().freeGain).toBeGreaterThan(100);
@@ -853,9 +853,9 @@ describe("§ 6bm.6 — the free field's axial crossing was between 4× and 10× 
       expect(f.scannerVsRaw).toBeGreaterThanOrEqual(1);
       expect(f.scannerVsRaw).toBeLessThanOrEqual(1.17607893);
     }
-    expect(F10_AXIS().scannerVsRaw).toBeCloseTo(1.1730417537636648, 6);
-    expect(FC_AXIS().scannerVsRaw).toBeCloseTo(1.0026410635249727, 6);
-    expect(FC_EDGE().scannerVsRaw).toBeCloseTo(1.118208923602248, 6);
+    expect(F10_AXIS().scannerVsRaw).toBeCloseTo(1.1730341692717419, 6);
+    expect(FC_AXIS().scannerVsRaw).toBeCloseTo(1.0025520247432556, 6);
+    expect(FC_EDGE().scannerVsRaw).toBeCloseTo(1.1181999454681475, 6);
   });
 });
 
@@ -902,7 +902,7 @@ describe("§ 6bm.7 — the refusal, and the signature that justified it did not 
     // the fast 4×'s forced surface no longer flips sign either (§ 6bk.8): it
     // reads 0.248×, this corner's signature — so on this layout the two lenses
     // refuse with the SAME signature, not different ones.
-    expect(forced.interactionMm / fieldTerm).toBeCloseTo(0.21285770072799923, 6);
+    expect(forced.interactionMm / fieldTerm).toBeCloseTo(0.21289900944902684, 6);
     expect(forced.interactionMm / fieldTerm).toBeGreaterThan(5 * (4.919968e-4 / 1.273534e-2));
   });
 });

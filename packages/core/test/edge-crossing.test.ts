@@ -238,9 +238,10 @@ describe("§ 2q.4 — the edge is located, not counted", () => {
 
   it("on the exit layout the 4×'s on-axis frame reads the light's own span, not the grid's", () => {
     // The reading that needed it. Sixteen patch pupils across the on-axis frame
-    // (24 samples, 550 nm). Counted, 1.31e-4 of the light; located, 4.76e-9 at 8
-    // sub-samples and 5.44e-9 at 32, against 9.49e-9 grid-free — 4.7e-9 apart,
+    // (24 samples, 550 nm). Counted, 1.31e-4 of the light; located, 9.91e-9 at 8
+    // sub-samples and 9.73e-9 at 32, against 1.460e-8 grid-free — 4.7e-9 apart,
     // the interior lattice's own share, and no longer moving with the sub-grid.
+    // (4.76e-9, 5.44e-9 and 9.49e-9 until § 2u fitted the density's every node.)
     // On the aim layout all three read 1.97e-8. Before § 2q.5 the grid-free span
     // was 2.43e-6 and the located 2.48e-6: the rim nodes' densities, whose
     // fallback changed with field, not the light.
@@ -271,7 +272,7 @@ describe("§ 2q.4 — the edge is located, not counted", () => {
     const exact = [...heights.values()].map((h) => exactPupilEnergy(system, h, 550, "exit", { radial: 48, angular: 256 }));
     const span = (xs: number[]) => Math.max(...xs) / Math.min(...xs) - 1;
     const truth = span(exact);
-    expect(truth).toBeCloseTo(9.494e-9, 12);
+    expect(truth).toBeCloseTo(1.46035e-8, 12);
     expect(Math.abs(span(located8) - truth)).toBeLessThan(6e-9);
     expect(Math.abs(span(located32) - truth)).toBeLessThan(6e-9);
     expect(Math.abs(span(located8) - span(located32))).toBeLessThan(1e-9);

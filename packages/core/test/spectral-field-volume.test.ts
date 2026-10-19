@@ -759,8 +759,8 @@ describe("§ 6be — the third axis", () => {
         }
       }
       // (1.68784e-7 and 1.68891e-7 on the aim layout.)
-      expect(read(table[0]!, 2)).toBeCloseTo(2.69100e-7, 11);
-      expect(read(table[2]!, 2)).toBeCloseTo(1.89468e-7, 11);
+      expect(read(table[0]!, 2)).toBeCloseTo(2.50128e-7, 11);
+      expect(read(table[2]!, 2)).toBeCloseTo(2.0829e-7, 11);
 
       // And it does NOT fall as the lattice refines: on the exit layout it is
       // one number on all three, to 1.2e-4 of itself. The counted edge read
@@ -768,9 +768,9 @@ describe("§ 6be — the third axis", () => {
       // that was the count's: the located edge alone, still on the aim layout,
       // reads 2.1416e-3, 2.1414e-3 and 2.1413e-3, and the layout moves that 0.5%.
       const edge = table.map((row) => read(row, 4.5));
-      expect(edge[0]!).toBeCloseTo(2.131839e-3, 8);
-      expect(edge[1]!).toBeCloseTo(2.131909e-3, 8);
-      expect(edge[2]!).toBeCloseTo(2.131662e-3, 8);
+      expect(edge[0]!).toBeCloseTo(2.131807e-3, 8);
+      expect(edge[1]!).toBeCloseTo(2.131877e-3, 8);
+      expect(edge[2]!).toBeCloseTo(2.13163e-3, 8);
       expect(edge[0]! / edge[2]!).toBeCloseTo(1.000084, 5);
     });
   });

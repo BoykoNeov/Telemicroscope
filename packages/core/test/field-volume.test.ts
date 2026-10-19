@@ -339,7 +339,7 @@ describe("§ 6bd.4 — the error of one pupil has one sign", () => {
       });
       return four.weightedEmittedFlux / one.weightedEmittedFlux;
     };
-    expect(ratioAt(0)).toBeCloseTo(1.00000000, 8);
+    expect(ratioAt(0)).toBeCloseTo(1.000000012, 8);
     expect(ratioAt(2.25)).toBeCloseTo(0.99987847, 8);
     expect(ratioAt(4.5)).toBeCloseTo(0.99991930, 8);
     // stated as the finding rather than as three numbers

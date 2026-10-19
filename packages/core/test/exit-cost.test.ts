@@ -183,5 +183,5 @@ describe("§ 2k.2 — and every fit and sampler built on it, on traced pupils", 
   });
 });
 
-const EXIT_AMPLITUDE_SUM = 744.5654280839933;
+const EXIT_AMPLITUDE_SUM = 744.5653414552702;
 const EXIT_PHASE_SUM = 1588.6775851641826;

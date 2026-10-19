@@ -641,10 +641,10 @@ describe("§ 6bl.6 — the flat field on a third lens, and a gain that crossed b
     // control's 1.01788: below one. On the exit layout it reads 1.0282 against
     // the control's 1.00807 — above one, and above the control: along the
     // magnification lever the axial gain RISES, so there is no crossing to find.
-    expect(F20_AXIS().freeGain).toBeCloseTo(1.0282461830045928, 7);
+    expect(F20_AXIS().freeGain).toBeCloseTo(1.0282949673416564, 7);
     expect(F20_AXIS().freeGain).toBeGreaterThan(1);
     expect(F20_AXIS().freeGain).toBeGreaterThan(1.00807);
-    expect(1.00807 / F20_AXIS().freeGain).toBeCloseTo(0.9803779581350359, 5);
+    expect(1.00807 / F20_AXIS().freeGain).toBeCloseTo(0.9803315507865007, 5);
 
     // At the edge it still buys nearly everything, as on the control.
     expect(F20_EDGE().freeGain).toBeCloseTo(169.96514389437942, 4);
@@ -656,11 +656,11 @@ describe("§ 6bl.6 — the flat field on a third lens, and a gain that crossed b
     // aperture's 1195×. Across twice the lever it is 1.185× — still nothing, and
     // now known to be SATURATING rather than merely small: 1.136× over the first
     // 2.5× and 1.043× more over the next 2×.
-    expect(F20_AXIS().rendOverFree).toBeCloseTo(1584.7929120395727, 4);
+    expect(F20_AXIS().rendOverFree).toBeCloseTo(1582.57962757457, 4);
     // § 6bk.5's control and 10× at the corrected stage, and its aperture
     // collapse — 1220.1048 over 1.8565748 — of which this is under a tenth.
-    expect(F20_AXIS().rendOverFree / 1218.4117).toBeCloseTo(1.3007, 4);
-    expect(F20_AXIS().rendOverFree / 1549.3136).toBeCloseTo(1.0229, 4);
+    expect(F20_AXIS().rendOverFree / 1218.4117).toBeCloseTo(1.29889, 4);
+    expect(F20_AXIS().rendOverFree / 1549.3136).toBeCloseTo(1.02147, 4);
     expect(F20_AXIS().rendOverFree / 1218.4117).toBeLessThan(1220.1048 / 1.8565748 / 10);
 
     // And at the edge the split is flat outright — the 10× and the 20× agree to 0.2%.
@@ -673,7 +673,7 @@ describe("§ 6bl.6 — the flat field on a third lens, and a gain that crossed b
     // scanner's repeating per-tile flat field is right for a stage scan and wrong
     // for a field-scanned mosaic, which is a statement about the GEOMETRY and not
     // the glass. Ten measurements over four lenses now, never once below one.
-    expect(F20_AXIS().scannerVsRaw).toBeCloseTo(1.1899983673265024, 6);
+    expect(F20_AXIS().scannerVsRaw).toBeCloseTo(1.189989355829002, 6);
     expect(F20_EDGE().scannerVsRaw).toBeCloseTo(1.0924426014715394, 6);
     expect(F20_AXIS().scannerVsRaw).toBeGreaterThanOrEqual(1);
     expect(F20_EDGE().scannerVsRaw).toBeGreaterThanOrEqual(1);

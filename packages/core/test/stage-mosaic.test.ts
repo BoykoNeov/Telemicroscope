@@ -328,7 +328,7 @@ describe("§ 6bj.3 — the focus correction's FIELD term is gone and its COLOUR 
   it("asks every tile for the same stage, bitwise", () => {
     const stages = blue(EDGE_STAGE_BLANK);
     expect(stages.every((s) => Object.is(s, stages[0]))).toBe(true);
-    expect(stages[0]).toBeCloseTo(0.14265178562238714, 12);
+    expect(stages[0]).toBeCloseTo(0.142651781333883, 12);
     // …which is exactly the stage the field scan gives its own centre tile.
     expect(Object.is(stages[0], blue(EDGE_FIELD_BLANK)[4])).toBe(true);
   });
@@ -336,20 +336,20 @@ describe("§ 6bj.3 — the focus correction's FIELD term is gone and its COLOUR 
   it("where a field scan racks it a whole seam step per tile", () => {
     const field = blue(EDGE_FIELD_BLANK);
     const span = Math.max(...field) - Math.min(...field);
-    expect(span).toBeCloseTo(0.013202465719759138, 10);
+    expect(span).toBeCloseTo(0.013202466708549743, 10);
     // The OUTER of the row's two seams reproduces § 6bh.5's 6.6808e-3 mm (6.8737e-3 on the aim layout) — the
     // same quantity on the same fixture, measured there one seam at a time — and
     // the inner one is 5% smaller, because the focus surface is not linear
     // across a tile and a mosaic's steps are samples of a curve, not a slope.
-    expect(field[3]! - field[4]!).toBeCloseTo(0.006356805660808484, 10);
-    expect(field[4]! - field[5]!).toBeCloseTo(0.006681287791802715, 10);
+    expect(field[3]! - field[4]!).toBeCloseTo(0.0063568061368975415, 10);
+    expect(field[4]! - field[5]!).toBeCloseTo(0.006681288292193721, 10);
     expect(Math.max(...blue(EDGE_STAGE_BLANK)) - Math.min(...blue(EDGE_STAGE_BLANK))).toBe(0);
 
     // And it is a FIELD quantity: on the axis the same field scan racks 37.8×
     // less, because the focus surface is flat there (§ 6bd.3's evenness again).
     const axis = blue(AXIS_FIELD_BLANK);
     const axisSpan = Math.max(...axis) - Math.min(...axis);
-    expect(axisSpan).toBeCloseTo(0.0003468587464828532, 11);
+    expect(axisSpan).toBeCloseTo(0.00034685873192777383, 11);
     expect(span / axisSpan).toBeCloseTo(38.06294595028122, 3);
     expect(Math.max(...blue(AXIS_STAGE_BLANK)) - Math.min(...blue(AXIS_STAGE_BLANK))).toBe(0);
   });
@@ -358,8 +358,8 @@ describe("§ 6bj.3 — the focus correction's FIELD term is gone and its COLOUR 
     // `stageSpreadMm` is over tiles AND channels, so the stage scan's is the
     // axial-colour spread alone — § 6be.1's other term, a property of the glass
     // and not of the field, and the reason a stage scan still needs `exposures`.
-    expect(EDGE_STAGE_BLANK.stageSpreadMm).toBeCloseTo(0.16046248826769985, 11);
-    expect(EDGE_FIELD_BLANK.stageSpreadMm).toBeCloseTo(0.17362674813537143, 11);
+    expect(EDGE_STAGE_BLANK.stageSpreadMm).toBeCloseTo(0.16046248824154435, 11);
+    expect(EDGE_FIELD_BLANK.stageSpreadMm).toBeCloseTo(0.1736267490951451, 11);
     expect(EDGE_FIELD_BLANK.stageSpreadMm / EDGE_STAGE_BLANK.stageSpreadMm).toBeCloseTo(1.0820394848028883, 5);
     expect(AXIS_STAGE_BLANK.stageSpreadMm).toBeCloseTo(0.1608117203341495, 11);
     expect(EDGE_STAGE_BLANK.exposures).toBe(27);
@@ -378,14 +378,17 @@ describe("§ 6bj.4 — the flat field inverts: the free one goes flat, the scann
     const throughput = EDGE_STAGE_BLANK.tiles.map((t) => t.volume.planes[0]!.patchThroughput[0]!);
     expect(throughput.every((v) => Object.is(v, throughput[0]))).toBe(true);
     expect(edgeFree.span).toBe(0);
-    // Flat to 1.9e-12 rather than to the bit, and the residue is arithmetic and
+    // Flat to 2.1e-12 rather than to the bit, and the residue is arithmetic and
     // not optics: `span` — a max less a min — is EXACTLY zero, and what is left
     // is the error in summing 66564 equal values to get the mean it divides by.
+    // So the bound is that sum's: recursive summation of n terms is good to
+    // n·ε/2 of itself (Higham's γₙ), 7.4e-12 here. It was the reading's 2e-12
+    // until § 2u moved the frame's last bits and the reading to 2.08e-12.
     let worst = 0;
     for (const plane of edgeFree.planes) for (const v of plane) worst = Math.max(worst, Math.abs(v - 1));
-    expect(worst).toBeLessThan(2e-12);
+    expect(worst).toBeLessThanOrEqual((edgeFree.planes[0]!.length * Number.EPSILON) / 2);
     // Against § 6bi.3's 1.2949e-2 (1.1831e-2 on the aim layout) for the same anchor under a field scan.
-    expect(throughputFlatField(EDGE_FIELD_BLANK).span).toBeCloseTo(0.012948791805435206, 9);
+    expect(throughputFlatField(EDGE_FIELD_BLANK).span).toBeCloseTo(0.012948802993138702, 9);
 
     // Dividing by it moves the seam by 7e-13 of itself — nothing, where § 6bi.4
     // measured the same division taking 121× off a field scan's seam.
@@ -420,20 +423,26 @@ describe("§ 6bj.4 — the flat field inverts: the free one goes flat, the scann
       ).toBe(true);
     }
     // The division is not: a / (a/m) is m to ±1 ulp, not to the bit, so every
-    // corrected pixel is the mean to one ulp and the seam reads two at most. It
-    // read exactly 0 until § 2t moved the frame's last bits — the row sums had
-    // cancelled the ulps, not the physics.
+    // corrected pixel is the mean to one ulp. It read exactly 0 until § 2t moved
+    // the frame's last bits — the row sums had cancelled the ulps, not the physics.
+    // The seam is read off row and column SUMS, so it carries their rounding as
+    // well: two sums of `size` terms, each within one ulp of the mean and each
+    // summed to (size − 1)·ε/2, differ relatively by at most 2·ulp/m + (size − 1)·ε.
+    // § 2t asserted two ulps, which was its reading (≤ 4.4e-16), not that bound;
+    // at § 2u the seam reads 6.0e-16.
     const corrected = flatFieldCorrect(EDGE_STAGE_BLANK.composed, edgeScanner);
+    let seamBound = 0;
     corrected.planes.forEach((plane, p) => {
       const mean = edgeScanner.meanValue[p]!;
       const ulp = 2 ** (Math.floor(Math.log2(mean)) - 52);
       let worst = 0;
       for (const v of plane.intensity) worst = Math.max(worst, Math.abs(v - mean));
       expect(worst).toBeLessThanOrEqual(ulp);
+      seamBound = Math.max(seamBound, (2 * ulp) / mean + (corrected.size - 1) * Number.EPSILON);
     });
     const after = mosaicSeamStep(corrected, EDGE_STAGE_GEOMETRY);
-    expect(after.acrossSeam).toBeLessThanOrEqual(2 * Number.EPSILON);
-    expect(after.maxAdjacent).toBeLessThanOrEqual(2 * Number.EPSILON);
+    expect(after.acrossSeam).toBeLessThanOrEqual(seamBound);
+    expect(after.maxAdjacent).toBeLessThanOrEqual(seamBound);
   });
 
   it("and it is the SAME ARRAY a field scan's scanner field is — the verdict is the geometry's", () => {
@@ -454,14 +463,14 @@ describe("§ 6bj.4 — the flat field inverts: the free one goes flat, the scann
     const stage = mosaicSeamStep(EDGE_STAGE_BLANK.composed, EDGE_STAGE_GEOMETRY);
     const field = mosaicSeamStep(EDGE_FIELD_BLANK.composed, EDGE_FIELD_GEOMETRY);
     expect(stage.acrossSeam).toBeCloseTo(0.0006950217414185514, 10);
-    expect(field.acrossSeam).toBeCloseTo(0.006537188212828841, 9);
+    expect(field.acrossSeam).toBeCloseTo(0.006537195612529986, 9);
     expect(field.acrossSeam / stage.acrossSeam).toBeCloseTo(9.40573196960188, 4);
     // The residue is the rasterizer's Jacobian and nothing of the glass, which
     // is why § 6bi.3's axial swap is the whole picture here: 1.512e-2 for a
     // field scan against 6.995e-4 (1.387e-2 and 7.013e-4 on the aim layout), and
     // the free field reaches none of it.
     expect(edgeRendered.span).toBeCloseTo(0.0006994745385252735, 10);
-    expect(renderedFlatField(SYSTEM, BLANK, EDGE_FIELD).span).toBeCloseTo(0.01512084440833761, 9);
+    expect(renderedFlatField(SYSTEM, BLANK, EDGE_FIELD).span).toBeCloseTo(0.015120853869753067, 9);
 
     const axisStage = mosaicSeamStep(AXIS_STAGE_BLANK.composed, AXIS_STAGE_GEOMETRY);
     const axisField = mosaicSeamStep(AXIS_FIELD_BLANK.composed, AXIS_FIELD_GEOMETRY);
@@ -471,7 +480,7 @@ describe("§ 6bj.4 — the flat field inverts: the free one goes flat, the scann
     // the ratio on the next line is looser still, as a quantity dividing by a
     // residue must be.
     expect(Math.abs(axisStage.acrossSeam / 1.8930955824643685e-7 - 1)).toBeLessThan(1e-5);
-    expect(axisField.acrossSeam / axisStage.acrossSeam).toBeCloseTo(21.4766707907771, 3);
+    expect(axisField.acrossSeam / axisStage.acrossSeam).toBeCloseTo(21.468953575592767, 3);
   });
 });
 
@@ -536,7 +545,7 @@ describe("§ 6bj.6 — the aberration is the anchor's, everywhere, and uniform i
     expect(stage.every((w) => Object.is(w, stage[0]))).toBe(true);
     expect(Object.is(stage[0], field[4])).toBe(true);
     expect(EDGE_STAGE_BLANK.maxGridPhaseStepWaves).toBe(stage[0]);
-    expect(stage[0]).toBeCloseTo(0.40332458801603344, 12);
+    expect(stage[0]).toBeCloseTo(0.4033245936357912, 12);
   });
 
   it("and the constant it chose is between the field scan's best and worst tile", () => {
@@ -547,7 +556,7 @@ describe("§ 6bj.6 — the aberration is the anchor's, everywhere, and uniform i
     const field = EDGE_FIELD_BLANK.tiles.map((t) => t.volume.maxGridPhaseStepWaves);
     const stage = EDGE_STAGE_BLANK.maxGridPhaseStepWaves;
     expect(Math.min(...field)).toBeCloseTo(0.3954469125838864, 8);
-    expect(Math.max(...field)).toBeCloseTo(0.4194664313587946, 8);
+    expect(Math.max(...field)).toBeCloseTo(0.4194664376504085, 8);
     expect(stage / Math.min(...field)).toBeCloseTo(1.0199209430683718, 6);
     expect(stage / Math.max(...field)).toBeCloseTo(0.9615181522619767, 6);
 
@@ -561,7 +570,7 @@ describe("§ 6bj.6 — the aberration is the anchor's, everywhere, and uniform i
     const axisField = AXIS_FIELD_BLANK.tiles.map((t) => t.volume.maxGridPhaseStepWaves);
     expect(Object.is(AXIS_STAGE_BLANK.maxGridPhaseStepWaves, axisField[4])).toBe(true);
     expect(Object.is(AXIS_STAGE_BLANK.maxGridPhaseStepWaves, Math.max(...axisField))).toBe(true);
-    expect(Math.min(...axisField)).toBeCloseTo(0.3333681836082967, 12);
+    expect(Math.min(...axisField)).toBeCloseTo(0.33336818359810216, 12);
     expect(AXIS_STAGE_BLANK.maxGridPhaseStepWaves).toBeCloseTo(0.34088099768340685, 12);
   });
 });
