@@ -457,7 +457,7 @@ describe("§ 6bs.3 — the six sit at THREE anchors, in the ratio 1 : 1.5 : 2", 
 });
 
 describe("§ 6bs.4 — five of the six go onto ONE anchor, to 0.8%, and the escape's verdict does not move", () => {
-  it("§ 6br.6's second anchor IS the other five's, and the escape reads 0.3666606 there", () => {
+  it("§ 6br.6's second anchor IS the other five's, and the escape reads 0.3666603 there", () => {
     // § 6br's family walks the same extent ladder this file does: its second
     // rung sits exactly where § 6bo and § 6bp took their quartets.
     expect(anchorOf(1)).toBeCloseTo(0.4714912114212198, 12);

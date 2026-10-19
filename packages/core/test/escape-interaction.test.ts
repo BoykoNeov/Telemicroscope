@@ -325,9 +325,9 @@ describe("§ 6br.2 — the quartet sits at one field, to 1.4e-5 on M and to 1.55
 });
 
 describe("§ 6br.3 — matched, the interaction is UNDERSTATED, and the last of § 6bn's six closes", () => {
-  it("0.7511312 down the branch's path becomes 0.3914878 at the branch's own field", () => {
-    expect(branchInteraction()).toBeCloseTo(0.7511288264140593, 12);
-    expect(interactionAt(1)).toBeCloseTo(0.39149648627580136, 12);
+  it("0.7511288 down the branch's path becomes 0.3914965 at the branch's own field", () => {
+    expect(branchInteraction()).toBeCloseTo(ESCAPE_BRANCH, 12);
+    expect(interactionAt(1)).toBeCloseTo(ESCAPE_MATCHED, 12);
   });
 
   it("the sign holds — both below 1 — so this is § 6bp's third outcome, not a reversal", () => {

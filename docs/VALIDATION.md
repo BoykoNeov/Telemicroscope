@@ -6020,8 +6020,9 @@ is the axial split's own row, which is the cut's one side:
 gap above 1.5; it reads 1.2887 and is now pinned there, with the gap still
 asserted above 1. The cut separates the six, by less than § 2r.2 wrote.
 
-**What changed so it cannot happen again.** The eleven readings and § 6bs.7's
-family live in `test/support/cited.ts`. The file that measures each asserts its
+**What changed so it cannot happen again.** The eleven readings, § 6br.6's
+k = 4 escape that `escape-window` divides by, and § 6bs.7's family live in
+`test/support/cited.ts`. The file that measures each asserts its
 fresh reading against that constant at its own precision, so a source that
 moves fails where it moved; the files that cite it import it, so the citation
 moves with it and the derived rungs fail loudly. (The numbers cannot live in
