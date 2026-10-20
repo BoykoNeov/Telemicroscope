@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { achromaticObjective } from "../src/designs/achromat";
 import { opdMap, type OpdMap } from "../src/pupil/opd";
-import { pupilGrid, chiefRay, aimRay } from "../src/pupil/aiming";
+import { pupilGrid, chiefRay, aimRay, UnreachableStopPoint } from "../src/pupil/aiming";
 import { pupils } from "../src/pupil/pupils";
 import { traceRay } from "../src/trace/sequential";
 import { compile } from "../src/trace/compile";
@@ -9,6 +9,7 @@ import { applyToPoint } from "../src/math/transform";
 import { simpleSystem, type OpticalSystem, type RayAiming } from "../src/trace/system";
 import { fitZernike, balancedRms } from "../src/wave/zernike";
 import type { Prescription, SurfaceSpec } from "../src/trace/prescription";
+import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/designs/microscope";
 
 /**
  * § 1.5.3 — REAL RAY AIMING: the stop a misalignment moved.
@@ -334,13 +335,12 @@ describe("§ 1.5.3 — real ray aiming", () => {
 
   describe("refusals", () => {
     /**
-     * A pupil at infinity names a set of DIRECTIONS (§ 6u), so "the point on the
-     * stop this coordinate means" is a different construction rather than a
-     * refinement of this one. Refused, because a silent fall back to paraxial
-     * would hand the caller a differently-defined ray under the name it asked
-     * for.
+     * An object at infinity behind a pupil at infinity has no object point to
+     * solve a slope from (§ 2z.1 solves one at a finite conjugate). Refused,
+     * because a silent fall back to paraxial would hand the caller a
+     * differently-defined ray under the name it asked for.
      */
-    it("real aiming with an entrance pupil at infinity throws rather than falling back", () => {
+    it("real aiming with the object and the entrance pupil both at infinity throws rather than falling back", () => {
       const pupil = pupils(system(BASE, "real"), WVL);
       const telecentric = { ...pupil, entrance: { ...pupil.entrance, radius: Infinity } };
       expect(() =>
@@ -349,3 +349,221 @@ describe("§ 1.5.3 — real ray aiming", () => {
     });
   });
 });
+
+/**
+ * § 2z.1 — real aiming at a pupil at infinity, solved over the slope.
+ *
+ * Every telecentric objective in the catalogue has its entrance pupil exactly at
+ * infinity at its design wavelength (`pupils` returns a slope aperture there),
+ * so § 1.5.3's real aiming, which solves for a target on the entrance-pupil
+ * plane, refused all of them where they are used most. The point on the stop a
+ * coordinate names does not care where the pupil is; only the unknown the solve
+ * moves does — a slope from the object point instead of a target on a plane.
+ */
+describe("§ 2z.1 — real aiming at a pupil at infinity", () => {
+  const DIN = finiteConjugateMicroscope({
+    objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
+  }).system;
+  const D_LINE = DIN.wavelengths[0]!.nm;
+
+  /** Where a ray crosses the stop, in the stop's own frame — with every rim
+   *  removed, since where a ray lands is not whether a lens edge passes it. */
+  const atStop = (sys: OpticalSystem, ray: ReturnType<typeof aimRay>, k: number) => {
+    const c = compile({
+      ...sys.prescription,
+      surfaces: sys.prescription.surfaces.map((s) => ({ ...s, semiAperture: Infinity })),
+    });
+    const hit = traceRay(c, ray).path[k];
+    if (!hit) throw new Error("ray never reached the stop");
+    return applyToPoint(c.surfaces[k]!.inverseFrame, hit);
+  };
+
+  it("the DIN 4×'s entrance pupil is at infinity at its design wavelength, and real aiming lands on the stop", () => {
+    const real = { ...DIN, rayAiming: "real" as const };
+    const pupil = pupils(real, D_LINE);
+    expect(pupil.entrance.radius).toBe(Infinity);
+    expect(pupil.entrance.slopeRadius).toBeGreaterThan(0);
+    // § 1.5.3's bound: the solve targets 1e-12 of the scale, max(stop radius, 1 mm).
+    for (const h of [0, 0.4, -0.6]) {
+      for (const [px, py] of [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0.6, -0.6],
+        [0, 0],
+      ] as const) {
+        const local = atStop(real, aimRay(real, pupil, h, { px, py }, D_LINE), pupil.stopIndex);
+        expect(Math.abs(local.x - px * pupil.stopRadius), `${h} ${px} ${py}`).toBeLessThan(1e-10);
+        expect(Math.abs(local.y - py * pupil.stopRadius), `${h} ${px} ${py}`).toBeLessThan(1e-10);
+      }
+    }
+  });
+
+  it("the paraxial slope aim misses the stop's rim there by 0.59% — the item-31 shortfall", () => {
+    const parax = { ...DIN, rayAiming: "paraxial" as const };
+    const pupil = pupils(parax, D_LINE);
+    const local = atStop(parax, aimRay(parax, pupil, 0, { px: 1, py: 0 }, D_LINE), pupil.stopIndex);
+    // The paraxial cone's rim lands inside the stop's real edge, and real aiming
+    // opens it by the ratio the probe read (1.00590 in sine).
+    expect(local.x / pupil.stopRadius).toBeLessThan(0.996);
+    expect(local.x / pupil.stopRadius).toBeGreaterThan(0.99);
+  });
+
+  it("a stop point no ray reaches is refused by name, and a bundle counts it lost", () => {
+    // At 1.1 mm the DIN 4×'s +x rim is past what the doublet can carry at all:
+    // the ray toward it leaves the back surface's sphere (§ 2y's "miss@2" arc).
+    const real = { ...DIN, rayAiming: "real" as const };
+    const pupil = pupils(real, D_LINE);
+    expect(() => aimRay(real, pupil, 1.1, { px: 1, py: 0 }, D_LINE)).toThrow(UnreachableStopPoint);
+
+    // And it is unreachable, not unconverged: bisect the reach along +x, and the
+    // last ray that exists crosses the crown element where its two spheres meet —
+    // the glass between surfaces 1 and 2 goes to nothing there, the lens's knife
+    // edge, and past it a ray out of surface 1 has no surface 2 ahead of it.
+    const reaches = (rho: number) => {
+      try {
+        aimRay(real, pupil, 1.1, { px: rho, py: 0 }, D_LINE);
+        return true;
+      } catch (e) {
+        if (e instanceof UnreachableStopPoint) return false;
+        throw e;
+      }
+    };
+    let lo = 0;
+    let hi = 1;
+    for (let i = 0; i < 44; i++) {
+      const mid = (lo + hi) / 2;
+      if (reaches(mid)) lo = mid;
+      else hi = mid;
+    }
+    const c = compile({
+      ...DIN.prescription,
+      surfaces: DIN.prescription.surfaces.map((s) => ({ ...s, semiAperture: Infinity })),
+    });
+    const glass = (rho: number) => {
+      const path = traceRay(c, aimRay(real, pupil, 1.1, { px: rho, py: 0 }, D_LINE)).path;
+      const [a, b] = [path[1]!, path[2]!];
+      return Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z);
+    };
+    expect(lo).toBeGreaterThan(0.5);
+    expect(lo).toBeLessThan(1);
+    // 1.00005e-9 mm read: the tracer's own EPS_T, the shortest step it calls an
+    // intersection (geometry/surfaces) — its knife edge, under either aim.
+    expect(glass(lo)).toBeLessThan(1.001e-9);
+    expect(glass(0.9 * lo)).toBeGreaterThan(0.1);
+
+    // A bundle across it traces the rest and counts the unreachable points lost.
+    const map = opdMap(real, 1.1, D_LINE, pupilGrid(17));
+    expect(map.lost).toBeGreaterThan(0);
+    expect(map.samples.length).toBeGreaterThan(100);
+  });
+
+  it("the slope solve and the plane solve land the same ray where both exist", () => {
+    // At 550 nm the DIN 4×'s pupil is finite (6.6e4 mm away) and § 1.5.3's plane
+    // solve runs. Hand the same system a pupil at infinity instead — the slope
+    // branch — and the answer must not move: what is solved for is the stop
+    // point, and the parameterization of the unknown is not in it.
+    const real = { ...DIN, rayAiming: "real" as const };
+    const finite = pupils(real, 550);
+    expect(Number.isFinite(finite.entrance.radius)).toBe(true);
+    if (DIN.conjugate.kind !== "finite") throw new Error("the DIN preset is finite-conjugate");
+    const slope = finite.entrance.radius / Math.abs(finite.entrance.z + DIN.conjugate.distance);
+    const atInfinity = {
+      ...finite,
+      entrance: { ...finite.entrance, z: -Infinity, radius: Infinity, slopeRadius: slope },
+    };
+    for (const h of [0, 0.4]) {
+      for (const [px, py] of [
+        [1, 0],
+        [0, -1],
+        [0.5, 0.7],
+      ] as const) {
+        const a = aimRay(real, finite, h, { px, py }, 550).dir;
+        const b = aimRay(real, atInfinity, h, { px, py }, 550).dir;
+        const la = Math.hypot(a.x, a.y, a.z);
+        const lb = Math.hypot(b.x, b.y, b.z);
+        expect(Math.abs(a.x / la - b.x / lb)).toBeLessThan(1e-12);
+        expect(Math.abs(a.y / la - b.y / lb)).toBeLessThan(1e-12);
+      }
+    }
+  });
+});
+
+/**
+ * § 2z.4 — real aiming solves through the continuation.
+ *
+ * Past a lens's knife edge — where its two spheres meet — a ray out of the first
+ * has its second's root behind it, and no ray exists. The solve that stopped at
+ * that hole put the edge wherever its iteration stalled, which no outline could
+ * converge on (§ 2y's arcs refused at 129 nodes). Through the continuation (each
+ * sphere's vertex-branch root wherever it falls) the map from launch to stop runs
+ * on smoothly, and "reachable" is a property of the solved ray: every crossing
+ * ahead of it. The edge is then a sign change of t, located like any root.
+ */
+describe("§ 2z.4 — real aiming solves through the continuation", () => {
+  const DIN: OpticalSystem = {
+    ...finiteConjugateMicroscope({
+      objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
+    }).system,
+    rayAiming: "real",
+  };
+  const D_LINE = DIN.wavelengths[0]!.nm;
+  const pupil = pupils(DIN, D_LINE);
+  const bare = compile({
+    ...DIN.prescription,
+    surfaces: DIN.prescription.surfaces.map((s) => ({ ...s, semiAperture: Infinity })),
+  });
+
+  it("the refusal names the edge the paraxial aim's ray is lost on, and carries the launch toward it", () => {
+    let caught: unknown;
+    try {
+      aimRay(DIN, pupil, 1.1, { px: 1, py: 0 }, D_LINE);
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(UnreachableStopPoint);
+    const e = caught as UnreachableStopPoint;
+    expect(e.edge).toBe("miss@2");
+    // The launch is the continuation's: it lands on the stop's rim when traced
+    // through it, and crosses surface 2 behind itself on the way.
+    const cont = traceRay(bare, e.launch!, { minT: -Infinity });
+    expect(cont.behindAt).toBe(2);
+    const local = applyToPoint(bare.surfaces[pupil.stopIndex]!.inverseFrame, cont.path[pupil.stopIndex]!);
+    expect(Math.abs(local.x - pupil.stopRadius)).toBeLessThan(1e-10);
+    expect(Math.abs(local.y)).toBeLessThan(1e-10);
+    // A real trace of it never reaches the stop.
+    expect(traceRay(bare, e.launch!).status).not.toBe("ok");
+  });
+
+  it("the last ray that exists crosses the crown where its two spheres meet — the closed-form circle", () => {
+    // Two spheres, centres on the axis at z_i + R_i: they meet on the circle of
+    // radius √(R1² − a²), a = (d² + R1² − R2²)/2d from the first centre.
+    const [s1, s2] = [bare.surfaces[1]!, bare.surfaces[2]!];
+    const R1 = 1 / s1.geometry.curvature;
+    const R2 = 1 / s2.geometry.curvature;
+    const d = s2.vertexZ + R2 - (s1.vertexZ + R1);
+    const a = (d * d + R1 * R1 - R2 * R2) / (2 * d);
+    const knife = Math.sqrt(R1 * R1 - a * a);
+    const reaches = (rho: number) => {
+      try {
+        aimRay(DIN, pupil, 1.1, { px: rho, py: 0 }, D_LINE);
+        return true;
+      } catch (e) {
+        if (e instanceof UnreachableStopPoint) return false;
+        throw e;
+      }
+    };
+    let lo = 0;
+    let hi = 1;
+    for (let i = 0; i < 52; i++) {
+      const mid = (lo + hi) / 2;
+      if (reaches(mid)) lo = mid;
+      else hi = mid;
+    }
+    const hit = traceRay(bare, aimRay(DIN, pupil, 1.1, { px: lo, py: 0 }, D_LINE)).path[1]!;
+    // Read: 5.4582843652 mm closed form, 5.4582843637 mm the last ray — 1.5e-9 mm
+    // apart, the glass path the tracer's EPS_T leaves.
+    expect(Math.abs(Math.hypot(hit.x, hit.y) - knife)).toBeLessThan(1e-8);
+  });
+});
+

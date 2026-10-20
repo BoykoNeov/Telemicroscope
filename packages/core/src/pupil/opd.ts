@@ -5,7 +5,7 @@ import { CompiledSystem, asCompiled, compile } from "../trace/compile";
 import { toImageSpace } from "../trace/axis";
 import { OpticalSystem } from "../trace/system";
 import { PupilGeometry, pupils, imagePlaneZ } from "./pupils";
-import { PupilPoint, AimOptions, aimRay, chiefRay } from "./aiming";
+import { PupilPoint, AimOptions, aimRay, chiefRay, UnreachableStopPoint } from "./aiming";
 import { lateralMagnification } from "./microscope";
 import { RimArc, STOP_EDGE, rimArcs } from "./rim-outline";
 
@@ -217,7 +217,15 @@ export function opdMap(
   const mmToWaves = 1e6 / wavelengthNm;
 
   for (const p of points) {
-    const ray = aimRay(system, pupil, fieldValue, p, wavelengthNm, options);
+    let ray;
+    try {
+      ray = aimRay(system, pupil, fieldValue, p, wavelengthNm, options);
+    } catch (e) {
+      // A stop point no ray reaches is lost, as the paraxial aim's ray there is (§ 2z.1).
+      if (!(e instanceof UnreachableStopPoint)) throw e;
+      lost++;
+      continue;
+    }
     const got = pathToSphere(system, ray, imagePoint, referenceRadius, nImage);
     if (!got) {
       lost++;
@@ -286,7 +294,14 @@ export function vignetteMask(
   options: AimOptions = {},
 ): (px: number, py: number) => boolean {
   return (px, py) => {
-    const ray = aimRay(system, pupil, fieldValue, { px, py }, wavelengthNm, options);
+    let ray;
+    try {
+      ray = aimRay(system, pupil, fieldValue, { px, py }, wavelengthNm, options);
+    } catch (e) {
+      // A stop point no ray reaches carries no light (§ 2z.1).
+      if (e instanceof UnreachableStopPoint) return true;
+      throw e;
+    }
     return traceRay(system.prescription, ray).status !== "ok";
   };
 }
@@ -338,8 +353,10 @@ function unclippedExitCoordinate(
 
 /**
  * `unclippedExitCoordinate`, saying what stopped a ray that has none: its
- * status and the surface it failed at ("miss@2"), "aim" where real aiming
- * refuses the point, "exit" where it leaves with no crossing of the sphere.
+ * status and the surface it failed at ("miss@2", whether a traced ray missed it
+ * or real aiming found the stop point past its knife edge), "aim" where real
+ * aiming reaches the point not even by continuation, "exit" where it leaves
+ * with no crossing of the sphere.
  */
 function unclippedLanding(
   system: OpticalSystem,
@@ -357,9 +374,11 @@ function unclippedLanding(
       stopOnly(c, pupil.stopIndex),
       aimRay(system, pupil, fieldValue, point, wavelengthNm, options),
     );
-  } catch {
-    // Real aiming refuses a stop point no launch reaches: the same verdict.
-    return "aim";
+  } catch (e) {
+    // Real aiming refuses a stop point no ray reaches, saying what stops it there
+    // ("miss@2" past a knife edge, as the paraxial aim's ray is lost): the same verdict.
+    if (e instanceof UnreachableStopPoint) return e.edge;
+    throw e;
   }
   if (res.status !== "ok" || !res.ray) return `${res.status}@${res.failedAt ?? "?"}`;
   return exitCoordinate(frame, toImageSpace(c, res.ray)) ?? "exit";

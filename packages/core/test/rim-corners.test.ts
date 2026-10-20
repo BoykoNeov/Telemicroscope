@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/designs/microscope";
 import { exitApertureSine, exitCoordinate, exitRim, exitRimArcs, opdMap } from "../src/pupil/opd";
 import { STOP_EDGE, rimOutline, rimPolygon, type RimOutline } from "../src/pupil/rim-outline";
-import { aimRay } from "../src/pupil/aiming";
+import { aimRay, UnreachableStopPoint } from "../src/pupil/aiming";
 import { traceRay } from "../src/trace/sequential";
 import { asCompiled, compile } from "../src/trace/compile";
 import { toImageSpace } from "../src/trace/axis";
@@ -41,7 +41,15 @@ function misplaced(system: OpticalSystem, h: number, angles: number): { polygon:
     surfaces: c.prescription.surfaces.map((s, i) => (i === map.pupil.stopIndex ? s : { ...s, semiAperture: Infinity })),
   });
   const lands = (rho: number, t: number): readonly [number, number] | null => {
-    const res = traceRay(stopOnly, aimRay(system, map.pupil, h, { px: rho * Math.cos(t), py: rho * Math.sin(t) }, L));
+    let ray;
+    try {
+      ray = aimRay(system, map.pupil, h, { px: rho * Math.cos(t), py: rho * Math.sin(t) }, L);
+    } catch (e) {
+      // Under real aiming a stop point past a knife edge has no ray (§ 2z.4).
+      if (e instanceof UnreachableStopPoint) return null;
+      throw e;
+    }
+    const res = traceRay(stopOnly, ray);
     return res.status === "ok" && res.ray ? exitCoordinate(map, toImageSpace(stopOnly, res.ray)) : null;
   };
   const edgeAt = (t: number): readonly [number, number] => {

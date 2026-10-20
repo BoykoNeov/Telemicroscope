@@ -5,7 +5,7 @@ import { asCompiled } from "../trace/compile";
 import { toImageSpace } from "../trace/axis";
 import { OpticalSystem } from "../trace/system";
 import { PupilGeometry, pupils, imagePlaneZ } from "../pupil/pupils";
-import { PupilPoint, AimOptions, aimRay } from "../pupil/aiming";
+import { PupilPoint, AimOptions, aimRay, UnreachableStopPoint } from "../pupil/aiming";
 
 /**
  * Spot diagrams — where a pupil-full of rays actually lands. This is the
@@ -58,7 +58,15 @@ export function exitBundle(
   let lost = 0;
 
   for (const p of points) {
-    const input = aimRay(system, pupil, fieldValue, p, wavelengthNm, options);
+    let input;
+    try {
+      input = aimRay(system, pupil, fieldValue, p, wavelengthNm, options);
+    } catch (e) {
+      // A stop point no ray reaches is lost, as the paraxial aim's ray there is (§ 2z.1).
+      if (!(e instanceof UnreachableStopPoint)) throw e;
+      lost++;
+      continue;
+    }
     const res = traceRay(system.prescription, input);
     if (res.status !== "ok" || !res.ray) {
       lost++;

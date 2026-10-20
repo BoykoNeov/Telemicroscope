@@ -66,8 +66,9 @@ const RINGS = 2;
  *     field    S =  |d_z|  ·|d_z|·|d_z|³ = |d_z|⁵
  *
  * with d the launch's unit direction. Under real aiming the aim names a point on
- * the STOP, and the entrance-pupil target it solved to is not linear in it: S
- * then carries |∂q/∂a| as well, read off the solved targets. At an infinite
+ * the STOP, and the entrance-pupil target (or, telecentric, the slope) it solved
+ * to is not linear in it: S then carries |∂q/∂a| as well, read off the solved
+ * targets. At an infinite
  * conjugate S is that Jacobian alone — uniform under the paraxial aim.
  *
  * ## How the Jacobian is read
@@ -321,8 +322,16 @@ export function exitDensity(
       dirZ[k] = Math.abs(ray.dir.z) / len;
       cosinesAt[k] = [ray.dir.x / len, ray.dir.y / len];
       if (real) {
-        const t = (epZ - ray.origin.z) / ray.dir.z;
-        targetAt[k] = [ray.origin.x + ray.dir.x * t, ray.origin.y + ray.dir.y * t];
+        // What the paraxial aim is linear in: the target on the entrance-pupil
+        // plane, or at a pupil at infinity the slope (§ 2z.1) — both carry the
+        // same |d_z|³ to the solid angle, so only the Jacobian's units differ,
+        // and they cancel against the chief ray's.
+        if (Number.isFinite(epZ)) {
+          const t = (epZ - ray.origin.z) / ray.dir.z;
+          targetAt[k] = [ray.origin.x + ray.dir.x * t, ray.origin.y + ray.dir.y * t];
+        } else {
+          targetAt[k] = [ray.dir.x / ray.dir.z, ray.dir.y / ray.dir.z];
+        }
       }
       const mine = own.get(k);
       if (mine) {

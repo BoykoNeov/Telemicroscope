@@ -4,7 +4,7 @@ import { OpticalSystem } from "../trace/system";
 import { traceRay } from "../trace/sequential";
 import { paraxialTrace } from "../trace/paraxial";
 import { getMedium } from "../materials/catalog";
-import { chiefRay, marginalRay, type AimOptions } from "./aiming";
+import { chiefRay, marginalRay, UnreachableStopPoint, type AimOptions } from "./aiming";
 import { imagePlaneZ, pupils } from "./pupils";
 
 /**
@@ -37,13 +37,25 @@ const sinOffAxis = (dx: number, dy: number, dz: number): number =>
  *
  * Read from `aimRay`'s marginal ray, whose launch angle at the object point is
  * exact whatever the aim converges to downstream — the angle *is* the aim.
+ *
+ * Under real aiming a stop whose rim lies past a lens's knife edge has no
+ * marginal ray, and the angle read is the continuation's launch toward it
+ * (§ 2z.4): the cone the STOP would admit, which is what this readout has always
+ * reported where the glass cuts first — the paraxial aim's marginal ray there
+ * was launched at that angle and lost on the way.
  */
 export function objectNumericalAperture(system: OpticalSystem, wavelengthNm: number): number {
   if (system.conjugate.kind !== "finite") {
     throw new Error("objectNumericalAperture: needs a finite conjugate (there is no object-space cone at infinity)");
   }
   const pupil = pupils(system, wavelengthNm);
-  const m = marginalRay(system, pupil, 0, wavelengthNm);
+  let m;
+  try {
+    m = marginalRay(system, pupil, 0, wavelengthNm);
+  } catch (e) {
+    if (!(e instanceof UnreachableStopPoint) || e.launch === undefined) throw e;
+    m = e.launch;
+  }
   const n = getMedium(system.prescription.objectMedium ?? "AIR").n(wavelengthNm);
   return n * sinOffAxis(m.dir.x, m.dir.y, m.dir.z);
 }

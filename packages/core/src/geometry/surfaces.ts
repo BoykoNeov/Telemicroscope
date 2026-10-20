@@ -21,18 +21,25 @@ export interface SurfaceGeometry {
    * The returned normal is the unit surface normal on the side facing −z at
    * the vertex (i.e. against the nominal direction of travel); interaction
    * code must not assume its orientation relative to the ray.
+   *
+   * `minT = -Infinity` is the CONTINUATION: the vertex branch's root wherever it
+   * lies along the line, behind the ray included, and never the other root in
+   * its place. Real aiming solves through it, so a lens's knife edge — where a
+   * ray stops existing because its next surface's root falls behind it — is a
+   * sign change of t rather than a hole in the map (§ 2z.4).
    */
-  intersect(origin: Vec3, dir: Vec3): SurfaceHit | null;
+  intersect(origin: Vec3, dir: Vec3, minT?: number): SurfaceHit | null;
 }
 
 export interface SurfaceHit {
-  /** Distance along the (unit) ray direction. Always > 0. */
+  /** Distance along the (unit) ray direction. > EPS_T, unless a lower `minT` was asked for. */
   readonly t: number;
   readonly point: Vec3;
   readonly normal: Vec3;
 }
 
-const EPS_T = 1e-9;
+/** The shortest step a real ray takes to its next surface; below it the ray does not exist. */
+export const EPS_T = 1e-9;
 const EPS_CURV = 1e-14;
 
 export function conicSag(c: number, k: number, r2: number): number {
@@ -57,12 +64,18 @@ function conicNormal(c: number, k: number, p: Vec3): Vec3 {
  * root nearest the tangent plane — this selects the vertex branch of
  * two-sheeted quadrics.
  */
-export function intersectConic(c: number, k: number, origin: Vec3, dir: Vec3): SurfaceHit | null {
+export function intersectConic(
+  c: number,
+  k: number,
+  origin: Vec3,
+  dir: Vec3,
+  minT = EPS_T,
+): SurfaceHit | null {
   // Plane case.
   if (Math.abs(c) < EPS_CURV) {
     if (Math.abs(dir.z) < 1e-15) return null;
     const t = -origin.z / dir.z;
-    if (t < EPS_T) return null;
+    if (t < minT) return null;
     return { t, point: along(origin, dir, t), normal: vec3(0, 0, -1) };
   }
 
@@ -90,15 +103,15 @@ export function intersectConic(c: number, k: number, origin: Vec3, dir: Vec3): S
     // Nearest the tangent plane ⇒ vertex branch.
     s = Math.abs(s1) <= Math.abs(s2) ? s1 : s2;
     const tCand = tPlane + s;
-    if (tCand < EPS_T) {
+    if (tCand < minT) {
       const sOther = s === s1 ? s2 : s1;
-      if (tPlane + sOther < EPS_T) return null;
+      if (tPlane + sOther < minT) return null;
       s = sOther;
     }
   }
 
   const t = tPlane + s;
-  if (t < EPS_T || !Number.isFinite(t)) return null;
+  if (t < minT || !Number.isFinite(t)) return null;
   const point = along(origin, dir, t);
   return { t, point, normal: conicNormal(c, k, point) };
 }
@@ -109,7 +122,7 @@ export function makeConic(curvature: number, conic = 0): SurfaceGeometry {
     conic,
     asphereCoeffs: [],
     sag: (r2) => conicSag(curvature, conic, r2),
-    intersect: (o, d) => intersectConic(curvature, conic, o, d),
+    intersect: (o, d, minT) => intersectConic(curvature, conic, o, d, minT),
   };
 }
 
@@ -162,9 +175,9 @@ export function makeEvenAsphere(
     conic,
     asphereCoeffs: coeffs,
     sag,
-    intersect(origin: Vec3, dir: Vec3): SurfaceHit | null {
-      const base = intersectConic(curvature, conic, origin, dir) ??
-        intersectConic(0, 0, origin, dir); // fall back to tangent plane as seed
+    intersect(origin: Vec3, dir: Vec3, minT = EPS_T): SurfaceHit | null {
+      const base = intersectConic(curvature, conic, origin, dir, minT) ??
+        intersectConic(0, 0, origin, dir, minT); // fall back to tangent plane as seed
       if (!base) return null;
       let t = base.t;
       for (let i = 0; i < 32; i++) {
@@ -182,7 +195,7 @@ export function makeEvenAsphere(
         const dg = dir.z - ds * 2 * (p.x * dir.x + p.y * dir.y);
         if (Math.abs(dg) < 1e-15) return null;
         t -= g / dg;
-        if (t < EPS_T || !Number.isFinite(t)) return null;
+        if (t < minT || !Number.isFinite(t)) return null;
       }
       return null; // no convergence
     },

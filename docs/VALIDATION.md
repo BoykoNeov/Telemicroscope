@@ -6289,7 +6289,8 @@ the recorder run only, under the full pool — the load-sensitive pair on record
 
 ## Step 2z — real aiming for the finite presets
 
-Source: engine change
+Source: engine change — `solveOntoStop` (`pupil/aiming.ts`) solves over the slope where the entrance pupil is at infinity (§ 2z.1) and through `intersect`'s continuation (`minT`, `geometry/surfaces.ts`; `behindAt`, `trace/sequential.ts`), and `UnreachableStopPoint` carries the edge and the launch (§ 2z.4)
+· Tests: `packages/core/test/real-aiming.test.ts` (§ 2z.1, § 2z.4); `collected-power.test.ts` and `support/collected-power.ts` (new: § 2z.2's referee); `rim-corners.test.ts` (an unreachable stop point lands nowhere)
 
 Register item 31: the finite presets aim every pupil coordinate at the
 PARAXIAL entrance pupil, whose rim is not the stop's traced edge, so an
@@ -6345,6 +6346,54 @@ area to 5e-8 (§ 2q.4), the DIN 4×'s density fit is good to 7e-8 (§ 2u), and t
 interior cells' midpoint sum of a density that varies by ~1% across the pupil
 errs by ~1e-6 at 128 — 2e-5 is room for what that misses, and fifty times
 below the 1.1% the aim costs.
+
+### 2z.1 — the slope solve: real aiming at a pupil at infinity
+
+`aimObjectSpace` under real aiming solves for the object-space slope whose ray
+lands on the stop point the coordinate names — the same solve as § 1.5.3's
+(`solveOntoStop`, one shared Jacobian per field and wavelength, chord then
+Newton), over a slope instead of a pupil-plane target. Pinned in
+`real-aiming.test.ts`: on the DIN 4×/0.10 at its design wavelength (pupil at
+infinity) the real-aimed rays at 0, 0.4 and −0.6 mm land on the stop to 1e-10;
+the paraxial slope aim's rim lands at 0.990–0.996 of the stop radius, the
+item-31 shortfall; and where both solves exist (550 nm, pupil 6.6e4 mm away)
+the slope solve and the plane solve land the same ray to 1e-12 in direction.
+
+### 2z.2 — the referee
+
+`test/support/collected-power.ts` counts an emitter's collected power with no
+pupil coordinate in it: object-space directions about the paraxial chief, the
+edge along each of K bearings bisected (60 halvings) through the system with
+the stop clipped to the pupil's radius, the radial integral Gauss–Legendre in
+16 nodes of T/N, the azimuth a trapezoid. Pinned (`collected-power.test.ts`)
+to a bare flat aperture's closed form on axis, (1 − D/√(D² + A²))/2, to 9.5e-13,
+off axis at 1, 3 and 6 mm to the disc's solid angle to 1.5e-12, and where a
+lens cuts the aperture (the un-sized DIN 4×/0.10 at 4.5 mm) to a 601² lattice
+count to 1.1e-5.
+
+### 2z.4 — the knife edge is a sign change
+
+A stop point past a lens's knife edge — where its two spheres meet — has no
+ray: the ray out of the first sphere has the second's root behind it. The
+first engine change found the edge where the solve gave up, and that is not a
+function the outline can converge on: § 2y's arcs refused at 129 nodes on 26
+rungs of the trial flip, and a near-miss accepted at 1e-9 of the scale put a
+corner past the real one. Now `SurfaceGeometry.intersect` takes a `minT`, and at
+`-Infinity` returns the vertex branch's root wherever it lies (never the other
+root in its place); `traceRay` passes it through and reports `behindAt`, the
+first surface crossed behind the ray. The solve runs through that continuation,
+so the map from launch to stop is smooth across the edge, and a solved launch
+is a ray exactly when no crossing up to the stop lies behind it. Refused
+points carry the edge (`"miss@2"`, the label the paraxial aim's ray there is
+lost with) and the continuation's launch. Reachable rays are untouched: the
+default `minT` is today's, and every § 1.5.3 and § 2z.1 rung reads as before.
+Pinned (`real-aiming.test.ts`): on the DIN 4×/0.10 at 1.1 mm the last ray that
+exists crosses the crown at 5.4582843637 mm against the closed-form circle the
+two spheres meet on, 5.4582843652 mm — 1.5e-9 apart, the glass path the
+tracer's EPS_T leaves; and the refused (1, 0) carries `"miss@2"` and a launch
+whose continuation lands on the stop's rim to 1e-10 and whose real trace does
+not. § 2y's three rungs read the outline to < 1e-11 of the area under real
+aiming.
 
 ## Step 3a — the standard observer and thermal sources
 

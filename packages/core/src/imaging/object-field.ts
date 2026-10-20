@@ -785,9 +785,9 @@ export function pupilDirectionMap(
   options: { readonly aim?: AimOptions; readonly layout?: PupilLayout; readonly probeHeightMm?: number } = {},
   who = "pupilDirectionMap",
 ): PupilDirectionMap {
-  const frame = pupilSlopeFrame(system, objectHeightMm, wavelengthNm, options, who);
-  const { chief, span } = frame;
   if ((options.layout ?? defaultPupilLayout(system)) !== "exit") {
+    const frame = pupilSlopeFrame(system, objectHeightMm, wavelengthNm, options, who);
+    const { chief, span } = frame;
     return {
       layout: "aim",
       slopesOf: (px, py) => [frame.slopeOf(px), py * span],
@@ -801,6 +801,18 @@ export function pupilDirectionMap(
       unit: span,
     };
   }
+  // The exit layout reads only the chief ray's slope and which way the aim's
+  // slope runs — and reads that at half the pupil, not at the rim: under real
+  // aiming an off-axis rim point can lie past a lens's knife edge, where no ray
+  // exists to read (§ 2z.3), while the paraxial aim is affine and gives the same
+  // sign at either.
+  const geometry = pupils(system, wavelengthNm);
+  const slopeAt = (px: number): number => {
+    const ray = aimRay(system, geometry, objectHeightMm, { px, py: 0 }, wavelengthNm, options.aim ?? {});
+    return ray.dir.x / ray.dir.z;
+  };
+  const chief = slopeAt(0);
+  const span = slopeAt(0.5) - chief;
   if (span === 0) {
     throw new Error(
       `${who}: the aimed pupil spans no object-space angle, so no illumination direction can be placed in it`,
@@ -879,6 +891,18 @@ export function pupilSlopeFrame(
   options: { readonly aim?: AimOptions } = {},
   who = "pupilSlopeFrame",
 ): PupilSlopeFrame {
+  // The map is affine because the paraxial aim is: a pupil coordinate there is a
+  // target on a plane (or a slope), and the slope is linear in it. Real aiming
+  // names a point on the STOP, whose slope is not linear in it — the departure
+  // is the pupil's own aberration, the 1% of light § 2z found the paraxial aim
+  // missing — so any two aims would make this a secant, wrong across the
+  // interior in the shape of the very offset it places. Refused (§ 2z.4).
+  if (system.rayAiming === "real") {
+    throw new Error(
+      `${who}: the aim layout places a direction through the paraxial aim's affine map, and this system aims real — ` +
+        "use the exit layout, or aim the system paraxially (§ 2z.4)",
+    );
+  }
   const geometry = pupils(system, wavelengthNm);
   const aim = options.aim ?? {};
   const slopeAt = (px: number): number => {

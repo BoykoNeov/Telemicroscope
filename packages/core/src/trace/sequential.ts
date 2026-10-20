@@ -4,6 +4,7 @@ import { Ray, makeRay } from "./ray";
 import { interact, reflectDir } from "./interaction";
 import { Prescription } from "./prescription";
 import { CompiledSystem, asCompiled } from "./compile";
+import { EPS_T } from "../geometry/surfaces";
 
 /**
  * Sequential exact ray trace: visit surfaces in prescription order, keep the
@@ -33,10 +34,31 @@ export interface TraceResult {
   readonly throughput: number;
   /** Index of the surface where the ray was lost (for vignetted/tir/miss). */
   readonly failedAt?: number;
+  /**
+   * Traced with `minT` below the tracer's own: the first surface whose crossing
+   * lies behind the ray, or closer than a real ray steps (t < EPS_T). From there
+   * the path is the continuation, not a ray (§ 2z.4).
+   */
+  readonly behindAt?: number;
 }
 
-export function traceRay(system: Prescription | CompiledSystem, input: Ray): TraceResult {
+/** What `traceRay` takes besides the ray. */
+export interface TraceOptions {
+  /** The shortest step accepted to a surface; `-Infinity` traces the continuation (`SurfaceGeometry.intersect`). */
+  readonly minT?: number;
+  /** Stop after this surface: `status` "ok" there, `ray` the ray leaving it. */
+  readonly lastSurface?: number;
+}
+
+export function traceRay(
+  system: Prescription | CompiledSystem,
+  input: Ray,
+  options: TraceOptions = {},
+): TraceResult {
   const c = asCompiled(system);
+  const minT = options.minT;
+  let behindAt: number | undefined;
+  const behind = () => (behindAt === undefined ? {} : { behindAt });
   const n = c.indices(input.wavelengthNm);
 
   let origin = input.origin;
@@ -45,7 +67,8 @@ export function traceRay(system: Prescription | CompiledSystem, input: Ray): Tra
   let throughput = input.energy;
   const path: Vec3[] = [];
 
-  for (let i = 0; i < c.surfaces.length; i++) {
+  const end = options.lastSurface === undefined ? c.surfaces.length : Math.min(c.surfaces.length, options.lastSurface + 1);
+  for (let i = 0; i < end; i++) {
     const s = c.surfaces[i]!;
 
     // World → surface local frame. Axial systems (the overwhelmingly common
@@ -55,8 +78,9 @@ export function traceRay(system: Prescription | CompiledSystem, input: Ray): Tra
       : applyToPoint(s.inverseFrame, origin);
     const localDir = s.isAxial ? dir : applyToDirection(s.inverseFrame, dir);
 
-    const hit = s.geometry.intersect(localOrigin, localDir);
-    if (!hit) return { status: "miss", opl, path, throughput, failedAt: i };
+    const hit = s.geometry.intersect(localOrigin, localDir, minT);
+    if (!hit) return { status: "miss", opl, path, throughput, failedAt: i, ...behind() };
+    if (behindAt === undefined && hit.t < EPS_T) behindAt = i;
 
     const globalPoint = s.isAxial
       ? vec3(hit.point.x, hit.point.y, hit.point.z + s.vertexZ)
@@ -80,7 +104,7 @@ export function traceRay(system: Prescription | CompiledSystem, input: Ray): Tra
     const r2 = hit.point.x * hit.point.x + hit.point.y * hit.point.y;
     const rim = s.semiAperture * s.semiAperture;
     if (Number.isFinite(s.semiAperture) && r2 > rim * (1 + 1e-12)) {
-      return { status: "vignetted", opl, path, throughput, failedAt: i };
+      return { status: "vignetted", opl, path, throughput, failedAt: i, ...behind() };
     }
 
     if (s.kind === "reflect") {
@@ -89,7 +113,7 @@ export function traceRay(system: Prescription | CompiledSystem, input: Ray): Tra
     } else {
       const result = interact(dir, globalNormal, n[i]!, n[i + 1]!);
       if (result.tir || !result.refracted) {
-        return { status: "tir", opl, path, throughput, failedAt: i };
+        return { status: "tir", opl, path, throughput, failedAt: i, ...behind() };
       }
       dir = normalize(result.refracted);
       throughput *= s.reflectance ?? result.T;
@@ -104,6 +128,7 @@ export function traceRay(system: Prescription | CompiledSystem, input: Ray): Tra
     opl,
     path,
     throughput,
+    ...behind(),
   };
 }
 
