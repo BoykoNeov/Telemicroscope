@@ -1032,7 +1032,9 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     scatter (−3.8e-6, +4.7e-6, +1.4e-6 at 41/61/81). *What would close it:* a
     finer density lattice where the map curves (item 35's cost), and a fit that
     follows a 2:1 density — more terms, or the density's smooth part divided
-    out before fitting.
+    out before fitting. **Left as it is, by the author's decision
+    (2026-10-20):** 6.3e-5 of the light is not worth either fix's cost now. It
+    stays open, and is not a step to take unasked.
 48. **Thirty-eight measurement chains are read on the paraxial aim.** Found at
     [§ 2z](VALIDATION.md#step-2z--real-aiming-for-the-finite-presets). The anisotropy, seam, guard, escape, refusal, distortion,
     flat-field, focus-surface, second-objective and stage-mosaic chains (the
