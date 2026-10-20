@@ -310,8 +310,8 @@ describe("§ 6cu.2 — the stage covers each objective's field", () => {
   // The two oil rows do not render there, and the lookup is not why (§ 6cu.5
   // backed its doubling off the dead chief ray). The 1.25's tile along x has its
   // pupil shifted off the 64-bin frequency grid; the 1.40's rim outline does not
-  // converge, along x and on the diagonal. Both are the engine refusing at the
-  // stage's sampling, and both are open (register items 49 and 50).
+  // converge, along x and on the diagonal. The first is the stage's sampling;
+  // the second's cause is not yet read. Both are open (register items 49, 50).
   const ROWS = MICROSCOPE_CATALOG.filter(
     (e) => e.kind !== "lister-40x-040" && !e.kind.startsWith("oil-"),
   );

@@ -176,7 +176,7 @@ whole ladder.
 | [6cr](#step-6cr--hopkins-kernel-and-the-specimen-taken-out-of-the-sum) | The TCC: exactly Hermitian, PSD, and Abbe's image to 1e-15. A three-disc closed form pins it off the diagonal; § 6f's two curves are one complex number | `hopkins` |
 | [6cs](#step-6cs--the-coherent-systems-and-the-factor-that-was-already-there) | TCC = A·Aᴴ: the modes are a discarded factor's singular vectors, so 47.1 MB becomes 4.75 MB with nothing dropped. Truncation is lossy: 99% needs 48 of 69 | `coherent-systems` |
 | [6ct](#step-6ct--the-seed-reaches-the-colour-stack-and-high-power-renders-in-colour) | § 6bk's seed on the colour brightfield stack: the oil 100× renders in colour where it threw; off by default, and inert at 4× to six ulp | `colour-seed` |
-| [6cu](#step-6cu--the-seed-reaches-the-brightfield-mosaic-and-the-lookup-stops-limiting-the-stage) | The stage's tile lookup was unseeded: the 4× stopped at 1.8 of 2.25 mm. Seeded, and a dead doubling backs off; the oil rows' edge stays refused by sampling | `mosaic-seed` |
+| [6cu](#step-6cu--the-seed-reaches-the-brightfield-mosaic-and-the-lookup-stops-limiting-the-stage) | The stage's tile lookup was unseeded: the 4× stopped at 1.8 of 2.25 mm. Seeded, and a dead doubling backs off; the oil rows' edge is refused by other checks | `mosaic-seed` |
 | [8a](#step-8a--the-photon-zero-point-and-the-one-draw-a-camera-makes) | AB = 0 is 3631 Jy: a 0-mag star is 996 photons·s⁻¹·cm⁻²·Å⁻¹ at 550 nm (textbook 1000), a band's count is (f_ν/h)·ln(λ₂/λ₁) for any spectrum, shot noise is Poisson | `photon-zero-point` |
 | [8b](#step-8b--the-sky-and-the-magnitude-it-hides) | The sky per pixel is B·Ω·A·t: twice the mirror at one focal ratio is 4× the star and 1.000000000000× the sky, and the limit deepens 1.5051 mag per 4× exposure, 0.7526 swamped | `sky-background` |
 | [8c](#step-8c--the-resampler-that-conserves) | Bilinear × k² is a one-point quadrature: the stack ran +0.3–3.0% heavy with `truncatedFraction` at 0. A conservative minmod regrid conserves AND beats it on accuracy | `resample-conservation` |
@@ -32217,7 +32217,10 @@ pupil there is shifted to (1.079, −0.156) and runs off the 64-bin frequency gr
 at pupilSamples 32 (register item 49). On the diagonal it renders. The /1.40
 stays at col 14 (0.071 mm) and is refused from col 15 on, along x and on the
 diagonal, by the rim outline: a stop arc that does not converge at 129 nodes
-(register item 50). No row's stage is limited by the lookup any more. The
+(register item 50), whose cause is not yet read. Inside its field, no row's
+stage is limited by the lookup any more; far outside it the lookup can still
+refuse (the infinity 20× at col 18, 1.3 mm, 2.8× its field), and whether its
+chief ray is lost there was not read. The
 Lister 40×/0.20 reaches 0.353 mm, past its 0.225 mm field. The rest of the
 prediction holds: the full suite (229 files, 4 174 tests) passes with no other
 test changing outcome, so no pinned refusal returned and no pinned value moved.
