@@ -3767,6 +3767,8 @@ recording them:
    stop follows its aim — the paraxially sized one, not the real ray's — so the
    tiles, the guard bound and the goldens are unchanged. **Open:** the stage on
    real aiming. It needed the exit layout first (point 4), which it now has.
+   **Measured and held back** ([the stage on real aiming](#the-stage-on-real-aiming)):
+   a monochrome tile costs 4.4× on it. The seams, verdicts and tile order hold.
 
 #### The stage on the exit layout
 
@@ -3817,7 +3819,12 @@ The pixels four columns from the seam are off by as much (2.7e-2 to 3.0e-2 at
 the edge, on both layouts), so what this guard leaves is the tile's own error
 and not a step. The last seam is the farthest one that renders: from about
 1.8 mm out, the radial map's chief ray is vignetted and the stage refuses the
-tile on **both** layouts, which it already did. A clear field's tile-to-tile
+tile on **both** layouts, which it already did.
+
+> Since [the stage on real aiming](#the-stage-on-real-aiming): the chief ray is
+> not vignetted at 1.8 mm. The radial map's bracket is unseeded (§ 6bk), so it
+> opens at the image radius and probes the chief ray at |M| times the height,
+> 7.5 mm of object, where it is lost. The tile itself is well inside the field. A clear field's tile-to-tile
 step does double off axis (5.0e-7 → 1.09e-6 at 1 mm along x, 3.6e-7 → 7.9e-7 on
 the diagonal, 1.06e-6 → 2.00e-6 at the edge). That is the fluorescence chain's
 mechanism, arriving here at 2e-6 rather than 1e-2: about 3e-4 of one grey level.
@@ -3884,6 +3891,41 @@ map at `RADIAL_MAP_NODES`), real aiming is a flip the stage can take:
 stays where it is and the cost goes to the user), any seam above 2× the
 paraxial aim's, a verdict flip, a phase step above 2×, a refusal edge that moves
 inward, or any bit of difference in the order check.
+
+**The reading: refuted on cost and on the field edge.** The stage stays on the
+paraxial aim. What held:
+
+| Seam (tiles) | Object (mm) | paraxial | real | real / paraxial |
+|---|---|---|---|---|
+| 0\|1 | 0.035, 0 | 6.120e-3 | 6.121e-3 | 1.00 |
+| 13\|14 | 0.953, 0 | 1.561e-2 | 1.571e-2 | 1.01 |
+| 10\|11, row 10 | 0.741, 0.706 | 1.136e-2 | 1.157e-2 | 1.02 |
+| 21\|22 | 1.518, 0 | 3.005e-2 | 3.032e-2 | 1.01 |
+
+Every tile at those seams reads `valid` on both aims. The worst grid phase step
+rises 1.00–1.13× (0.170 waves at most). A tile rendered cold is the same tile, to
+the bit, as one rendered after three others, on both aims, in monochrome and in
+colour.
+
+What did not:
+
+- **Cost.** Warm tiles, median of eight, the aims alternated, two runs:
+  monochrome 104.8 → 456.6 ms and 73.2 → 320.3 ms (**4.36×, 4.37×**), colour
+  813 → 976 ms and 704 → 881 ms (1.20×, 1.25×). About a third of the real-aimed
+  monochrome tile is its radial map, 65 inversions of a chief ray that real
+  aiming solves onto the stop (110–125 ms against 12–36 paraxial); the rest is
+  the traced pupils. Colour pays less because its Abbe sums are larger.
+- **Field edge.** Along x the last tile that renders is col 25 paraxial (1.77 mm)
+  and col 22 real (1.55 mm), and on the diagonal (17,17) against (15,15). Both
+  refusals are the unseeded radial map's bracket (§ 6bk): it opens at the image
+  radius, so it probes the chief ray at |M| times the height it needs, and real
+  aiming loses that ray sooner — at 6.70 mm of object, against 7.50 paraxial.
+  Inside the field (2.25 mm, FN 18 at 4×) the chief ray traces on both aims.
+
+That second finding is a fix of its own. § 6ct put the seed on the colour stack
+and left the stage unseeded as the stage's decision, and it is
+[§ 6cu](VALIDATION.md#step-6cu--the-seed-reaches-the-brightfield-mosaic-and-the-stage-covers-its-field).
+Real aiming stays open, on cost.
 
 The original scope follows, unchanged.
 

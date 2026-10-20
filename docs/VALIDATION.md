@@ -32119,6 +32119,54 @@ the seed on there moves their pinned numbers by the mantissa and is that panel's
 decision, recorded as Part S's leftover in APP.md rather than taken silently
 here.
 
+## Step 6cu — the seed reaches the brightfield mosaic, and the stage covers its field
+
+Source: `packages/core/src/imaging/mosaic.ts`, `packages/core/src/imaging/mosaic-spectrum.ts`,
+`packages/app/src/stage.ts` ·
+Tests: `packages/core/test/mosaic-seed.test.ts`
+
+Found while measuring the stage on real aiming (APP.md D4, *the stage on real
+aiming*). The stage refuses every tile past about 1.8 mm on the DIN 4×/0.10, a
+limit APP.md had put down to the radial map's chief ray being vignetted. It is
+§ 6bk's bracket. `renderMosaicTile` and `renderSpectralMosaicTile` build their
+radial maps unseeded, so `objectHeightForImageRadius` opens at the image radius,
+|M| object heights out, and the chief ray is lost there: at 7.50 mm of object on
+the paraxial aim, against a field of 2.25 mm (FN 18 at 4×). § 6ct left the stage
+unseeded as the stage's decision. This step takes it.
+
+**What was read before the hypothesis** (the stage's monochrome tile, paraxial
+aim as shipped, its own radial map built by hand with and without the seed):
+the DIN 4×/0.10 renders along x to col 25 (1.77 mm) unseeded and past col 53
+(3.74 mm) seeded; the infinity 10×/0.10 to col 3 (0.21 mm of its 0.90 mm field)
+unseeded and past col 23 (1.63 mm) seeded. No other row, no colour tile, and no
+pixel comparison was read.
+
+**The change.** `radialMapSeed` (§ 6bk's option, spelled as § 6ct spells it) on
+`renderMosaicTile` and `renderMosaic` and on the spectral mosaic's options,
+default `"none"`; on `"magnification"` each table opens at its frame's traced
+magnification. The default stays off for § 6bf.6's reason. The stage asks for
+the seed on both of its paths.
+
+**Hypothesis.**
+
+- **§ 6cu.1.** On the DIN 4×/0.10 at the stage's request, the monochrome tile at
+  col 26 (1.84 mm, inside the field) throws unseeded with the message that names
+  the seed, and renders `valid` seeded. The same for the infinity 10×/0.10 at
+  col 4.
+- **§ 6cu.2.** Seeded, on every catalogue row but the Lister 40×/0.40 (which
+  refuses as a design, § 6d), the monochrome tile whose centre sits nearest the
+  field radius FN/(2|M|) renders, along x and on the diagonal.
+- **§ 6cu.3.** Where both paths work (the DIN 4×/0.10, tile (1,0)), `"none"`
+  written out is `Object.is` the omitted option on every pixel, in monochrome and
+  in colour, and the seed moves no pixel by more than 1e-14 of the tile's peak.
+- **§ 6cu.4.** `renderMosaic` carries the seed too: a 2×2 mosaic on the infinity
+  10×/0.10 centred 0.4 mm out throws unseeded and renders seeded.
+- **The app.** The stage's goldens do not move by a byte.
+
+**Refuted by** a seeded tile that throws at a row's field radius (other than the
+40×/0.40), a pixel moved by more than 1e-14 of the peak, a `"none"` that is not
+bitwise the omitted option, or a golden byte that moves.
+
 ## Step 8a — the photon zero point, and the one draw a camera makes
 
 Source: `photometry/magnitude.ts`, `math/random.ts` (`poisson`),
