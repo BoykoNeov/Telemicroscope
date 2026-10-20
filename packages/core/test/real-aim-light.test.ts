@@ -143,8 +143,9 @@ describe("§ 2z.3 — under real aiming an emitter's light is the power the stop
     // stop delivered NA 0.1895, not 0.20; sized by the real ray (§ 2z.5) it is
     // 8.570 mm, and there the stop-to-direction map's slope halves toward the
     // rim (0.223 at the centre, 0.113 at it). The paraxial aim now overfills and
-    // reads 7.0e-4 over; the real aim's miss does NOT fall with the lattice —
-    // 7.8e-5, −2.9e-5, −5.5e-5, −6.1e-5 at 64/128/256/512 — register item 47.
+    // reads 7.0e-4 over; the real aim's miss — 7.8e-5, −2.9e-5, −5.5e-5, −6.1e-5
+    // at 64/128/256/512 — is a 1/PS² term converging onto the 21-node density
+    // lattice's −6.3e-5 (§ 2aa, register item 47).
     const d20 = din(0.2);
     const nm = d20.wavelengths[0]!.nm;
     const real = off(d20, 0, nm);

@@ -855,7 +855,9 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     *What would pin it:* a lattice choice with its cost measured — 61 nodes is
     11× the density's time (4.8 → 52.8 ms on one oil pupil, where the whole laid
     pupil is ~5 ms), since at 21 the in-disc nodes are the map's own traces and at
-    61 none are — or a derivative that does not need one.
+    61 none are — or a derivative that does not need one. The same lattice is
+    the DIN 4×/0.20's −6.3e-5 (item 47, § 2aa), where a 61-node lattice alone
+    does not reach 1e-6: the 45-term fit's floor is under it.
 36. **§ 2j.3's ray histogram reads the oil's half-radius light 1.0–1.3e-3 high.**
     Found at [§ 2q.5](VALIDATION.md#-2q5--the-ring-that-was-not-there): off the launches the light inside half the exit
     radius is 0.20521 (emitter) and 0.29608 (a field, the point's construction);
@@ -1017,15 +1019,19 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     aim. *Pin:* the referee already reads this tile; what is missing is an
     outline that sees a cut interior to the stop's rim, or a mask resolved at its
     edge as the rim is.
-47. **The DIN 4×/0.20's real-aimed light does not converge.** Found at [§ 2z](VALIDATION.md#step-2z--real-aiming-for-the-finite-presets).
-    Its stop grew 9% when sized by a real ray (7.853 → 8.570 mm; the paraxial
-    radius delivered 0.1895), and the stop-to-direction map's slope now halves
-    toward the rim (0.223 at the centre, 0.113 at it). Against the referee —
-    itself converged to 4e-15 between 16 and 32 nodes — its light reads 7.8e-5,
-    −2.9e-5, −5.5e-5, −6.1e-5 at 64/128/256/512: not monotone, and not settling
-    at the lattice's square as every other preset does. *Candidate:* the exit
-    density's fit across a pupil whose density varies by 4× rim to centre; first
-    read the density's own residue on this lens at those lattices.
+47. **The DIN 4×/0.20's real-aimed light sits 6.3e-5 under the referee.** Found
+    at [§ 2z](VALIDATION.md#step-2z--real-aiming-for-the-finite-presets), as ~~"does not converge"~~ —
+    read at [§ 2aa](VALIDATION.md#step-2aa--where-the-din-4020s-real-aimed-light-goes): the four readings
+    (7.8e-5, −2.9e-5, −5.5e-5, −6.1e-5 at PS 64–512) are a 1/PS² term converging
+    onto a fixed offset, and the offset is the 21-node density lattice's
+    (−6.29e-5), item 35's residue on a second lens, biased at ρ 0.8–0.9 where
+    the map's slope halves. Under it a second residue: the density spans
+    0.47–1.00 and its 45-term √-fit misses its own nodes by 8e-4 rms, 5e-3 at
+    the rim, at every lattice, so a finer lattice leaves a few 1e-6 of
+    scatter (−3.8e-6, +4.7e-6, +1.4e-6 at 41/61/81). *What would close it:* a
+    finer density lattice where the map curves (item 35's cost), and a fit that
+    follows a 2:1 density — more terms, or the density's smooth part divided
+    out before fitting.
 48. **Thirty-eight measurement chains are read on the paraxial aim.** Found at
     [§ 2z](VALIDATION.md#step-2z--real-aiming-for-the-finite-presets). The anisotropy, seam, guard, escape, refusal, distortion,
     flat-field, focus-surface, second-objective and stage-mosaic chains (the

@@ -13,6 +13,7 @@ import { rimOutline, rimPolygon, type RimOutline } from "../src/pupil/rim-outlin
 import { toImageSpace } from "../src/trace/axis";
 import { LINE_D } from "../src/materials/dispersion";
 import { emitterLaunchEnergy, exactPupilEnergy, exitDensityEnergy } from "./support/exitEnergy";
+import { collectedPower } from "./support/collected-power";
 
 /**
  * § 2q.5 — the density's derivative slides inward where the continued chain ends.
@@ -377,6 +378,41 @@ describe("§ 2v — the outline is the traced rim's curve", () => {
     const { cut, past } = outlineStrips(oilField(), h, rimOutline);
     expect(cut).toBeLessThan(1e-12);
     expect(past).toBeLessThan(1e-12);
+  });
+});
+
+/**
+ * § 2aa — register item 47: where the DIN 4×/0.20's real-aimed light goes.
+ *
+ * Its light off the referee at PS 64–512 is a 1/PS² term onto a fixed −6.4e-5.
+ * **Hypothesis:** that offset is the 21-node density lattice's. Three legs: the
+ * launches equal the referee to 2e-6; the density's light at lattice 21 is
+ * −6.4e-5 ± 1e-5 of the launches'; at 61 it is under 2e-6. Legs 1 and 2 hold.
+ * Leg 3 is REFUTED: past 41 nodes the gap scatters at the 45-term fit's floor.
+ */
+describe("§ 2aa — the DIN 4×/0.20's offset is the density lattice's, over the fit's floor", () => {
+  const system = finiteConjugateMicroscope({
+    objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.2 }),
+  }).system;
+  const nm = system.wavelengths[0]!.nm;
+
+  it("the launches are the referee's light, to 2e-6", () => {
+    // −4.9e-11.
+    const n = Math.abs(asCompiled(system.prescription).indices(nm)[0]!);
+    const nu = canonicalApertureSine(system, nm);
+    const launches = (emitterLaunchEnergy(system, 0, nm, { throughput: true }) * nu * nu) / (4 * Math.PI * n * n);
+    expect(Math.abs(launches / collectedPower(system, 0, nm, { azimuths: 1024 }) - 1)).toBeLessThan(2e-6);
+  });
+
+  it("the density at 21 nodes is the offset; finer, it falls to the fit's floor and no further", () => {
+    // −6.291e-5, −1.566e-5, −3.750e-6, +4.746e-6 at 21/31/41/61 (+1.358e-6 at
+    // 81): leg 3's 2e-6 is refuted at 61. The √-fit misses its own nodes by
+    // 8e-4 rms at every lattice, which is the scatter.
+    const bare = emitterLaunchEnergy(system, 0, nm, { throughput: false });
+    const gap = (lattice: number) => exitDensityEnergy(system, 0, nm, undefined, lattice) / bare - 1;
+    expect(gap(21)).toBeCloseTo(-6.291e-5, 8);
+    expect(gap(41)).toBeCloseTo(-3.75e-6, 8);
+    expect(gap(61)).toBeCloseTo(4.746e-6, 8);
   });
 });
 

@@ -48,6 +48,7 @@ whole ladder.
 | [2x](#step-2x--the-axial-anchors-largest-step) | Axial anchor's largest step. Off axis the rim step tilts ±2% and only the gentle side's rim node is lit, so the guard ranks the anchor largest; item 39 closed | `stage-mosaic` |
 | [2y](#step-2y--the-outline-turns-at-the-rims-corners) | Vignetted rims kept the polygon. Corners bisected, arcs Chebyshev: 6.8e-4 → 1e-15 of the area; one-cut rims take the curve; item 43 closed | `rim-corners`, `rim-outline` |
 | [2z](#step-2z--real-aiming-for-the-finite-presets) | Finite presets aim real, stop and glass cut by real rays: light = referee to 2.6e-6 (paraxial −1.4%); item 31 closed | `real-aiming`, `collected-power` |
+| [2aa](#step-2aa--where-the-din-4020s-real-aimed-light-goes) | DIN 4×/0.20's light converges, onto the 21-node density's −6.3e-5; finer lattices hit a 45-term fit floor; item 47 narrowed | `exit-density-rim` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -6468,6 +6469,9 @@ light does not converge on the referee — 7.8e-5, −2.9e-5, −5.5e-5, −6.1e
 64/128/256/512, the referee itself converged to 4e-15 between 16 and 32 nodes —
 and the paraxial aim, now overfilling, reads 7.0e-4 over. Register item 47.
 
+> Since [§ 2aa](#step-2aa--where-the-din-4020s-real-aimed-light-goes): it does converge — a 1/PS² term onto
+> the 21-node density lattice's −6.3e-5.
+
 ### 2z.6 — the solve: what a ray costs, and where a rim ray lands
 
 The chord shares one Jacobian per field and wavelength, and each ray corrects
@@ -6652,6 +6656,7 @@ NA 0.095 delivers 0.095 to 1e-14; an eyepiece keeps either aim and NA 0.10 to
 ## Step 2aa — where the DIN 4×/0.20's real-aimed light goes
 
 Source: measurement only — no engine change
+· Tests: `packages/core/test/exit-density-rim.test.ts` (§ 2aa's two rungs)
 
 Register item 47: on the DIN 4×/0.20, sized by a real ray (§ 2z.5), the
 real-aimed emitter light on the axis reads 7.8e-5, −2.9e-5, −5.5e-5, −6.1e-5
@@ -6691,6 +6696,48 @@ Written after § 2z.5's readings and the fit above, before any reading of the
 density on this lens. § 2z's threshold cited the DIN 4×'s density fit as good
 to 7e-8; that was the 4×/0.10, and is not carried here. This is the first
 measurement-only step since § 2z's engine change.
+
+### 2aa.1 — the reading
+
+| DIN 4×/0.20, axis, 587.56 nm | reading |
+|---|---|
+| leg 1: launches with throughput against the referee | −4.9e-11 |
+| leg 2: density's light against the launches, lattice 21 | **−6.29e-5** |
+| same, lattice 31 / 41 | −1.57e-5 / −3.75e-6 |
+| leg 3: lattice 61 | **+4.75e-6** |
+| same, lattice 81 | +1.36e-6 |
+
+**Legs 1 and 2 hold; leg 3 is refuted.** The referee and the launch integral
+are one number, and the 21-node density's light is the PS-converged offset to
+1.1e-6 of the light — item 47's miss is the density lattice's, as item 35's
+was on the oil 100×, and the 1/PS² term above it is the pixel lattice's, which
+converges. But refining the lattice does not take the offset to zero: from 41
+nodes on it scatters, −3.75e-6, +4.75e-6, +1.36e-6, with no sign of settling.
+
+**Read after the refutation, not predicted** — what the scatter is:
+
+- **Not the integrator.** The launches on a 48×256 rule agree with 24×128 to
+  1.1e-12, and the density's gaps at 41/61/81 on the finer rule repeat to four
+  figures.
+- **The fit has a floor.** The density here spans 0.466–1.003, centre to rim, and
+  √ of it fitted in 45 Zernike terms (`MAX_ZERNIKE_TERMS`, radial order 8) misses
+  its own nodes by 8e-4 rms and 4.4e-3–4.9e-3 at worst (ρ > 0.9), at 41, 61 and
+  81 nodes alike (1.8e-3 at 21). Integrated, that residue is a few 1e-6 of the
+  light whose sign follows which nodes the fit sees — the scatter. It is also
+  the pupil's apodization wrong by ~4e-4 in amplitude locally, which no light
+  total shows.
+- **Lattice 21's error is in the node values, inside the rim.** Against the
+  81-node lattice's density at the same aim points, the 21-node nodes read
+  mean −7.9e-5 at ρ 0.8–0.9 (max 1.8e-4), −7.6e-6 at 0.9–1 (max 5.9e-4, the
+  scatter large and the mean small), −7.6e-6 at 0.5–0.8 and +1.7e-6 inside 0.5.
+  The 68 nodes past 0.9 are exactly those whose stencil runs out (12 ring nodes
+  at 1.17 and 1.2 never aim — the stop point is unreachable), but the bias sits
+  one band in, on centred seven-node windows: a step of 0.1 is too coarse for a
+  map whose slope halves toward the rim, whatever the window does.
+
+So the register's "does not converge" was a misreading of two terms of
+opposite sign; what is left is item 35's lattice on another lens, now with a
+second residue under it, the 45-term fit, which no lattice refines.
 
 ## Step 3a — the standard observer and thermal sources
 
