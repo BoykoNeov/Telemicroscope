@@ -13,7 +13,7 @@ import { seidelSums } from "../src/analysis/seidel";
 import { objectNumericalAperture, lateralMagnification } from "../src/pupil/microscope";
 import { illuminationOffset } from "../src/imaging/object-field";
 import { coverslip, coverslipIndex } from "../src/designs/coverslip";
-import { OpticalSystem } from "../src/trace/system";
+import { OpticalSystem, type RayAiming } from "../src/trace/system";
 import { LINE_D } from "../src/materials/dispersion";
 
 /**
@@ -84,10 +84,24 @@ const objectiveAt = (
     ...extra,
   });
 
-const scopeAt = (stopPlacement: StopPlacement, extra: Parameters<typeof objectiveAt>[1] = {}) => {
+const scopeAt = (
+  stopPlacement: StopPlacement,
+  extra: Parameters<typeof objectiveAt>[1] = {},
+  rayAiming: RayAiming = "real",
+) => {
   const objective = objectiveAt(stopPlacement, extra);
-  return { objective, ...finiteConjugateMicroscope({ objective }) };
+  return { objective, ...finiteConjugateMicroscope({ objective, rayAiming }) };
 };
+
+/**
+ * On the paraxial aim and its paraxially sized stop: the exact claims here — a
+ * slope of exactly tan u, a cone and a magnification that do not move by a bit, a
+ * chief ray of exactly (0, 0, 1) — are that construction's, as § 6v's are (see
+ * `telecentric-objective.test.ts`). Real aiming sizes the stop by the real
+ * marginal ray (§ 2z.5); each claim gets a real-aim leg with what it does there.
+ */
+const paraxialScopeAt = (stopPlacement: StopPlacement, extra: Parameters<typeof objectiveAt>[1] = {}) =>
+  scopeAt(stopPlacement, extra, "paraxial");
 
 /** tan u for a cone of numerical aperture NA in air — the aperture as a slope. */
 const tanOf = (na: number) => na / Math.sqrt(1 - na * na);
@@ -131,10 +145,15 @@ describe("§ 6ae.1 — the diaphragm lands on the back focal plane, and the last
   it("the diaphragm's clear semi-diameter IS the declared stop radius", () => {
     const o = objectiveAt("backFocal");
     expect(o.prescription.surfaces[o.stopSurfaceIndex]!.semiAperture).toBe(o.stopRadiusMm);
-    expect(finiteConjugateMicroscope({ objective: o }).system.aperture).toEqual({
+    expect(finiteConjugateMicroscope({ objective: o, rayAiming: "paraxial" }).system.aperture).toEqual({
       kind: "stopRadius",
       value: o.stopRadiusMm,
     });
+    // Real aiming: the composition cuts the diaphragm to the radius the real
+    // marginal ray crosses it at (§ 2z.5), and the aperture is that same rim.
+    const real = finiteConjugateMicroscope({ objective: o }).system;
+    expect(real.aperture).toEqual({ kind: "stopRadius", value: o.realStop!.radiusMm });
+    expect(real.prescription.surfaces[o.stopSurfaceIndex]!.semiAperture).toBe(o.realStop!.radiusMm);
   });
 
   it("moves `imageDistanceMm` onto the diaphragm and leaves the TUBE LENGTH alone", () => {
@@ -213,9 +232,15 @@ describe("§ 6ae.2 — the aperture becomes a slope, and the conjugate cancels o
   });
 
   it("puts the entrance pupil at infinity, carrying `tan u` as a slope", () => {
-    const p = pupils(scopeAt("backFocal").system, L);
+    const p = pupils(paraxialScopeAt("backFocal").system, L);
     expect(p.entrance.z).toBe(-Infinity);
     expect(p.entrance.slopeRadius!).toBeCloseTo(tanOf(NA), 12);
+    // Real aiming: still a slope, tan u times the built stop's ratio to `f·tan u`
+    // (0.99286 on this lens) to an ulp or three.
+    const real = scopeAt("backFocal");
+    const built = real.objective.realStop!;
+    const slope = pupils(real.system, L).entrance.slopeRadius!;
+    expect(Math.abs(slope / tanOf(NA) - built.radiusMm / built.fromStopRadiusMm)).toBeLessThan(1e-15);
     // The control keeps a real disc a real arm away — at the front vertex.
     const rimP = pupils(scopeAt("rim").system, L);
     expect(rimP.entrance.slopeRadius).toBeUndefined();
@@ -229,8 +254,8 @@ describe("§ 6ae.2 — the aperture becomes a slope, and the conjugate cancels o
         12,
       );
     }
-    const tele = scopeAt("backFocal");
-    const rim = scopeAt("rim");
+    const tele = paraxialScopeAt("backFocal");
+    const rim = paraxialScopeAt("rim");
     const at = (s: OpticalSystem, dz: number): OpticalSystem => ({
       ...s,
       conjugate: { kind: "finite", distance: (s.conjugate as { distance: number }).distance + dz },
@@ -244,6 +269,14 @@ describe("§ 6ae.2 — the aperture becomes a slope, and the conjugate cancels o
     // The control's size, so "does not depend" has something to be measured
     // against: a millimetre of travel costs the rim 2.1% of its aperture.
     expect(objectNumericalAperture(at(rim.system, 1), L) / rimRef).toBeCloseTo(0.9788, 4);
+    // Real aiming: the rim ray is solved onto the real stop from wherever the
+    // specimen is, and the pupil's aberration moves the cone 8.2e-5 of NA per
+    // millimetre — 8.165e-5 at 10 µm, 8.505e-5 over the millimetre (§ 6v.2's
+    // 8.0e-5 at the other architecture), against the rim's 2.1%.
+    const real = scopeAt("backFocal").system;
+    const realRef = objectNumericalAperture(real, L);
+    expect((objectNumericalAperture(at(real, 0.01), L) - realRef) / 0.01).toBeCloseTo(8.165e-5, 8);
+    expect(objectNumericalAperture(at(real, 1), L) - realRef).toBeCloseTo(8.505e-5, 8);
   });
 });
 
@@ -255,7 +288,7 @@ describe("§ 6ae.3 — the magnification stops drifting with focus", () => {
     // line at every conjugate — there is nothing to round.
     const H = 0.02;
     for (const placement of ["backFocal", "rim"] as const) {
-      const s = scopeAt(placement);
+      const s = paraxialScopeAt(placement);
       const at = (dz: number): OpticalSystem => ({
         ...s.system,
         conjugate: { kind: "finite", distance: s.objectDistanceMm + dz },
@@ -276,12 +309,23 @@ describe("§ 6ae.3 — the magnification stops drifting with focus", () => {
         }
       }
     }
+    // Real aiming: the chief ray tilts as h³ (below), so the magnification drifts
+    // — 1.05e-9 in 50 µm, five orders under the rim control's 1e-3.
+    const real = scopeAt("backFocal");
+    const at = (dz: number): OpticalSystem => ({
+      ...real.system,
+      conjugate: { kind: "finite", distance: real.objectDistanceMm + dz },
+    });
+    const m0 = lateralMagnification(at(0), H, L);
+    const drift = (lateralMagnification(at(0.05), H, L) - m0) / m0;
+    expect(drift).toBeGreaterThan(0);
+    expect(drift).toBeLessThan(1.1e-9);
   });
 
   it("leaves every chief ray exactly (0, 0, 1), where the control tilts with height", () => {
-    const tele = scopeAt("backFocal");
+    const tele = paraxialScopeAt("backFocal");
     const teleP = pupils(tele.system, L);
-    const rim = scopeAt("rim");
+    const rim = paraxialScopeAt("rim");
     const rimP = pupils(rim.system, L);
     for (const h of [0.05, 0.25, 0.5]) {
       const c = chiefRay(tele.system, teleP, h, L);
@@ -290,6 +334,17 @@ describe("§ 6ae.3 — the magnification stops drifting with focus", () => {
       expect(c.dir.z).toBe(1);
       const r = chiefRay(rim.system, rimP, h, L);
       expect(r.dir.x / r.dir.z).toBeCloseTo(-h / rim.objectDistanceMm, 12);
+    }
+    // Real aiming: the ray through the real stop's centre leaves at tan = C·h³,
+    // C = 5.2333e-5 mm⁻³ here (3.4652e-5 on § 6v's infinity 4×) — the pupil's
+    // spherical aberration, constant to 1.5e-5 at 50 µm, 3.9e-4 at 0.25 mm and
+    // 1.6e-3 at 0.5 — the next term, as h².
+    const real = scopeAt("backFocal");
+    const realP = pupils(real.system, L);
+    for (const h of [0.05, 0.25, 0.5]) {
+      const c = chiefRay(real.system, realP, h, L);
+      expect(c.dir.y).toBe(0);
+      expect(Math.abs(c.dir.x / c.dir.z / h ** 3 / 5.23331e-5 - 1)).toBeLessThan(h <= 0.05 ? 1e-4 : 2e-3);
     }
   });
 });
@@ -322,9 +377,12 @@ describe("§ 6ae.4 — the bending does not move, and on axis neither do the ray
   });
 
   it("launches the same axial marginal ray, to a ULP", () => {
+    // Each real stop is cut where this very ray crosses it (§ 2z.5), so both
+    // placements solve onto the same ray; asked for its last bit, the solve lands
+    // it there, as the NA readouts do.
     const m = (p: StopPlacement) => {
       const s = scopeAt(p);
-      return marginalRay(s.system, pupils(s.system, L), 0, L);
+      return marginalRay(s.system, pupils(s.system, L), 0, L, { lastBit: true });
     };
     const rim = m("rim");
     const tele = m("backFocal");
@@ -333,19 +391,21 @@ describe("§ 6ae.4 — the bending does not move, and on axis neither do the ray
     expect(tele.dir.x).toBeCloseTo(rim.dir.x, 15);
   });
 
-  it("…so the 1.1% the on-axis RMS differs by is the REFERENCE SPHERE, not the physics", () => {
+  it("…so the 0.87% the on-axis RMS differs by is the REFERENCE SPHERE, not the physics", () => {
     // The trap this rung exists for: "on axis, nothing" is true of the RAYS and
     // false of the reported number. The stop moves the EXIT pupil 0.798 → 39.885
     // mm, the reference sphere is centred on the image point with the exit-pupil
     // radius, and a different sphere reads a different defocus out of the same
-    // wavefront. 0.14005 against 0.14163 waves — small, and it would have been
+    // wavefront. 0.14025 against 0.14147 waves — small, and it would have been
     // read as a physics difference if the ray identity above were not pinned.
+    // (On the paraxial aim and stop: 0.14005 against 0.14163, 1.1%; real aim and
+    // the engraved stop, § 2z.)
     const grid = pupilGrid(21);
     const rim = opdMap(scopeAt("rim").system, 0, L, grid);
     const tele = opdMap(scopeAt("backFocal").system, 0, L, grid);
-    expect(rim.rmsWaves).toBeCloseTo(0.14005, 4);
-    expect(tele.rmsWaves).toBeCloseTo(0.14163, 4);
-    expect(tele.rmsWaves / rim.rmsWaves - 1).toBeCloseTo(0.0112, 3);
+    expect(rim.rmsWaves).toBeCloseTo(0.14025, 4);
+    expect(tele.rmsWaves).toBeCloseTo(0.14147, 4);
+    expect(tele.rmsWaves / rim.rmsWaves - 1).toBeCloseTo(0.0087, 3);
     // The exit pupil moves 39.087 mm — the IMAGE of the stop, not the stop's own
     // 37.435 mm shift — and the reference radius follows it by exactly as much,
     // which is what says the 1.1% is the sphere and not a second effect.
@@ -557,7 +617,7 @@ describe("§ 6ae.5 — the classical stop-shift equations, and where they stop d
     }
   });
 
-  it("THE FINDING: third order says the shift costs no coma, and at f/4 it moves 71% of it", () => {
+  it("THE FINDING: third order says the shift costs no coma, and at f/4 it moves 73% of it", () => {
     // S_II* = S_II + E·S_I, and S_I = 0 — so the classical answer is that a stop
     // shift on this lens leaves the coma exactly alone. It does, in the limit,
     // and it does NOT at the aperture the catalogued 4×/0.10 works at: the
@@ -570,7 +630,8 @@ describe("§ 6ae.5 — the classical stop-shift equations, and where they stop d
       const tele = fitAt("backFocal", na);
       share.push(Math.abs((tele.w131 - rim.w131) / rim.w131));
     }
-    expect(share[0]!).toBeCloseTo(0.706, 2); // f/4.08 — the shipped objective
+    // 0.728 on the real aim and the engraved stop (§ 2z); 0.706 on the paraxial.
+    expect(share[0]!).toBeCloseTo(0.728, 2); // f/4.08 — the shipped objective
     expect(share[3]!).toBeLessThan(0.01); // f/32 — the classical limit
     // Each halving of the aperture takes about a factor 4 out of the share, which
     // is the NA⁵-against-NA³ statement in the form the rung can check.
@@ -583,10 +644,11 @@ describe("§ 6ae.5 — the classical stop-shift equations, and where they stop d
   it("…and the trade it makes is coma for astigmatism, in that direction", () => {
     const rim = fitAt("rim", NA);
     const tele = fitAt("backFocal", NA);
-    // 0.283 → 0.083 waves of coma, 0.0129 → 0.0308 of astigmatism, at a quarter
-    // millimetre of object height on the shipped 4×/0.10.
-    expect(Math.abs(rim.w131) / Math.abs(tele.w131)).toBeCloseTo(3.4, 1);
-    expect(Math.abs(tele.w222) / Math.abs(rim.w222)).toBeCloseTo(2.4, 1);
+    // 0.282 → 0.077 waves of coma, 0.0130 → 0.0306 of astigmatism, at a quarter
+    // millimetre of object height on the shipped 4×/0.10 (real aim and the
+    // engraved stop, § 2z: was 0.283 → 0.083 and 0.0129 → 0.0308, 3.4× and 2.4×).
+    expect(Math.abs(rim.w131) / Math.abs(tele.w131)).toBeCloseTo(3.68, 1);
+    expect(Math.abs(tele.w222) / Math.abs(rim.w222)).toBeCloseTo(2.35, 1);
   });
 
   it("…and the net, in the currency the image is formed in: 1.9× less wavefront at 1 mm", () => {
@@ -617,7 +679,8 @@ describe("§ 6ae.6 — what it costs: the bundle translates, and a field number 
   it("but a telecentric bundle walks off glass sized for the axial pencil", () => {
     const tele = scopeAt("backFocal");
     expect(throughput(tele, 1)).toBeCloseTo(0.9521, 3);
-    expect(throughput(tele, 2.25)).toBeCloseTo(0.7859, 3);
+    // 242 of 313 (real aim, § 2z: was 246, 0.7859).
+    expect(throughput(tele, 2.25)).toBeCloseTo(0.7732, 3);
     // Monotone, and these are THIS lens's numbers: the pencil goes as the object
     // distance and a field is absolute, so they do not travel to another power.
     expect(throughput(tele, 2.25)).toBeLessThan(throughput(tele, 1));
@@ -695,8 +758,9 @@ describe("§ 6ae.7 — § 6x's illumination offset, sent to zero on purpose", ()
     // telecentricity is R_ep = ∞ and nothing else. This is the rung that would
     // have quietly become vacuous had the default moved instead, which is why
     // § 6x's own fixture now says "rim" by name.
-    const tele = scopeAt("backFocal").system;
-    const rim = scopeAt("rim").system;
+    // On the paraxial aim and its stop: the aim layout is that aim's affine map (§ 2z.7).
+    const tele = finiteConjugateMicroscope({ objective: objectiveAt("backFocal"), rayAiming: "paraxial" }).system;
+    const rim = finiteConjugateMicroscope({ objective: objectiveAt("rim"), rayAiming: "paraxial" }).system;
     for (const h of [0, 0.25, 0.5, 1]) {
       expect(illuminationOffset(tele, h, L, { layout: "aim" })).toBe(0);
     }

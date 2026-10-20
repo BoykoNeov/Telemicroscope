@@ -339,9 +339,13 @@ describe("§ 6q.5 — the exit pupil, and WHICH numerical aperture the invariant
     // geometry. With the stop ON surface 0 and no glass between it and the
     // specimen the marginal ray is a straight line, so the second is exactly
     // n·tan u and their ratio is exactly sec u = 1/√(1−NA²). To f64.
+    // On the paraxial aim, whose stop is sized for exactly n·tan u (§ 2z.5 cuts
+    // the real-aimed one where the real marginal ray crosses, and the paraxial NA
+    // then carries the built stop's ratio — the Lagrange rungs below hold either way).
     for (const na of [0.1, 0.15]) {
       const scope = finiteConjugateMicroscope({
         objective: finiteConjugateObjective({ magnification: 10, numericalAperture: na }),
+        rayAiming: "paraxial",
       });
       const v = visualMicroscope({
         microscope: scope,
@@ -375,9 +379,30 @@ describe("§ 6q.5 — the exit pupil, and WHICH numerical aperture the invariant
   });
 
   it("...and the SINE NA misses it by exactly √(1−NA²) − 1 at NA 0.10", () => {
-    const M = visualMagnification(dinVisual.system, 1e-3, L, 250);
-    const measured = pupils(dinVisual.system, L).exit.radius;
-    const withSine = lagrangeExitPupilRadiusMm(objectNumericalAperture(dinVisual.system, L), 250, M);
+    // On the paraxial aim's stop, whose paraxial NA is exactly tan u (above). On
+    // the stop as built (0.99286 of `f·tan u`, § 2z.5) the paraxial NA falls below
+    // the sine and the textbook form lands +0.21% OVER the pupil (§ 6ah.4: +0.31%
+    // on the infinity 4×).
+    const builtMiss =
+      lagrangeExitPupilRadiusMm(
+        objectNumericalAperture(dinVisual.system, L),
+        250,
+        visualMagnification(dinVisual.system, 1e-3, L, 250),
+      ) /
+        pupils(dinVisual.system, L).exit.radius -
+      1;
+    expect(builtMiss).toBeCloseTo(0.00214, 4);
+    const paraxialVisual = visualMicroscope({
+      microscope: finiteConjugateMicroscope({
+        objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
+        rayAiming: "paraxial",
+      }),
+      eyepiece: eyepiece25.prescription,
+      wavelengthNm: L,
+    });
+    const M = visualMagnification(paraxialVisual.system, 1e-3, L, 250);
+    const measured = pupils(paraxialVisual.system, L).exit.radius;
+    const withSine = lagrangeExitPupilRadiusMm(objectNumericalAperture(paraxialVisual.system, L), 250, M);
     const na = 0.1;
     // −0.50%, and it is not a tolerance question — it is cos u, in closed form.
     expect(withSine / measured - 1).toBeCloseTo(Math.sqrt(1 - na * na) - 1, 6);
@@ -451,8 +476,10 @@ describe("§ 6q.6 — the two-stop competition decides which pupil carries the b
         wavelengthNm: L,
       });
 
-    const wide = at(40); // exit pupil 2.010 mm — wider than the iris
-    const narrow = at(39); // exit pupil 1.960 mm — narrower
+    // 2.046 and 1.996 mm on the stop as built (§ 2z.5: 0.7% under the paraxial
+    // stop's 2.010 at f_e 40, which put the crossing between 39 and 40).
+    const wide = at(41); // exit pupil 2.046 mm — wider than the iris
+    const narrow = at(40); // exit pupil 1.996 mm — narrower
     expect(wide.exitPupilDiameterMm).toBeGreaterThan(eyePupilMm);
     expect(narrow.exitPupilDiameterMm).toBeLessThan(eyePupilMm);
     expect(wide.irisLimited).toBe(true);
@@ -504,7 +531,7 @@ describe("§ 6q.7 — empty magnification, as an invariance rather than as a rul
   });
 
   it("BELOW it the ratio is exactly proportional to M — magnification buys resolution", () => {
-    const rows = [100, 60, 45, 40].map(ratioAt);
+    const rows = [100, 60, 45, 41].map(ratioAt);
     for (const r of rows) {
       expect(r.iris).toBe(true);
       expect(r.ratio).toBeLessThan(1);
@@ -516,9 +543,10 @@ describe("§ 6q.7 — empty magnification, as an invariance rather than as a rul
   });
 
   it("the crossover is where the ratio reaches 1, and it is the exit pupil = iris point", () => {
-    expect(ratioAt(40).ratio).toBeGreaterThan(0.99);
-    expect(ratioAt(40).ratio).toBeLessThan(1);
-    expect(ratioAt(39).ratio).toBeGreaterThan(1 - 1e-6);
+    // Between f_e 41 and 40 on the stop as built (39 and 40 on the paraxial one).
+    expect(ratioAt(41).ratio).toBeGreaterThan(0.97);
+    expect(ratioAt(41).ratio).toBeLessThan(1);
+    expect(ratioAt(40).ratio).toBeGreaterThan(1 - 1e-6);
   });
 
   it("λ cancels: the ratio is 1 at F and C too, though every input moved", () => {

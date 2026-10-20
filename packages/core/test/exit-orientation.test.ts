@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { OpticalSystem } from "../src/trace/system";
+import type { OpticalSystem, RayAiming } from "../src/trace/system";
 import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/designs/microscope";
 import { pupils, imagePlaneZ } from "../src/pupil/pupils";
 import { aimRay, pupilGrid } from "../src/pupil/aiming";
@@ -36,13 +36,22 @@ import { pupilDirectionMap } from "../src/imaging/object-field";
  * and Aberrations* I). Exact sums over the rays, no histogram.
  */
 
-const telecentric = (magnification: number): OpticalSystem =>
+/**
+ * The mirror is the PARAXIAL aim's — it aims at a point on the paraxial entrance
+ * pupil, and between the two crossings that pupil lies beyond infinity — so
+ * § 2o.1–§ 2o.3 read it on that aim. Real aiming names a point on the stop
+ * itself, which no pupil crossing reflects: each rung carries a real-aim leg
+ * saying the labels then stay where the rays go (register item 30's note).
+ */
+const telecentric = (magnification: number, rayAiming: RayAiming = "paraxial"): OpticalSystem =>
   finiteConjugateMicroscope({
     objective: finiteConjugateObjective({ magnification, numericalAperture: 0.1 }),
+    rayAiming,
   }).system;
 const rimStop = (): OpticalSystem =>
   finiteConjugateMicroscope({
     objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1, stopPlacement: "rim" }),
+    rayAiming: "paraxial",
   }).system;
 
 /** The design wavelength, where the presets are telecentric and the aim is by slope. */
@@ -108,6 +117,10 @@ describe("§ 2o — the exit layout's orientation is the geometry's, not the aim
     // The rim stop is not telecentric: its pupil is the stop, and nothing is mirrored.
     const rim = rimStop();
     for (const nm of sweep) expect(aimOrientation(rim, nm), `${nm} nm`).toBe(1);
+    // Real aiming: a stop point is a stop point at every wavelength, and nothing
+    // is mirrored anywhere on the sweep.
+    const real = telecentric(4, "real");
+    for (const nm of sweep) expect(aimOrientation(real, nm), `real ${nm} nm`).toBe(1);
   });
 
   it("§ 2o.2 — the exit layout's centroid is the rays', inside the band and out of it", () => {
@@ -133,6 +146,16 @@ describe("§ 2o — the exit layout's orientation is the geometry's, not the aim
     }
     // ...and outside it the two layouts agree on the side.
     expect(psfCentroidUm(system, h, 633.333, "aim")).toBeLessThan(-1.3);
+    // Real aiming: the exit layout still reads the rays' centroid, and the aim
+    // layout now agrees with it on the side inside the band too — no mirror.
+    // (Rays −1.52 and −1.89 µm; the transform a common 0.045 and 0.036 µm beyond
+    // them, the periodic grid's first moment again; the aim layout −1.59, −1.94.)
+    const real = telecentric(4, "real");
+    for (const nm of [550, 583.333]) {
+      const rays = rayCentroidUm(real, h, nm);
+      expect(Math.abs(psfCentroidUm(real, h, nm, "exit") - rays), `real ${nm}`).toBeLessThan(0.05);
+      expect(Math.sign(psfCentroidUm(real, h, nm, "aim"))).toBe(Math.sign(rays));
+    }
   });
 
   it("§ 2o.3 — nothing jumps where the entrance pupil crosses infinity", () => {
@@ -152,6 +175,16 @@ describe("§ 2o — the exit layout's orientation is the geometry's, not the aim
     };
     expect(Math.abs(offLine("exit"))).toBeLessThan(2e-3);
     expect(Math.abs(offLine("aim"))).toBeGreaterThan(1.5);
+    // Real aiming: nothing is labelled mirrored, so the aim layout is smooth
+    // across the crossing as well — no 4 µm jump to straddle.
+    const real = telecentric(4, "real");
+    const realOffLine = (layout: PupilLayout): number => {
+      const [a, b, c] = [586.5, LAMBDA_D, 588.5].map((nm) => psfCentroidUm(real, h, nm, layout));
+      const t = (LAMBDA_D - 586.5) / (588.5 - 586.5);
+      return b! - (a! + t * (c! - a!));
+    };
+    expect(Math.abs(realOffLine("exit"))).toBeLessThan(2e-3);
+    expect(Math.abs(realOffLine("aim"))).toBeLessThan(0.05);
   });
 
   it("§ 2o.4 — a condenser direction lands on the side its ray reaches", () => {

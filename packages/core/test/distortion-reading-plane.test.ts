@@ -63,7 +63,7 @@ const OBJ = Object.fromEntries(
   CELLS.map((c) => [c, finiteConjugateObjective({ magnification: SPEC[c][0], numericalAperture: SPEC[c][1] })]),
 ) as Record<Cell, FiniteConjugateObjective>;
 const LENS = Object.fromEntries(
-  CELLS.map((c) => [c, finiteConjugateMicroscope({ objective: OBJ[c]! }).system]),
+  CELLS.map((c) => [c, finiteConjugateMicroscope({ objective: OBJ[c]!, rayAiming: "paraxial" }).system]),
 ) as Record<Cell, OpticalSystem>;
 const REAL = Object.fromEntries(
   CELLS.map((c) => [c, { ...LENS[c]!, rayAiming: "real" as const }]),

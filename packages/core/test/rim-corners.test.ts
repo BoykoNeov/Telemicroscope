@@ -114,8 +114,11 @@ describe("§ 2y — the outline turns at the rim's corners", () => {
   });
 
   it("every edge ray reports what made its edge", () => {
-    // The DIN 10×/0.20 at 1.0 mm: from ray 0, miss@2 ×7, vignetted@3 ×5, the
-    // stop's own ×9, vignetted@3 ×5, miss@2 ×6.
+    // The DIN 10×/0.20 at 1.0 mm: from ray 0, miss@2 ×7, the stop's own ×19,
+    // miss@2 ×6 — the crown's knife edge on either side and the diaphragm between.
+    // On the diaphragm as built (§ 2z.5, 1.4% wider than `f·tan u`); on the
+    // paraxially sized one the stop's arc read vignetted@3 ×5, its own ×9,
+    // vignetted@3 ×5, surface 3 being the diaphragm itself.
     const system = din(10, 0.2);
     const runs: string[] = [];
     for (const p of exitRim(system, opdMap(system, 1.0, L, []))) {
@@ -123,7 +126,7 @@ describe("§ 2y — the outline turns at the rim's corners", () => {
       if (last !== undefined && last.startsWith(`${p.edge}×`)) runs[runs.length - 1] = `${p.edge}×${Number(last.split("×")[1]) + 1}`;
       else runs.push(`${p.edge}×1`);
     }
-    expect(runs).toEqual(["miss@2×7", "vignetted@3×5", `${STOP_EDGE}×9`, "vignetted@3×5", "miss@2×6"]);
+    expect(runs).toEqual(["miss@2×7", `${STOP_EDGE}×19`, "miss@2×6"]);
   });
 });
 

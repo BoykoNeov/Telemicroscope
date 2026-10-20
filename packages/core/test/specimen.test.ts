@@ -50,12 +50,14 @@ const PUPIL_SAMPLES = 32;
  */
 const din4x = (): OpticalSystem => SYSTEM;
 const SYSTEM: OpticalSystem = finiteConjugateMicroscope({
+  rayAiming: "paraxial", // every frame here is the aim layout's, the paraxial aim's affine map (§ 2z.7)
   objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
 }).system;
 
 /** § 6x's stop placement, solved once like `SYSTEM` and kept as the control. */
 const rimDin4x = (): OpticalSystem => RIM_SYSTEM;
 const RIM_SYSTEM: OpticalSystem = finiteConjugateMicroscope({
+  rayAiming: "paraxial", // every frame here is the aim layout's, the paraxial aim's affine map (§ 2z.7)
   objective: finiteConjugateObjective({
     magnification: 4,
     numericalAperture: 0.1,

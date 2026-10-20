@@ -32,7 +32,7 @@ import { mtf } from "../src/wave/mtf";
 import { traceRay } from "../src/trace/sequential";
 import { makeRay } from "../src/trace/ray";
 import { normalize, vec3 } from "../src/math/vec3";
-import { OpticalSystem } from "../src/trace/system";
+import { OpticalSystem, type RayAiming } from "../src/trace/system";
 import { LINE_D } from "../src/materials/dispersion";
 
 /**
@@ -286,9 +286,15 @@ describe("§ 6a.4 — numerical aperture and the sine condition", () => {
     // at the back focal plane, and f·sin u sits ABOVE the first and BELOW the
     // second. So the same wrong number ships an objective 2% fast in one design
     // and 0.4% slow in the other, which is why the rung pins two.
-    const wrongWith = (stopPlacement: "backFocal" | "rim"): number => {
+    //
+    // Both against the PARAXIAL radii, so on the paraxial aim, which aims at the
+    // radius it is handed. Real aiming cuts the correct stop where the real
+    // marginal ray crosses (§ 2z.5) — under `f·tan u` at the back focal plane —
+    // and f·sin u then ships fast in both designs: +2.0% on the rim, +0.38% at the
+    // back focal plane.
+    const wrongWith = (stopPlacement: "backFocal" | "rim", rayAiming: RayAiming = "paraxial"): number => {
       const obj = microscopeObjective({ magnification: 4, numericalAperture: 0.1, stopPlacement });
-      const scope = infinityCorrectedMicroscope({ objective: obj, tubeLens: tubeLens() });
+      const scope = infinityCorrectedMicroscope({ objective: obj, tubeLens: tubeLens(), rayAiming });
       const wrong: OpticalSystem = {
         ...scope.system,
         aperture: { kind: "stopRadius", value: obj.pupilRadiusMm },
@@ -297,6 +303,8 @@ describe("§ 6a.4 — numerical aperture and the sine condition", () => {
     };
     expect(wrongWith("rim")).toBeCloseTo(0.1021, 4);
     expect(wrongWith("backFocal")).toBeCloseTo(0.09956, 5);
+    expect(wrongWith("rim", "real")).toBeCloseTo(0.10199, 5);
+    expect(wrongWith("backFocal", "real")).toBeCloseTo(0.100377, 6);
   });
 
   it("obeys the sine condition on the emergent ray — but not perfectly", () => {
@@ -689,8 +697,10 @@ describe("§ 6b.4 — the DIN architecture's numbers", () => {
     // tripping through a trace. Perturbing the stop moves the reported NA by
     // exactly sin(atan(k·tan u)), which is both the proof that the readout is
     // measuring and the proof that the marginal ray really aims at the stop rim.
+    // On the paraxial aim: the closed form is the paraxial stop's slope scaled by
+    // k, and it is that aim that names the slope (§ 2z.5).
     const o = buildDin4x();
-    const base = finiteConjugateMicroscope({ objective: o }).system;
+    const base = finiteConjugateMicroscope({ objective: o, rayAiming: "paraxial" }).system;
     const withStop = (r: number): OpticalSystem => ({ ...base, aperture: { kind: "stopRadius", value: r } });
     const tanU = 0.1 / Math.sqrt(1 - 0.01);
     for (const k of [0.95, 1.02, 1.2]) {
@@ -726,8 +736,9 @@ describe("§ 6b.4 — the DIN architecture's numbers", () => {
         LAMBDA,
       );
     };
-    expect(na(4)).toBeCloseTo(0.0821, 4);
-    expect(na(20)).toBeCloseTo(0.0976, 4);
+    // 0.08187 and 0.09744 under real aiming (§ 2z: was 0.0821 and 0.0976).
+    expect(na(4)).toBeCloseTo(0.08187, 5);
+    expect(na(20)).toBeCloseTo(0.09744, 5);
     expect(Math.abs(na(4) - 0.1)).toBeGreaterThan(7 * Math.abs(na(20) - 0.1));
   });
 
@@ -741,9 +752,14 @@ describe("§ 6b.4 — the DIN architecture's numbers", () => {
     // So an 18%-to-0.5% trap is one of the things the flip buys, and it is worth
     // saying which kind of thing it is: not a better image, a smaller gap between
     // what a reader would write down and what the lens does.
-    const na = (M: number): number => {
+    //
+    // B = f is a paraxial statement and the gap is read on the paraxial aim. Real
+    // aiming cuts the stop for the real marginal ray (§ 2z.5), and against that
+    // stop f·NA is +0.21%, +0.30%, +0.31% fast at 4×, 10×, 20× — small still, and
+    // carrying the conjugate again through the real ray.
+    const na = (M: number, rayAiming: RayAiming = "paraxial"): number => {
       const o = finiteConjugateObjective({ magnification: M, numericalAperture: 0.1 });
-      const base = finiteConjugateMicroscope({ objective: o }).system;
+      const base = finiteConjugateMicroscope({ objective: o, rayAiming }).system;
       return objectNumericalAperture(
         { ...base, aperture: { kind: "stopRadius", value: o.paraxialFocalLengthMm * 0.1 } },
         LAMBDA,
@@ -753,6 +769,8 @@ describe("§ 6b.4 — the DIN architecture's numbers", () => {
     for (const M of [4, 10, 20]) expect(gap(M)).toBeCloseTo(-0.004963, 5);
     // Conjugate-independent to five digits, where the rim's spread was 18% to 2%.
     expect(Math.abs(gap(4) / gap(20) - 1)).toBeLessThan(1e-4);
+    expect(na(4, "real") / 0.1 - 1).toBeCloseTo(0.002135, 5);
+    expect(na(20, "real") / 0.1 - 1).toBeCloseTo(0.003066, 5);
   });
 
   it("runs FASTER than 1/(2·NA), approaching it as the magnification climbs", () => {

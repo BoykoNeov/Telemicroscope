@@ -53,6 +53,7 @@ export const lens = (M: number, na: number): OpticalSystem => {
   let built = LENSES.get(key);
   if (built === undefined) {
     built = finiteConjugateMicroscope({
+      rayAiming: "paraxial", // measured on the paraxial aim and its stop; under real aiming it is open item 48 (§ 2z)
       objective: finiteConjugateObjective({ magnification: M, numericalAperture: na }),
     }).system;
     LENSES.set(key, built);

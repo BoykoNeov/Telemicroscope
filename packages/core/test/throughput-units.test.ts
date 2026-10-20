@@ -323,7 +323,7 @@ describe("§ 6bc.3 — the objective's transmission spectrum reaches the colour"
     // 1.0074 on the aim layout, the glass's Fresnel alone. On the exit layout
     // (§ 2p) a plane's light is the emitter's own collected cone, and the cone
     // the objective accepts is 0.5% wider in sine at the red end — the next rung.
-    expect(tilt).toBeCloseTo(1.0174, 4);
+    expect(tilt).toBeCloseTo(1.01732, 4); // was 1.0174 (§ 2z)
     // Monotone in wavelength, which is what says it is the glass and not the
     // lattice: a Gauss-circle miscount would not order itself by colour.
     for (let p = 1; p < sums.length; p++) expect(sums[p]!).toBeGreaterThan(sums[p - 1]!);
@@ -337,8 +337,8 @@ describe("§ 6bc.3 — the objective's transmission spectrum reaches the colour"
     // collected cone's tilt added to the glass's.
     expect(carriedC.x).toBeCloseTo(0.334347, 5);
     expect(carriedC.y).toBeCloseTo(0.334973, 5);
-    expect(carriedC.x - perPlaneC.x).toBeCloseTo(8.905e-4, 6);
-    expect(carriedC.y - perPlaneC.y).toBeCloseTo(8.747e-4, 6);
+    expect(carriedC.x - perPlaneC.x).toBeCloseTo(8.873e-4, 6); // was 8.905e-4 (§ 2z)
+    expect(carriedC.y - perPlaneC.y).toBeCloseTo(8.7e-4, 6); // was 8.747e-4 (§ 2z)
     // Toward the red, as a transmission rising with wavelength must be.
     expect(carriedC.x).toBeGreaterThan(perPlaneC.x);
 
@@ -365,7 +365,12 @@ describe("§ 2p.1 — an emitter's light is its collected cone, (1 − cos u)/2 
     // in the canonical coordinate n·L/ν, which is 1 on an aplanat. Read per
     // wavelength off the rim ray's own launch, nothing the exit layout computes.
     // The cone is the one the paraxial aim's rim spans, 1.1% inside the stop's
-    // own on this objective (register item 31).
+    // own on this objective (register item 31) — so the lens is read on the
+    // paraxial aim and its stop, whose map the aim layout is (§ 2z.7).
+    const SYSTEM = finiteConjugateMicroscope({
+      objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
+      rayAiming: "paraxial",
+    }).system;
     for (const s of SAMPLES) {
       const sum = (layout: "aim" | "exit") => {
         const frame = objectFieldTile(SYSTEM, {
@@ -422,27 +427,31 @@ describe("§ 6bc.4 — a mosaic tile off-axis is dimmer, and only if the weight 
     // the count reads 0.995237, 0.930842, 0.882580 here and 1.001672, 1.004445,
     // 1.007761 on the field-sized lens. § 2q.5's rim densities and throughput fit
     // moved the sums by up to 7e-6 (0.999550, 0.942734, 0.889845; 0.999379 and
-    // 1.004048 fielded, before).
+    // 1.004048 fielded, before). Since § 2z the lens aims real inside the stop as
+    // built, the counts above are the paraxial stop's, and § 2z.3 meets the shipped
+    // one's light to 2.6e-6 at 128; these are its sums at 24.
     const axis = read(SYSTEM, 0);
     expect(axis.samples).toBe(441);
-    expect(read(SYSTEM, 2.25).sum / axis.sum).toBeCloseTo(0.999556, 6);
-    expect(read(SYSTEM, 4.5).sum / axis.sum).toBeCloseTo(0.942738, 6);
+    expect(read(SYSTEM, 2.25).sum / axis.sum).toBeCloseTo(0.9950633, 6); // was 0.999556 (§ 2z)
+    expect(read(SYSTEM, 4.5).sum / axis.sum).toBeCloseTo(0.9360457, 6); // was 0.942738 (§ 2z)
     const far = read(SYSTEM, 6);
-    expect(far.sum / axis.sum).toBeCloseTo(0.889852, 6);
+    expect(far.sum / axis.sum).toBeCloseTo(0.8876654, 6); // was 0.889852 (§ 2z)
     // A hard clip and not a Fresnel loss: the transmitting count itself falls.
-    expect(far.samples).toBe(388);
+    expect(far.samples).toBe(387); // was 388 (§ 2z)
 
-    // The field-sized lens clips nothing: every off-axis tile counts the same
-    // lattice, three points short of the axis's — the exit cone seen off axis,
-    // laid on the axial ruler, and not a vignette.
+    // The field-sized lens clips nothing: every off-axis tile counts three or four
+    // points short of the axis's lattice (438, 437, 437 under real aiming, § 2z;
+    // 438 each before) — the exit cone seen off axis, laid on the axial ruler, and
+    // not a vignette: the stop is the rim all round at every height, and no ray of
+    // a 61² grid is lost.
     const fieldedAxis = read(FIELDED, 0);
     expect(fieldedAxis.samples).toBe(441);
     const fielded = [2.25, 4.5, 6].map((xMm) => read(FIELDED, xMm));
-    for (const off of fielded) expect(off.samples).toBe(438);
+    expect(fielded.map((off) => off.samples)).toEqual([438, 437, 437]);
     const ratios = fielded.map((off) => off.sum / fieldedAxis.sum);
-    expect(ratios[0]!).toBeCloseTo(0.994776, 6);
-    expect(ratios[1]!).toBeCloseTo(0.999378, 6);
-    expect(ratios[2]!).toBeCloseTo(1.004046, 6);
+    expect(ratios[0]!).toBeCloseTo(0.994777, 6); // was 0.994776 (§ 2z)
+    expect(ratios[1]!).toBeCloseTo(0.9971466, 6); // was 0.999378 (§ 2z)
+    expect(ratios[2]!).toBeCloseTo(1.0018285, 6); // was 1.004046 (§ 2z)
   });
 
   it("quoting each tile in its own units renders the clip away exactly", () => {
@@ -463,7 +472,7 @@ describe("§ 6bc.4 — a mosaic tile off-axis is dimmer, and only if the weight 
           .intensity,
       ),
     );
-    expect(carried[1]! / carried[0]!).toBeCloseTo(0.889852, 6);
+    expect(carried[1]! / carried[0]!).toBeCloseTo(0.8876654, 6); // was 0.889852 (§ 2z)
 
     const perTile = [axisPupil, farPupil].map((pupil) =>
       incoherentImage(object, pupil, {

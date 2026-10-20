@@ -416,14 +416,17 @@ describe("§ 6j.5 — a traced objective through a real band", () => {
         pupilSamples: PUPIL_SAMPLES,
       }).pixelScaleMm!;
     // On the exit layout since § 2p, `pixelScaleMm` is λ·pupilSamples/(2n′·size·σ)
-    // with σ the traced image-side aperture sine at each λ, and the cone is itself
-    // chromatic: σ(500)/σ(600) = 1.0016. So the scale follows the emission
-    // wavelength times the cone's own dispersion, as an identity — where the aim
-    // layout's paraxial ruler read 1.2 exactly on this telecentric objective.
+    // with σ the traced image-side aperture sine at each λ, so the scale follows
+    // the emission wavelength times the cone's own dispersion, as an identity —
+    // where the aim layout's paraxial ruler read 1.2 exactly on this telecentric
+    // objective. Under real aiming (§ 2z) that dispersion is σ(500)/σ(600) =
+    // 1.0000026: the rim ray lands on the stop's rim at every λ, and behind the
+    // stop there is only air to the image. The paraxial aim's cone, which did not
+    // follow the stop, read 1.0016.
     const sigma = (nm: number) => Math.abs(exitApertureSine(system, nm));
     expect(at(600) / at(500)).toBeCloseTo(600 / 500, 2);
     expect(at(600) / at(500) / ((1.2 * sigma(500)) / sigma(600)) - 1).toBeCloseTo(0, 12);
-    expect(at(600) / at(500) / 1.2 - 1).toBeCloseTo(1.5955e-3, 6);
+    expect(at(600) / at(500) / 1.2 - 1).toBeCloseTo(2.608e-6, 9);
   });
 });
 

@@ -5,7 +5,7 @@ import { getMedium } from "../materials/catalog";
 import { LINE_D } from "../materials/dispersion";
 import { seidelSums } from "../analysis/seidel";
 import { CementedDoubletForm, cementedDoubletForm } from "./achromat";
-import { DEFAULT_TUBE_FOCAL_LENGTH_MM } from "./microscope";
+import { DEFAULT_TUBE_FOCAL_LENGTH_MM, builtRealStop, type BuiltRealStop } from "./microscope";
 
 /**
  * The Lister objective — two separated cemented doublets, and the first
@@ -172,6 +172,8 @@ export interface ListerJointRoot {
 }
 
 export interface ListerObjective {
+  /** As `InfinityCorrectedObjective.realStop`: the diaphragm as built (§ 2z.5). */
+  readonly realStop?: BuiltRealStop;
   /**
    * The objective alone, authored **specimen-side first**, trailing thickness 0.
    * Exactly one stop flag, on surface 0 — the front group's own rim.
@@ -630,8 +632,16 @@ export function listerObjective(spec: ListerObjectiveSpec): ListerObjective {
   }
 
   const { fA, fB } = focalPair(scale);
+  const built = builtRealStop({
+    prescription,
+    objectDistanceMm,
+    stopRadiusMm,
+    numericalAperture: NA,
+    designWavelengthNm,
+  });
   return {
     prescription,
+    ...(built === undefined ? {} : { realStop: built }),
     focalLengthMm: f,
     paraxialFocalLengthMm,
     objectDistanceMm,

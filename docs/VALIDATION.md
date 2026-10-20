@@ -47,6 +47,7 @@ whole ladder.
 | [2w](#step-2w--the-citations-assert-their-source) | Two measure chains cited readings stale since § 2u. Held once, asserted at source: classes hold; § 6bs.2's gap > 1.5× refuted (1.29×); item 44 closed | `support/cited`, `six-interactions` |
 | [2x](#step-2x--the-axial-anchors-largest-step) | Axial anchor's largest step. Off axis the rim step tilts ±2% and only the gentle side's rim node is lit, so the guard ranks the anchor largest; item 39 closed | `stage-mosaic` |
 | [2y](#step-2y--the-outline-turns-at-the-rims-corners) | Vignetted rims kept the polygon. Corners bisected, arcs Chebyshev: 6.8e-4 → 1e-15 of the area; one-cut rims take the curve; item 43 closed | `rim-corners`, `rim-outline` |
+| [2z](#step-2z--real-aiming-for-the-finite-presets) | Finite presets aim real, stop and glass cut by real rays: light = referee to 2.6e-6 (paraxial −1.4%); item 31 closed | `real-aiming`, `collected-power` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -4163,6 +4164,8 @@ and must not move when the aim is parametrized differently.
 
 ## Step 2k — the exit layout's cost: one basis per point
 
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): the laid-pupil checksum is re-recorded on the real-aimed pupil; § 2z.7 has each, was → now.
+
 Source: engine change — `zernikeBasis`, and every fit and sampler reading it, bitwise unchanged
 · Tests: `packages/core/test/exit-cost.test.ts`
 
@@ -4510,6 +4513,8 @@ p·|∂c/∂e| past the density lattice's differencing.
 
 ## Step 2o — the exit layout's orientation: the geometry's, not the aim's
 
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): § 2o.1–.3's mirror is read on the paraxial aim by name — real aiming mirrors nothing (§ 2z.7).
+
 Source: engine change — `exitApertureSine` signed by the beam's convergence, not by the aim rim ray; `aimOrientation`; `pupilDirectionMap` multiplies by it
 · Tests: `packages/core/test/exit-orientation.test.ts`, § 2k.2's amplitude sum restated
 
@@ -4627,12 +4632,15 @@ objective's sine-condition residual (~3e-4 on the DIN 4×).
   the render's bias and are restated with that chain. Until it flips, the frame
   span reads ~1% apart between the brightfield, section, fluorescence and emitter
   panels and the bench, builder and volume ones.
-- **Under the paraxial aim an emitter's collected power is short** — 1.1% on the
-  axis, more off it; real aiming closes it — register item 31.
+- ~~**Under the paraxial aim an emitter's collected power is short** — 1.1% on the
+  axis, more off it; real aiming closes it — register item 31.~~ Closed at
+  [§ 2z](#step-2z--real-aiming-for-the-finite-presets): every finite preset aims real.
 - **§ 6i.5's corner wavefront** is better than the axis's on the exit layout by
   more than the corner's smaller defocus accounts for; not traced.
 
 ## Step 2q — the volume and focus-surface chain on the exit layout
+
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): § 2q.4's on-axis span is the light's 4.889e-6 (the referee's too), § 2q.2's pixel swing is the paraxial aim's, and § 2q.5's 0–2 mm reading is carried by the FN-18 DIN; § 2z.7 has each, was → now.
 
 Source: engine fix — `exitApertureSine`'s cache key (`pupil/opd.ts`) names every field of the system the reading depends on; engine change — `bandLimitedPeak` (`math/band-limited-peak.ts`), opt-in to a focus sweep as `FocusSweepOptions.peak`; engine change — `incoherentPsf`'s `edgeSamples` (`imaging/fluorescence.ts`), opt-in, carried by `renderVolume`, `renderFieldVolume`, the spectral volume, `FocusSweepOptions`, `renderFluorescence` and `formEmitterPlane`; engine change — `EdgeRule` `"crossing"` (`imaging/fluorescence.ts`), opt-in beside `edgeSamples` and carried with it; engine fix — `exitDensity`'s derivative slides inward at sixth order, and the exit layout's throughput rides in the density's fit (`ExitDensity.transmitted`, `pupilFunctionFromOpd`'s `apodizationCarriesThroughput`); engine change — `edgePlan` (`imaging/fluorescence.ts`), the crossing rule's rim laid out once per outline and checked against every pupil it is handed, carried by `depthKernels` and `renderVolume`
 · Tests: § 2q.1 in `packages/core/test/aperture-sine-key.test.ts`; § 2q.2 in `band-limited-peak.test.ts`; § 2q.3 in `edge-resolved-kernel.test.ts`; § 2q.4 in `edge-crossing.test.ts`; § 2q.5 in `exit-density-rim.test.ts`; § 2q.7 in `edge-plan.test.ts` and, for the app panels, `packages/app/test/volume-mount`, `volume-cap`; § 2q.6's pins in `spectral-field-volume.test.ts` (§ 6be.2's reference sphere) and `spectral-volume.test.ts` (§ 6bb.2's `rimShape`), its restatements in the six volume and focus files and `packages/app/test/volume-cap`, `volume-mount`; § 2q.8 (measurement only — no engine change) in `depth-aberration.test.ts`; § 6r.7 restated in `brightfield-spectrum.test.ts`
@@ -5409,6 +5417,8 @@ layout's, the same field to 0.8%.
 
 ## Step 2s — the default itself, for finite conjugates
 
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): the odd-term margins below moved (162.3×, 495.6×); § 2z.7 has each, was → now.
+
 Source: engine change — `mosaicLayout`, `mosaicTileAt` and the spectral mosaic forward the `layout` they are asked for to their tile frames (`imaging/mosaic.ts`, `mosaic-spectrum.ts`)
 · Tests: § 2s.1 in `packages/core/test/mosaic-layout.test.ts`; § 2s.2 in `condenser-source.test.ts`; § 2s.3 in `object-field.test.ts`; § 2s.4 below; the pins in the fourteen files named below and `packages/app/src/stage.ts`
 
@@ -6149,6 +6159,8 @@ is a separate decision.
 
 ## Step 2y — the outline turns at the rim's corners
 
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): the DIN 10×/0.20's edge runs read miss@2 7, stop 19, miss@2 6 on the stop as built; § 2z.7 has each, was → now.
+
 Source: engine change — `exitRim` labels each rim ray's edge (`RimPoint.edge`); `exitRimArcs` (`pupil/opd.ts`) and `rimArcs` (`pupil/rim-outline.ts`) locate the corners and trace the arcs; `rimOutline` joins them where the edge changes and takes the curve where one constraint makes the whole rim
 · Tests: `packages/core/test/rim-outline.test.ts` (§ 2y's closed forms, no trace); `rim-corners.test.ts` (new: the reading); `support/cited.ts` (five more citations); the restatements named below
 
@@ -6163,7 +6175,8 @@ rim ray's edge is now labelled by what stops the ray just past its reach — the
 surface ("miss@2", "vignetted@3"). Under the paraxial aim the "stop" label is
 the rim of the AIM disc, not the stop's traced edge, which lies outside it (at
 1.00546 of the aim radius on the axis, up to 1.0204 off it — register item 31,
-still open); § 2y locates that convention's edge exactly and does not move it.
+~~still open~~ closed at [§ 2z](#step-2z--real-aiming-for-the-finite-presets), where the presets aim real and the "stop" arcs
+are the stop's traced rim); § 2y locates that convention's edge exactly and does not move it.
 Its 1e-15 is the outline against the rim the aim defines, not against the
 light a real aim would launch. One full run of the suite, every `exitRim`
 call logged: 18 118 rims are the stop's all round; 4 192 are cut all round by
@@ -6289,8 +6302,8 @@ the recorder run only, under the full pool — the load-sensitive pair on record
 
 ## Step 2z — real aiming for the finite presets
 
-Source: engine change — `solveOntoStop` (`pupil/aiming.ts`) solves over the slope where the entrance pupil is at infinity (§ 2z.1) and through `intersect`'s continuation (`minT`, `geometry/surfaces.ts`; `behindAt`, `trace/sequential.ts`), and `UnreachableStopPoint` carries the edge and the launch (§ 2z.4)
-· Tests: `packages/core/test/real-aiming.test.ts` (§ 2z.1, § 2z.4); `collected-power.test.ts` and `support/collected-power.ts` (new: § 2z.2's referee); `rim-corners.test.ts` (an unreachable stop point lands nowhere)
+Source: engine change — `solveOntoStop` (`pupil/aiming.ts`) solves over the slope where the entrance pupil is at infinity (§ 2z.1) and through `intersect`'s continuation (`minT`, `geometry/surfaces.ts`; `behindAt`, `trace/sequential.ts`), and `UnreachableStopPoint` carries the edge and the launch (§ 2z.4); every finite composition aims real by default inside a stop cut by a real ray, carried by the objective (`realStop`, `designs/microscope.ts`, § 2z.5, § 2z.9); `aimRay`'s `lastBit` and a chief-seeded Jacobian off raw landings (§ 2z.6); `microscopeObjective` sizes field-carrying glass by the real beam (§ 2z.8); `visualMicroscope` keeps the chain's aim (§ 2z.9)
+· Tests: `packages/core/test/real-aiming.test.ts` (§ 2z.1, § 2z.4–§ 2z.6, § 2z.9); `collected-power.test.ts` and `support/collected-power.ts` (new: § 2z.2's referee); `real-aim-light.test.ts` (§ 2z.3); `rim-corners.test.ts` (an unreachable stop point lands nowhere); `field-sized-objective.test.ts` (§ 2z.8); the set-backs, real-aim legs and restatements named in § 2z.7
 
 Register item 31: the finite presets aim every pupil coordinate at the
 PARAXIAL entrance pupil, whose rim is not the stop's traced edge, so an
@@ -6371,6 +6384,34 @@ off axis at 1, 3 and 6 mm to the disc's solid angle to 1.5e-12, and where a
 lens cuts the aperture (the un-sized DIN 4×/0.10 at 4.5 mm) to a 601² lattice
 count to 1.1e-5.
 
+### 2z.3 — the reading
+
+On the stops as built (paraxially sized — § 2z.5 changes them), PS 128:
+
+| Subject | real-aimed light off the referee |
+|---|---|
+| DIN 4×/0.10 un-sized, 0–9 mm, 550 nm and design λ | ≤ 1.0e-6 (the 9 mm tile 22% vignetted) |
+| DIN 4×/0.10 sized for FN 18, same | ≤ 2.6e-6 |
+| infinity 4×/0.10, 0–9 mm | ≤ 2.4e-7 |
+| Lister 40×/0.20, 0 and 0.225 mm | −1.2e-6 |
+| oil 100×/1.25 and /1.40, real against paraxial | 4.4e-16, 8.9e-16 |
+| DIN 4×/0.15, real against paraxial | 2.1e-6 |
+| paraxial aim, DIN 4×/0.10 axis (control) | −1.42e-2 |
+
+**The hypothesis holds on every subject it named but two, and is refuted on
+those:**
+
+- **DIN 4×/0.20: real against paraxial moved 1.1e-4**, where the hypothesis
+  said the stop's clip of the overfill left nothing to move. The paraxial aim
+  lost that light (−8.4e-5 and −1.1e-4 off the referee at 128 and 256) and the
+  real aim's miss fell as the lattice's square, 1.2e-4, 3.0e-5, 6.8e-6 at
+  64/128/256. Refuted in the aim's favour.
+- **The Lister's field edge (the 9 mm tile, 0.226 mm of object): −4.7e-5**,
+  and it moves with the lattice under either aim — −4.3e-6, −4.7e-5, −2.7e-4 at
+  64/128/256 real, a 3.8e-4 drift paraxial. A downstream aperture cuts 244 of
+  12 853 samples inside an outline that is the stop all round, and the vignette
+  mask is point-sampled there (item 25's note). Not the aim: register item 46.
+
 ### 2z.4 — the knife edge is a sign change
 
 A stop point past a lens's knife edge — where its two spheres meet — has no
@@ -6394,6 +6435,219 @@ tracer's EPS_T leaves; and the refused (1, 0) carries `"miss@2"` and a launch
 whose continuation lands on the stop's rim to 1e-10 and whose real trace does
 not. § 2y's three rungs read the outline to < 1e-11 of the area under real
 aiming.
+
+### 2z.5 — the stop sized by a real ray
+
+Every objective sized its stop paraxially (`f·n·tan u` behind the glass,
+`s·tan u` on its rim), which under real aiming is the engraving to first order
+only — the stop's rim ray IS the marginal ray. The two microscope compositions
+now size the stop where the ray leaving the axial specimen point at exactly
+the engraved NA crosses it, at the design wavelength, by one trace with every
+rim removed; a diaphragm whose rim was the paraxial radius takes the new one.
+Since § 2z.9 each objective constructor cuts it once, on the lens as built, and
+a composition takes that diaphragm rather than re-cutting it for its stack.
+Pinned (`real-aiming.test.ts`): on the DIN 4×/0.10, 4×/0.20 and 10×/0.20, the
+infinity 4×/0.10 and 10×/0.20, the Lister 40×/0.20 and the oil 100×/1.25 the
+delivered NA is the engraving to 1e-15. That needed the readout's rim ray ON
+the rim: a bundle's solve stops anywhere inside the clip's margin (§ 2z.6) —
+7.0e-15 inside the rim on the DIN 4×/0.20, whose NA then reads 4.7e-15 low, and
+7.4e-14 inside on the infinity 4×/0.10, so 1e-15 asked of that ray fails. The NA readouts
+(`objectNumericalAperture`, `imageNumericalAperture`, `imageSpaceMarginalSin`)
+ask `aimRay` for `lastBit`: Newton steps on from the tolerance while the miss
+shrinks. Their one ray lands on the rim to an ulp (2.2e-16) on all seven, and the NA is
+within 4.4e-16 of the engraving. The control: on the paraxial stop the
+same rim ray read 0.10072, 0.18950, 0.19771, 0.10082, 0.20140 and 0.20090 — off
+0.45% to 5.2%, either way — and the oil's (stop on its flat front face) was
+already exact.
+
+§ 2z.3's reading on these stops: every subject within 2.6e-6 again, and the
+paraxial control −1.41e-2. The DIN 4×/0.20, whose stop grows 9% (7.853 →
+8.570 mm, since it delivered 0.1895), now has a stop-to-direction map whose
+slope halves toward the rim (0.223 at the centre, 0.113 at it); its real-aimed
+light does not converge on the referee — 7.8e-5, −2.9e-5, −5.5e-5, −6.1e-5 at
+64/128/256/512, the referee itself converged to 4e-15 between 16 and 32 nodes —
+and the paraxial aim, now overfilling, reads 7.0e-4 over. Register item 47.
+
+### 2z.6 — the solve: what a ray costs, and where a rim ray lands
+
+The chord shares one Jacobian per field and wavelength, and each ray corrects
+its own copy by Broyden's rank-one update from its secants, so it gains
+superlinearly where a stale slope gains by a fixed ratio; it runs to a tenth of
+the 1e-12 tolerance rather than a thousandth. Solve traces per ray 7.68 → 4.65 on the
+DIN presets and 8.95 → 5.48 on the infinity ones. A real-aimed bundle costs
+3.9× its paraxial twin on the DIN 4× and 4.5× on the infinity 10×; a tile 3.4×
+on the axis and 5–8× off it, where vignetting refuses rays; the heaviest test
+files run 1.3–2× slower.
+
+The tenth is not slack. The trace clips where r² passes the rim's radius² ×
+(1 + 1e-12) — 5e-13 of the radius — so a rim ray must land closer than that or
+the stop it was aimed at vignettes it. The chord stops early when a step fails
+to improve, and the solve then accepted anything inside the tolerance: on the
+DIN 4×/0.20 at 0.85 mm ten of 1600 rim rays landed up to 8.4e-13 past the rim
+and read `"vignetted@3"` — a cut BY THE STOP — and the exit layout's rim
+flickered between the stop and that cut until its corners never settled (14 of
+188 pupils between 0.82 and 1.15 mm refused; the DIN 4×/0.10 and 10×/0.10, none).
+Now the early exit and the Newton phase both run to the tenth: the worst
+landing over the six DIN lenses probed is 1.2e-13 (9.9e-14 on the 4×/0.20), and
+a 33² bundle set's CPU time is unchanged inside its run-to-run spread
+(437–531 ms either way). Pinned (`real-aiming.test.ts`): the 0.85 mm case
+(6.96e-13 before) and every preset at seven fields, five wavelengths and 64 rim
+rays (9.9e-13 before, at 0.9375 mm and 656 nm) land inside 5e-13.
+
+**A ray's bits were its history's.** The shared Jacobian was taken at the seed
+of whichever ray reached a field and wavelength first, and differenced off that
+ray's misses, from which its target cancels only to rounding — so every later
+ray's chord, and its last bits, depended on which rays were solved before it:
+the same stop point on two identical systems after different warm-ups came out
+1e-16 to 1.5e-14 apart in direction on four DIN cases, and two app paths that
+were bitwise equal under the paraxial aim stopped being so. It is now taken at
+the chief's seed, off the landings themselves (a ray's own, uncached, where the
+chief's seed reaches nothing). Pinned (`real-aiming.test.ts`): on all seven
+presets at two wavelengths the point solved cold and after three other points
+is the same to the bit (2 ulp apart before).
+
+### 2z.7 — what the flip moved, and what is read on the paraxial aim by name
+
+Every finite composition aims real by default now (`rayAiming: "real"`), inside
+the stop § 2z.5 cuts; `rayAiming: "paraxial"` keeps the old aim and its
+paraxially sized stop. A rung moved in one of four ways.
+
+- **Set back whole: thirty-eight measurement chains** (anisotropy, cost-law,
+  distortion, escape, field-seam, guard, growth, map, seam, sampling, the stage
+  mosaics, and § 6be). Their readings were taken on the paraxial aim's cone; on
+  the real aim about 350 of the first thirty-seven's 537 rungs move, and § 6be's
+  findings move in kind (its clip coupling changes sign at 0.4 mm). Register
+  item 48.
+- **The aim layout is the paraxial aim's.** It lays a sample at the coordinate
+  it was aimed at, which is a direction through an affine map only under the
+  paraxial aim: real aiming names stop points, whose directions are not linear
+  in them, and `pupilSlopeFrame` refuses a real-aimed system. Every aim-layout
+  reading is taken on the paraxial aim and its stop by name (§ 2l, § 2n, § 2q,
+  § 2r, § 6g–§ 6h, § 6m, § 6x.1, § 6bh's aim figures), and § 2o's mirror is that
+  aim's too: real aiming mirrors nothing, at any wavelength.
+- **Claims that were the paraxial construction's.** Exact statements that hold
+  because the stop is `f·n·tan u` and the aim names that slope are read on the
+  paraxial aim, each with a leg saying what the real pupil does instead:
+  - a telecentric slope of exactly tan u (§ 6v.1, § 6ae.2, § 6ah.2–.3, § 6z.7,
+    § 5s.5): real, tan u × the built stop's ratio to `f·tan u`, to an ulp;
+  - a chief ray of exactly (0, 0, 1), and a cone and a magnification that do
+    not move by a bit with focus (§ 6v.2–.4, § 6ae.2–.3, § 6y.5, § 6z.8,
+    § 6x.2, § 6r.9's offset): the real chief ray through the stop's centre
+    tilts as **tan = C·h³**, C = 3.4652e-5 mm⁻³ on the infinity 4×/0.10 and
+    5.2333e-5 on the DIN 4×/0.10, constant to 2e-4 out to 0.2 mm — the pupil's
+    spherical aberration; the NA moves 8.0e-5 per mm of specimen travel and the
+    magnification 1.4e-8;
+  - what a hand-sized paraxial stop delivers (§ 6a.4, § 6b.4, § 6c.2, § 6z.4,
+    § 6q.5, § 6ah.4) and Welford's stop shift on the paraxial chief (§ 6ai.2);
+  - the overfilled paraxial diaphragm (§ 6ai.4): real, the fill is 1 by
+    construction, to 1e-13, through NA 0.20.
+- **Moved values**, restated with the old value beside each. The table below.
+
+**Findings, not restatements.**
+
+- **The paraxial aim hid a real variation of the light.** Across the DIN
+  4×/0.10's on-axis frame the exit layout's light spans 4.889e-6, and § 2z.2's
+  referee spans the same three heights by 4.889e-6, within 2e-10: the stop's
+  cone grows as 4.47e-3·h² (object mm). The paraxial aim read 1.46e-8 while the
+  referee read 4.85e-6. So § 6bd.3's "the one frame the pupil does not vary
+  across" is 4.9e-6 (still 730× under the next frame), and **§ 6bd.4's "one
+  sign at every radius" is refuted at the axis**: the profile is convex there,
+  and the frame holds 3.0e-6 more than its centre.
+- **§ 6w.4's upper bound is refuted** (§ 2z.8).
+- **§ 6q.5's cos u is the paraxial stop's.** On the stop as built the paraxial
+  NA falls below the sine, and the textbook D·NA/|M| lands +0.21% over the
+  measured pupil on the DIN 4× and +0.31% on the infinity 4×, where it was
+  −0.50% under on the paraxial stop.
+- **The dry telecentric NA is chromatic by 0.43%** (450–650 nm; 0.084% on the
+  paraxial aim): the real rim ray carries the doublet's spherochromatism, half
+  the oil's 0.85% rather than a tenth (§ 6r.9, § 6bb.11). Behind the stop the
+  image cone is achromatic to 2.6e-6 (§ 6j.5, § 6ba.3; 1.6e-3 before).
+- **Two diagnoses were mostly the paraxial aim's.** § 6c.3's 2.4% mismatch
+  deficit, read as the rim stop's landing coupling: real, +1.0% at 4× and +0.6%
+  at 20× (1.7×, not 3.4×), and the telecentric one −0.9% to −1.3%. § 6z.8's
+  slab-against-apparent-depth departure: the square law holds on both aims, at
+  6.9e-10 real against 3.0e-7 paraxial at 0.05 mm, 436× less.
+
+| Rung | Paraxial aim and stop | Real aim, stop as built |
+|---|---|---|
+| § 2k.2 checksum (amplitude, phase) | 744.5653414552702, 1588.6775851641826 | 767.1164473467074, 1815.124501636666 |
+| § 2q.2 plateau; pixel readout | 0.7320; 1.1690 | 0.7114; 0.7137 |
+| § 2q.4 on-axis light span | 1.46e-8 | 4.889e-6 (referee 4.889e-6) |
+| § 2q.5 0–2 mm light | un-sized DIN 4×, −5.8e-8 … −3.1e-8 | FN-18 DIN 4×, −3.12e-8 … −2.73e-8 |
+| § 2s odd-term margins | 163.9×, 491.5× | 162.3×, 495.6× |
+| § 2y DIN 10×/0.20 edge runs | miss@2 7, vignetted@3 5, stop 9, vignetted@3 5, miss@2 6 | miss@2 7, stop 19, miss@2 6 |
+| § 5s.5 pupil radii (430, F, 550 nm); rim collection | 2039.72, 11028.93, 64338.91; 75.278387 | 2023.14, 10939.27, 63815.86; 75.469830 |
+| § 6a.4 f·sin u stop, rim / back focal | 0.1021 / 0.09956 | 0.10199 / 0.100377 |
+| § 6b.4 rim f·NA at 4×, 20×; back focal gap | 0.0821, 0.0976; −0.50% | 0.08187, 0.09744; +0.21 to +0.31% |
+| § 6b.5.1 σ(4×/0.10); 40× reach, F | 0.059454; 0.18152, 2.8404 | 0.059448; 0.181452, 2.8414 |
+| § 6b.5.6, § 6b.5.7 far-band σ | 3.4507, 2.9425 | 3.4588, 2.9496 |
+| § 6c.3 deficit rim 4×, 20×; telecentric | +2.38%, +0.70%; −0.42% | +1.02%, +0.61%; −0.88 to −1.26% |
+| § 6d.4 σ at the Lister's ceiling | 0.03691 | 0.03684 |
+| § 6i.5 corner/axis kernel; telecentric | 8.5864e-5; 1.02043e-2 | 8.578e-5; 1.02009e-2 |
+| § 6j.5 image cone σ(500)/σ(600) | 1.0016 | 1.0000026 |
+| § 6q.6–.7 iris crossover f_e | 39–40 mm | 40–41 mm |
+| § 6r.7 excess; member ratio | 0.08303; 1.252–1.262 | 0.08224; 1.245–1.260 |
+| § 6r.8 telecentric/rim separation | 3.4–3.8 | 3.46–3.80 |
+| § 6r.9 telecentric NA, 450–650 nm | 0.084% | 0.428% |
+| § 6s.2 rounding floor (its frame's radii) | 9.7 ulp | 12.0 ulp |
+| § 6v.5, § 6w.3 axial control at 1 mm; lost at the field edge | 0.888; 84 of 313 | 0.8818; 88 |
+| § 6w.1 glass / (f·NA + h), FN 18 NA 0.10 | 1 | 1.0120618 |
+| § 6w.4 worst footprint / glass; extra field | 0.98922; 5.3% | 0.99995; 1.5% |
+| § 6w.5 working distance; magnification | −2.115%; −8.04e-4 | −2.205%; −8.86e-4 |
+| § 6z.5 k; beam-currency residual | 1.45; 0.7738 | 1.4675; 0.7844 |
+| § 6z.9 dry/matched | 0.977 | 0.994 |
+| § 6ae.4 on-axis RMS rim / back focal | 0.14005 / 0.14163 (1.1%) | 0.14025 / 0.14147 (0.87%) |
+| § 6ae.5 coma moved at f/4; coma, astigmatism ratios | 71%; 3.4, 2.4 | 73%; 3.68, 2.35 |
+| § 6ae.6 throughput at 2.25 mm | 0.7859 | 0.7732 |
+| § 6ai.2 lever at 0.4 mm; spread to 3.2 mm | −70.717; 1.5% | −70.757; 5.2% |
+| § 6ai.6 reaches, rim 4×; 40× shipped, rim | 0.103114; 0.181517, 0.182742 | 0.103108; 0.181452, 0.182718 |
+| § 6az.5 depth anisotropy | inner/outer 2.5–6 | each < 4 ε/departure (0 and 1.0) |
+| § 6ba.3–.9 cone dispersion; disc residuals; referee | −0.51%; span 1.34%; 0.2618–0.2630% | −1.2e-5; span 1.41%; 0.2663–0.2676% |
+| § 6bb.6–.7 blue to design; focusDepthMm short by | 3.75 depths; 32% | 3.82 depths; 33% |
+| § 6bc.4 far tile; fielded samples | 0.889852, 388; 438 ×3 | 0.887665, 387; 438, 437, 437 |
+| § 6bd.3 frame spans 2.25 / 4.5 / 6 mm | 3.1435e-3 / 6.6527e-3 / 7.3134e-3 | 3.5596e-3 / 6.7550e-3 / 7.3695e-3 |
+| § 6bd.5–.7 moves; amplitude half on axis; haze | 3.9290e-2; 1.35e-4; −3.0929e-3 | 3.9395e-2; 5.67e-5; −3.1402e-3 |
+| § 6bh.2–.5 ruler, guard, stage, seam | e.g. 0.137433, 7.43235, 0.100392 | 0.137936, 7.40099, 0.095170 |
+| app Part Q distortion spread; worst phase step | 18×; 21.8 | 19×; 44.6 |
+
+Moved with the glass of § 2z.8 rather than the aim: § 6w.1, § 6w.4–.5, § 6z.5
+and Part Q's infinity 20× headroom (0.978 → 0.980). The app's eyepiece panel
+(APP.md D6) joins the stage on the paraxial aim by name: its sec u guard is
+exact on the paraxial stop and reads 0.9991 on the built one.
+
+### 2z.8 — the glass sized by the real beam
+
+`microscopeObjective` sized a field-carrying doublet's glass to `f·NA + h`
+(§ 6w.1), which § 6w.4 found an upper bound by 1.1% — on the paraxial aim,
+whose cone was 0.7% short. The real cone at the field edge crosses the crown's
+outer face 1.2% PAST it, and 4 of the 313 rays § 6w.3 asks for were lost. The
+constructor now real-aims 16 rim rays at the field edge, at the design
+wavelength, through the glass faces before the stop with every rim open, and
+rebuilds at the widest beam until it fits (two passes; a settled size is cached
+per spec). Pinned (`field-sized-objective.test.ts`): the glass is 1.0120618 of
+`f·NA + h` on the 4×, 10× and 40× alike (scale-free, as § 6w.2 says), 0.3–2.3%
+over the FN × NA grid and exactly the closed form at NA 0.20, where it already
+carries the beam; the lens passes 313 of 313 at its field edge on every
+magnification, and the worst footprint is the glass to 0.99995. The DIN rows
+are unchanged: their 1.12 glass margin already passed (0.954, 0.922). The
+catalogue's infinity 4×, 10× and 20× rows change; the DIN, Lister and oil rows
+do not.
+
+### 2z.9 — the diaphragm is the lens's, and an eyepiece keeps the aim
+
+§ 2z.5 cut the stop in the composition, for whatever stack it was handed, so a
+lens composed with the wrong coverslip got a diaphragm delivering the engraved
+NA at every slip — and § 6e.5's slip-dependent NA, the physics a mismatch is
+read for, vanished (with A6's two walls in the app). Now each constructor cuts
+the diaphragm once, on the objective as built, and carries it with what it was
+sized from (`realStop`); a composition takes it while the objective still names
+that stop radius, NA and wavelength, and sizes afresh otherwise; only "no real
+cone" is a refusal it tolerates. And `visualMicroscope` (with
+`visualMicroscopeSystem`) dropped the chain's aim: a real-cut stop, aimed
+paraxially, under-filled to NA 0.0994. Pinned (`real-aiming.test.ts`): the oil
+100×/1.40 keeps its built radius at 0.16, 0.17 and 0.18 mm of slip; a copy at
+NA 0.095 delivers 0.095 to 1e-14; an eyepiece keeps either aim and NA 0.10 to
+1e-14.
 
 ## Step 3a — the standard observer and thermal sources
 
@@ -9091,6 +9345,8 @@ readout's.
 
 ## Step 5s — camera mode: relative exposure
 
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): § 5s.5's pupil radii and rim collection moved with the stop, and its tan u identities are read on the paraxial aim; § 2z.7 has each, was → now.
+
 How bright the recorded frame is, up to the one scalar that is § 3a's named
 deferral: the source's absolute radiance in photons, which the shot noise would
 also need. So every rung here is a **ratio** — how illuminance changes with
@@ -9947,6 +10203,8 @@ refusals, and the second is C4's lesson applied before it could bite:
 
 ## Step 6a — the infinity-corrected microscope: architecture and the first objective
 
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): § 6a.4's f·sin u control is read on the paraxial aim (real: fast in both designs); § 2z.7 has each, was → now.
+
 The unit that opens the microscope branch. Everything step 6 promises — immersion,
 coverslip mismatch, brightfield, fluorescence — is a variation on one chain:
 specimen at an objective's front focus, a collimated space, a tube lens, an image.
@@ -10074,6 +10332,8 @@ explicitly because § 1's D263 commit had to fix exactly this class of thing
   work) are the named follow-ons.
 
 ## Step 6b — the classic 160 mm (DIN) microscope
+
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): § 6b.4's controls are read on the paraxial aim, and § 6b.5's Maréchal reaches moved in their fifth figure; § 2z.7 has each, was → now.
 
 The second of the two architectures step 6 names, and the one § 6a listed under
 "Not yet pinned" as *the item most likely to be silently dropped*. That note
@@ -10568,6 +10828,8 @@ the same commit — as are the app's D6.5 rungs and the eyepiece panel's own pro
 
 ## Step 6c — the coverslip, and what mismatching it costs
 
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): § 6c.2's control is read on the paraxial aim, and § 6c.3's deficit diagnosis is mostly that aim's (real: +1.0% at 4×); § 2z.7 has each, was → now.
+
 The `0.17` half of the `160/0.17` engraving § 6b left open, and the first of step
 6's named deliverables — coverslip mismatch — to land. `designs/coverslip`,
 `test/coverslip.test.ts`.
@@ -10746,6 +11008,8 @@ NA 0.10. Same glass, same formula, NA⁴ apart.
 - **Tilt.** A non-parallel or tilted slip adds astigmatism; not modelled.
 
 ## Step 6d — the Lister, the first aplanat, and the ceiling of two doublets
+
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): § 6d.4's σ at the ceiling reads 0.03684; § 2z.7 has each, was → now.
 
 The § 6a note that "high NA is a different glass form (Lister, then the aplanatic
 hyperhemisphere)" comes due. `designs/lister`, `test/lister.test.ts`.
@@ -10943,6 +11207,8 @@ that element will be pinned against.
   machinery would carry it; nothing here needs it.
 
 ## Step 6e — oil immersion: the plane stack, exactly
+
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): § 6e.5's slip-dependent NA holds because the diaphragm is the lens's (§ 2z.9).
 
 § 6d ended with a measured wall: two cemented doublets stop solving near NA 0.35
 for *two different glass pairs*, so the ceiling belongs to the form. The way past
@@ -12283,6 +12549,8 @@ clear its own glass at every frame corner (`lost === 0`).
 
 ## Step 6i — fluorescence: the specimen that emits
 
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): § 6i.5's kernels moved in their fourth figure; § 2z.7 has each, was → now.
+
 § 6f's brightfield specimen emits nothing — it modulates a beam, so whether two
 of its points interfere depends on where their light came from, and the image is
 nonlinear in the object's intensity. A fluorophore is the opposite in every one
@@ -12489,6 +12757,8 @@ tagged phase object has one.
   shows, and it wants the emission band first.
 
 ## Step 6j — the Stokes shift, and the band the image is formed in
+
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): § 6j.5's image cone is achromatic to 2.6e-6 (1.6e-3 on the paraxial aim); § 2z.7 has each, was → now.
 
 § 6i's operator is monochromatic and takes no excitation wavelength at all. That
 is the **architecture**, not an omission: a fluorophore absorbs at λ_ex and emits
@@ -14916,6 +15186,8 @@ errors cancel by different amounts at different counts.
 
 ## Step 6q — the eyepiece on the intermediate image
 
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): § 6q.5's cos u is the paraxial stop's — on the stop as built the textbook form lands +0.21% over — and § 6q.6–.7's crossover is f_e 40–41; § 2z.7 has each, was → now.
+
 The step that makes the branch's chain something you can **look through**. Every
 microscope rung before this one ends at an image — a sensor, a grid, a mosaic
 tile — and APP.md's Part D named the missing piece precisely: an eyepiece, and
@@ -15148,6 +15420,8 @@ mistaken for the number.*
   § 6h's open item, inherited.
 
 ## Step 6r — polychromatic brightfield
+
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): § 6r.9's telecentric NA is chromatic by 0.43% (0.084% paraxial); § 2z.7 has each, was → now.
 
 Every brightfield rung before this one is monochromatic: one wavelength, one
 pupil, one grid. A lamp is a spectrum, and a stained section is a specimen that
@@ -15396,6 +15670,8 @@ this step turns on the choice — but the step says which one it made.
   § 6h — inherited, not made worse.
 
 ## Step 6s — the radial map, tabulated
+
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): § 6s.2's floor reads 12.0 ulp at the real-aimed frame's radii; § 2z.7 has each, was → now.
 
 The first step on this ladder whose subject is **cost**. § 6n's rasterizer asks
 `objectHeightForImageRadius` where each pixel looks, and that inverse bisects a
@@ -15949,6 +16225,8 @@ a fan, which is symmetric by construction.
 
 ## Step 6v — the presets are telecentric
 
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): § 6v.1–.4's exact claims are read on the paraxial aim, and the real chief ray tilts as 3.4652e-5·h³; § 2z.7 has each, was → now.
+
 § 6u made an entrance pupil at infinity *expressible* and then said, in its own
 "not yet pinned" list, that nothing used it: *"the capability is here and the
 presets do not use it yet — the stop still sits on the objective's rim. That is
@@ -16108,6 +16386,8 @@ because the quantity that would have shown it was collimated.
   measures the cubic it costs rather than removing it.
 
 ## Step 6w — the objective knows what field it must pass
+
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): the glass is sized by the real beam (§ 2z.8) — 1.012 of f·NA + h — and § 6w.4's upper bound is refuted; § 2z.7 has each, was → now.
 
 Test: `packages/core/test/field-sized-objective.test.ts`
 
@@ -16302,6 +16582,8 @@ the rim it is named for.
   target from the beam, not from the glass.
 
 ## Step 6x — what telecentricity is worth to the illumination
+
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): § 6x.2's control is read on the paraxial aim (real: an offset of 3.49e-4·h³); § 2z.7 has each, was → now.
 
 `packages/core/test/telecentric-illumination.test.ts`
 
@@ -16520,6 +16802,8 @@ unchanged.
 
 ## Step 6y — the plane stack off axis
 
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): § 6y.5's bitwise zeros are read on the paraxial aim (real: q_c under 2e-5 of the rim's); § 2z.7 has each, was → now.
+
 `packages/core/test/oblique-slab.test.ts`
 
 § 6l's own "Not yet pinned" opened with **Off axis**, and gave a reason that had
@@ -16721,6 +17005,8 @@ statement about the axis all along.
   a back focal stop is what would make this step's control disappear.
 
 ## Step 6z — the infinity-corrected objective's coverslip
+
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): § 6z.4/.7/.8's paraxial-construction claims are read on that aim, § 6z.8's departure is 436× smaller real, and § 6z.5's k is the traced glass's; § 2z.7 has each, was → now.
 
 `packages/core/test/infinity-coverslip.test.ts`
 
@@ -18789,6 +19075,8 @@ returned array is the right length and full of plausible numbers.
 
 ## Step 6ae — the DIN objective's own stop
 
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): § 6ae.1–.4's exact claims are read on the paraxial aim (real chief: 5.2333e-5·h³), and § 6ae.4–.6's numbers moved; § 2z.7 has each, was → now.
+
 Three steps deferred this one and each said why. § 6v: *"`finiteConjugateObjective`
 is untouched and still carries its stop on the rim. A real DIN objective is
 telecentric too, and the composition it feeds is a different one, so it is its own
@@ -19449,6 +19737,8 @@ real constraint; none is an external number, and calling the currency rung
 
 ## Step 6ah — the paraxial NA of a pupil at infinity
 
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): § 6ah.2–.4's tan u identities are read on the paraxial aim; on the stop as built the textbook form lands +0.31% over (§ 2z.7).
+
 **Not a new capability. A shipped readout that had no answer on the DEFAULT
 lens, found by taking the branch the fixture did not.**
 
@@ -19545,6 +19835,8 @@ adds no physics; it removes a NaN.
   § 6ai**. The NaN this step removed was one of the things that had to go first.
 
 ## Step 6ai — the default stop placement
+
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): § 6ai.2's flatness and Welford check and all of § 6ai.4 are read on the paraxial aim (real: the fill is 1 by construction), and § 6ai.6's reaches moved; § 2z.7 has each, was → now.
 
 § 6ae built the DIN objective's back-focal diaphragm, checked it against
 Welford's stop-shift algebra, sent § 6x's illumination offset to zero and priced
@@ -22991,6 +23283,8 @@ three were *explanations* attached to correct behaviour.
 
 ## Step 6az — the volumetric emitter density
 
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): § 6az.5's anisotropy is stated as a rounding floor, < 4 ε over the departure (§ 2z.7).
+
 **§ 6as's named deferral, closed — and the deferral's own prediction is what
 this step corrects.** § 6as warped a *plane*: an emitter is a density, so a
 pixel's value is the density times the object area that pixel covers, and that
@@ -23224,6 +23518,8 @@ refused rather than documented.
   in every comparison between them, and it belongs to the pupil layer.
 
 ## Step 6ba — the spectral emitter density
+
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): § 6ba.3–.9's cone dispersion is 1.2e-5 (−0.51% paraxial), and its residuals and chromaticities moved; § 2z.7 has each, was → now.
 
 **§ 6as's last deferral, closed — and the sentence that deferred it turns out to
 be two sentences wearing one name.** § 6as closed the extended fluorescent
@@ -23495,6 +23791,8 @@ selects on.
 
 ## Step 6bb — the spectral volume
 
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): blue to design is 3.82 depths, focusDepthMm 33% short, the NA chromatic by 0.60%; § 2z.7 has each, was → now.
+
 **§ 6az's rescale times § 6ba's spectrum, and both of them deferred it in the
 same words.** § 6az makes the object map move with depth; § 6ba makes the density
 read a wavelength; each closed with the line that the two are independent today
@@ -23701,6 +23999,8 @@ is the whole of what that step did to this one.
 
 ## Step 6bc — the units a formed image is quoted in
 
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): § 6bc.3–.4's tints and tiles moved, the fielded lens still unvignetted; § 2z.7 has each, was → now.
+
 Source: `packages/core/src/imaging/fluorescence.ts` ·
 Tests: `packages/core/test/throughput-units.test.ts`
 
@@ -23835,6 +24135,8 @@ the frame it is showing.
   in every comparison here, and it belongs to the pupil layer.
 
 ## Step 6bd — the field and the depth on one callback
+
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): § 6bd.3's on-axis frame spans 4.9e-6, and § 6bd.4's one sign is refuted at the axis; § 2z.7 has each, was → now.
 
 Source: `packages/core/src/imaging/field-volume.ts` ·
 Tests: `packages/core/test/field-volume.test.ts`
@@ -24015,6 +24317,8 @@ have. Three claims in prose did:
   inherited verbatim from § 6bc.
 
 ## Step 6be — the third axis
+
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): this step is read on the paraxial aim whole — under real aiming its findings move in kind, not in their figures, and it is register item 48's thirty-eighth chain (§ 2z.7).
 
 Source: `packages/core/src/imaging/spectral-volume.ts` ·
 Tests: `packages/core/test/spectral-field-volume.test.ts`
@@ -24851,6 +25155,8 @@ No pinned number moved, and § 6bg.1's two bitwise rungs are why none could have
 
 
 ## Step 6bh — the fluorescence mosaic
+
+> Since [§ 2z](#step-2z--real-aiming-for-the-finite-presets): the mosaic's rulers, guards and stage numbers moved; § 2z.7 has each, was → now.
 
 > **On the exit layout since [§ 2r.2](#-2r2--the-flip):** this step's tests carry the exit layout's readings, the aim layout's beside them where a claim moved; the text below is the step as first published.
 

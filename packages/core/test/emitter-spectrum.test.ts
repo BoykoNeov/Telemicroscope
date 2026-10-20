@@ -277,13 +277,14 @@ describe("§ 6ba — the spectral emitter density", () => {
     // The ratio is not merely close to the wavelength ratio — on the exit layout
     // (§ 2p) `imagePixelScaleMm` is ∝ λ/σ(λ), σ the traced image-side aperture
     // sine, so k IS (λ_blue/λ_red)·σ_red/σ_blue: 25/41 times the cone's own
-    // dispersion across the band, 0.51% (the aim layout's paraxial ruler made it
-    // 25/41 exactly on this objective).
+    // dispersion across the band, 1.2e-5 under real aiming — the rim ray lands on
+    // the stop at every λ (§ 6j.5) — where the paraxial aim's cone read 0.51%
+    // (and the aim layout's paraxial ruler made it 25/41 exactly).
     const reddest = input[input.length - 1]!;
     const k = target / reddest.pixelScaleMm;
     const sigma = (nm: number) => Math.abs(exitApertureSine(SYSTEM, nm));
     expect(k).toBeCloseTo(((25 / 41) * sigma(SAMPLES[8]!.nm)) / sigma(SAMPLES[0]!.nm), 15);
-    expect(k / (25 / 41) - 1).toBeCloseTo(-5.0985e-3, 6);
+    expect(k / (25 / 41) - 1).toBeCloseTo(-1.1979e-5, 6); // was -5.0985e-3 (§ 2z)
     expect(
       total(resampleIrradianceGrid(reddest.intensity, SIZE, reddest.pixelScaleMm, target, n)) /
         total(resampleEnergyGrid(reddest.intensity, SIZE, reddest.pixelScaleMm, target, n)),
@@ -319,8 +320,8 @@ describe("§ 6ba — the spectral emitter density", () => {
     // (0.335951, 0.338178 before), +5.3e-4 in both: on the exit layout a plane's
     // light is the emitter's collected cone, whose share rises 1% across the band
     // (§ 6bc.3), so the stack is redder by that.
-    expect(right.x).toBeCloseTo(0.336477, 5);
-    expect(right.y).toBeCloseTo(0.338713, 5);
+    expect(right.x).toBeCloseTo(0.33633, 5); // was 0.336477 (§ 2z)
+    expect(right.y).toBeCloseTo(0.338523, 5); // was 0.338713 (§ 2z)
     expect(wrong.x).toBeGreaterThan(right.x + 0.02);
     expect(wrong.y).toBeGreaterThan(right.y);
   });
@@ -335,8 +336,8 @@ describe("§ 6ba — the spectral emitter density", () => {
    * point-samples the disc on its own lattice, so each miscounts differently, and
    * the residual stops being a flux error and becomes a chromatic one.
    *
-   * It is small — the three wavelengths below span 1.34% (0.87% on the aim
-   * layout's pixels, before § 2p) — and it is a reason to
+   * It is small — the three wavelengths below span 1.41% (1.34% before § 2z,
+   * 0.87% on the aim layout's pixels before § 2p) — and it is a reason to
    * hold every chromaticity rung here on a SMOOTH density. That is why § 6ba.5
    * and § 6ba.9 use a Gaussian and this rung uses the disc: the disc is the
    * control that says what the edge costs, not the instrument the colour is
@@ -368,13 +369,13 @@ describe("§ 6ba — the spectral emitter density", () => {
     // Restated at § 2p (−7.821e-4, 5.903e-3, −2.798e-3 before): the exit layout's
     // ruler moved every frame's pixel, so each wavelength counts a different
     // lattice — the residual is the raster's alone, as above, read again.
-    expect(residuals[0]!).toBeCloseTo(2.7067e-3, 6);
-    expect(residuals[1]!).toBeCloseTo(6.4191e-3, 6);
-    expect(residuals[2]!).toBeCloseTo(-7.0163e-3, 6);
+    expect(residuals[0]!).toBeCloseTo(-6.6597e-3, 6); // was 2.7067e-3 (§ 2z)
+    expect(residuals[1]!).toBeCloseTo(7.4435e-3, 6); // was 6.4191e-3 (§ 2z)
+    expect(residuals[2]!).toBeCloseTo(1.7929e-3, 6); // was -7.0163e-3 (§ 2z)
     // Each is a fraction of a percent, and they do not share a sign — which is
     // what says this is the lattice count and not a systematic of the raster.
     for (const r of residuals) expect(Math.abs(r)).toBeLessThan(1e-2);
-    expect(Math.max(...residuals) - Math.min(...residuals)).toBeCloseTo(1.3435e-2, 5);
+    expect(Math.max(...residuals) - Math.min(...residuals)).toBeCloseTo(1.4103e-2, 5); // was 1.3435e-2 (§ 2z)
   });
 
   /**
@@ -451,20 +452,20 @@ describe("§ 6ba — the spectral emitter density", () => {
     // plane's frame now reads the traced cone's sine at its own λ, so the stack's
     // common crop takes a slightly different share of each; the traced white is
     // § 6ba.3's, redder by the collected cone.
-    expect(idealWhite.x).toBeCloseTo(0.332386, 5);
-    expect(idealWhite.y).toBeCloseTo(0.333144, 5);
-    expect(tracedWhite.x).toBeCloseTo(0.336477, 5);
-    expect(tracedWhite.y).toBeCloseTo(0.338713, 5);
+    expect(idealWhite.x).toBeCloseTo(0.332394, 5); // was 0.332386 (§ 2z)
+    expect(idealWhite.y).toBeCloseTo(0.333152, 5); // was 0.333144 (§ 2z)
+    expect(tracedWhite.x).toBeCloseTo(0.33633, 5); // was 0.336477 (§ 2z)
+    expect(tracedWhite.y).toBeCloseTo(0.338523, 5); // was 0.338713 (§ 2z)
     expect(tracedWhite.x - idealWhite.x).toBeGreaterThan(3.5e-3);
 
     const tracedCore = pixelChromaticity(traced, c, c);
     const tracedSkirt = pixelChromaticity(traced, c + 24, c);
     // The traced pair moved with the white point above, and by the same 2.6e-4
     // — § 6bc's tilt is a property of the stack and not of where in it you look.
-    expect(tracedCore.x).toBeCloseTo(0.410640, 5);
-    expect(tracedCore.y).toBeCloseTo(0.442601, 5);
-    expect(tracedSkirt.x).toBeCloseTo(0.229725, 5);
-    expect(tracedSkirt.y).toBeCloseTo(0.184453, 5);
+    expect(tracedCore.x).toBeCloseTo(0.410192, 5); // was 0.410640 (§ 2z)
+    expect(tracedCore.y).toBeCloseTo(0.442618, 5); // was 0.442601 (§ 2z)
+    expect(tracedSkirt.x).toBeCloseTo(0.229928, 5); // was 0.229725 (§ 2z)
+    expect(tracedSkirt.y).toBeCloseTo(0.183501, 5); // was 0.184453 (§ 2z)
 
     const idealCore = pixelChromaticity(ideal, c, c);
     const idealSkirt = pixelChromaticity(ideal, c + 24, c);
@@ -562,9 +563,9 @@ describe("§ 6ba — the spectral emitter density", () => {
     // Resolved separations: the collapse is simply a different image.
     // § 2p (0.1452, 0.3003, 0.4533 before): the kernels are the exit layout's,
     // laid where their rays went and scaled by each λ's own traced cone.
-    expect(departure(60)).toBeCloseTo(0.1449, 3);
-    expect(departure(120)).toBeCloseTo(0.2998, 3);
-    expect(departure(200)).toBeCloseTo(0.4525, 3);
+    expect(departure(60)).toBeCloseTo(0.1436, 3); // was 0.1449 (§ 2z)
+    expect(departure(120)).toBeCloseTo(0.2975, 3); // was 0.2998 (§ 2z)
+    expect(departure(200)).toBeCloseTo(0.4504, 3); // was 0.4525 (§ 2z)
     // Monotone in separation, which is what says it is the bands and not noise —
     // but only NON-strictly, and for § 6ba.8's reason: the departure moves when a
     // sample crosses a band edge and holds flat in between, so 60 and 90 nm are
@@ -787,8 +788,9 @@ describe("§ 6ba — the spectral emitter density", () => {
     });
     // Displacement over field height. Constant is the claim, and it holds.
     const fractional = referee.map((m, i) => m.um / 1e3 / fields[i]!);
-    // At 201 rays across; 301 moves them by under 3e-3 of themselves, the 0.2 mm
-    // point most, and reads 0.2624–0.2631%.
+    // At 201 rays across; 301 moved them by under 3e-3 of themselves on the
+    // paraxial aim, the 0.2 mm point most (0.2624–0.2631% there; 0.2663–0.2676%
+    // at 201 under real aiming).
     fractional.forEach((f, i) => expect(f, `${fields[i]} mm`).toBeCloseTo(REFEREE_FRACTION[i]!, 8));
     expect(Math.max(...fractional) / Math.min(...fractional) - 1).toBeLessThan(1e-2);
     // The magnification difference proper — the chief rays — is a tenth of it.
@@ -816,7 +818,7 @@ describe("§ 6ba — the spectral emitter density", () => {
     expect(displacement(0).px).toBeLessThan(1e-3);
     const rendered = displacement(0.8);
     // 1.51246 before § 2q.5's rim densities and throughput fit.
-    expect(rendered.mm * 1000).toBeCloseTo(1.51354, 4);
+    expect(rendered.mm * 1000).toBeCloseTo(1.52119, 4); // was 1.51354 (§ 2z)
     expect(rendered.mm * 1000 / referee[2]!.um).toBeLessThan(0.75);
   });
 
@@ -913,5 +915,8 @@ describe("§ 6ba — the spectral emitter density", () => {
   });
 });
 
-/** § 6ba.9's referee: the channels' misregistration over field height (§ 2p). */
-const REFEREE_FRACTION = [2.6184867e-3, 2.6243163e-3, 2.6300161e-3];
+/**
+ * § 6ba.9's referee: the channels' misregistration over field height (§ 2p),
+ * under real aiming (§ 2z: 2.6184867e-3, 2.6243163e-3, 2.6300161e-3 before).
+ */
+const REFEREE_FRACTION = [2.6630098e-3, 2.6689529e-3, 2.6756471e-3];

@@ -18,7 +18,7 @@ import {
 } from "../src/pupil/microscope";
 import { getMedium } from "../src/materials/catalog";
 import { LINE_D } from "../src/materials/dispersion";
-import { OpticalSystem } from "../src/trace/system";
+import { OpticalSystem, type RayAiming } from "../src/trace/system";
 
 /**
  * Step 6ah — the paraxial NA of a lens whose entrance pupil is at infinity.
@@ -67,15 +67,22 @@ const NA = 0.1;
  */
 const tanOf = (na: number, n = 1) => na / Math.sqrt(1 - (na / n) ** 2);
 
-const infinityAt = (stopPlacement: StopPlacement, na = NA, magnification = 4): OpticalSystem =>
+const infinityAt = (
+  stopPlacement: StopPlacement,
+  na = NA,
+  magnification = 4,
+  rayAiming: RayAiming = "real",
+): OpticalSystem =>
   infinityCorrectedMicroscope({
     objective: microscopeObjective({ magnification, numericalAperture: na, stopPlacement }),
     tubeLens: tubeLens(),
+    rayAiming,
   }).system;
 
 const dinAt = (
   stopPlacement: StopPlacement,
   over: Parameters<typeof finiteConjugateObjective>[0] | Record<string, unknown> = {},
+  rayAiming: RayAiming = "real",
 ): OpticalSystem =>
   finiteConjugateMicroscope({
     objective: finiteConjugateObjective({
@@ -84,6 +91,7 @@ const dinAt = (
       stopPlacement,
       ...(over as object),
     }),
+    rayAiming,
   }).system;
 
 describe("§ 6ah.1 — THE REGRESSION: the default infinity objective had no paraxial NA at all", () => {
@@ -112,21 +120,30 @@ describe("§ 6ah.1 — THE REGRESSION: the default infinity objective had no par
   });
 });
 
+/**
+ * § 6ah.2 and § 6ah.3 are read on the paraxial aim, whose stop is sized `f·n·tan u`
+ * (or `a·tan u` on the rim): that sizing is what makes the paraxial NA the closed
+ * form exactly. Real aiming cuts each stop where the real marginal ray crosses
+ * it (§ 2z.5), so the paraxial NA becomes tan u times the built stop's ratio to
+ * the paraxial one — 0.99187 on the infinity 4×, different again on the rim — and
+ * the two constructions stop being one double because the two stops are two
+ * lenses' real answers. § 6ah.1 and § 6ah.4 read the shipped aim.
+ */
 describe("§ 6ah.2 — THE FINDING: the two constructions are one quantity, to the bit", () => {
   it("the telecentric slope IS the rim lens's semi-diameter over its arm — bitwise", () => {
     // Not "close": the same double. Both lenses are spelled by the same NA and
     // the aperture is the only thing that decides this number, so a limit taken
     // correctly has to reproduce it exactly. `toBe` rather than `toBeCloseTo`
     // is the assertion the finding deserves.
-    const tele = paraxialObjectNumericalAperture(infinityAt("backFocal"), L);
-    const rim = paraxialObjectNumericalAperture(infinityAt("rim"), L);
+    const tele = paraxialObjectNumericalAperture(infinityAt("backFocal", NA, 4, "paraxial"), L);
+    const rim = paraxialObjectNumericalAperture(infinityAt("rim", NA, 4, "paraxial"), L);
     expect(tele).toBe(rim);
     expect(tele).toBe(tanOf(NA));
   });
 
   it("and it is tan u over three octaves of aperture, where the sine reading is not", () => {
     for (const na of [0.05, 0.1, 0.2, 0.25]) {
-      const system = infinityAt("backFocal", na);
+      const system = infinityAt("backFocal", na, 4, "paraxial");
       const paraxial = paraxialObjectNumericalAperture(system, L);
       // The closed form to within an ulp — the two differ only in the order the
       // same operations are performed in.
@@ -143,8 +160,8 @@ describe("§ 6ah.2 — THE FINDING: the two constructions are one quantity, to t
     // Three ulp rather than zero: the finite conjugate reaches the same slope
     // through a different arithmetic path (a solved object distance), so the
     // agreement is a computation's, not an expression's.
-    const tele = paraxialObjectNumericalAperture(dinAt("backFocal"), L);
-    const rim = paraxialObjectNumericalAperture(dinAt("rim"), L);
+    const tele = paraxialObjectNumericalAperture(dinAt("backFocal", {}, "paraxial"), L);
+    const rim = paraxialObjectNumericalAperture(dinAt("rim", {}, "paraxial"), L);
     expect(Math.abs(tele / rim - 1)).toBeLessThan(1e-15);
     expect(tele).toBeCloseTo(tanOf(NA), 12);
   });
@@ -160,7 +177,7 @@ describe("§ 6ah.3 — the index that multiplies the slope is the SPECIMEN's, no
     const n = getMedium("D263").n(L);
     for (const placement of ["backFocal", "rim"] as const) {
       const na = paraxialObjectNumericalAperture(
-        dinAt(placement, { coverslip: { thicknessMm: 0.17 } }),
+        dinAt(placement, { coverslip: { thicknessMm: 0.17 } }, "paraxial"),
         L,
       );
       expect(na).toBeCloseTo(tanOf(NA, n), 12);
@@ -171,7 +188,7 @@ describe("§ 6ah.3 — the index that multiplies the slope is the SPECIMEN's, no
 });
 
 describe("§ 6ah.4 — what the readout is FOR: § 6q.5's Lagrange law, on a telecentric instrument", () => {
-  const visualAt = (stopPlacement: StopPlacement) =>
+  const visualAt = (stopPlacement: StopPlacement, rayAiming: RayAiming = "real") =>
     visualMicroscope({
       microscope: infinityCorrectedMicroscope({
         objective: microscopeObjective({
@@ -180,6 +197,7 @@ describe("§ 6ah.4 — what the readout is FOR: § 6q.5's Lagrange law, on a tel
           stopPlacement,
         }),
         tubeLens: tubeLens(),
+        rayAiming,
       }),
       eyepiece: plosslEyepiece({ focalLengthMm: 25, clearApertureMm: 20 }).prescription,
       wavelengthNm: L,
@@ -205,9 +223,18 @@ describe("§ 6ah.4 — what the readout is FOR: § 6q.5's Lagrange law, on a tel
     // § 6q.5's finding is that the textbook D·NA/|M| takes the WRONG NA. That
     // has to survive the repair, or the fix has quietly made the two spellings
     // the same number: 0.50% at NA 0.10, and it is the tangent-vs-sine gap.
-    const visual = visualAt("backFocal");
-    const M = visualMagnification(visual.system, 0.05, L, 250);
-    const engraved = lagrangeExitPupilRadiusMm(objectNumericalAperture(visual.system, L), 250, M);
-    expect(engraved / pupils(visual.system, L).exit.radius - 1).toBeCloseTo(-0.005, 3);
+    //
+    // On the paraxial aim's stop, sized `f·tan u`, where the gap is exactly that.
+    // On the stop as built (§ 2z.5) the paraxial NA is tan u × 0.99187, below the
+    // sine itself, and the textbook form lands +0.31% over the pupil instead: the
+    // "wrong NA" is wrong by the stop's sizing as much as by the trigonometry.
+    const miss = (rayAiming: RayAiming): number => {
+      const visual = visualAt("backFocal", rayAiming);
+      const M = visualMagnification(visual.system, 0.05, L, 250);
+      const engraved = lagrangeExitPupilRadiusMm(objectNumericalAperture(visual.system, L), 250, M);
+      return engraved / pupils(visual.system, L).exit.radius - 1;
+    };
+    expect(miss("paraxial")).toBeCloseTo(-0.005, 3);
+    expect(miss("real")).toBeCloseTo(0.00308, 4);
   });
 });

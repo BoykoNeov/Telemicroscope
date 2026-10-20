@@ -98,9 +98,10 @@ import { fieldDefocusing, renderFieldVolume, type FieldVolumeImage } from "./fie
  *
  * **And the focus separation is not the catalogue number.** `focusDepthMm` is
  * the paraxial object-side chromatic focal shift, and it puts 430 nm at
- * 0.1102 mm — 32% short of the 0.1622 mm the picture actually shows, because the
- * ρ⁴ term of the traced wavefront falls 4.60× across the band (1.9284 waves at
- * 430 nm to 0.4196 at 656) and each channel's best focus is balanced against its
+ * 0.1102 mm — 33% short of the 0.1644 mm the picture actually shows (real aim
+ * and the stop as built, § 2z; 32% and 0.1622 before), because the ρ⁴ term of
+ * the traced wavefront falls 4.49× across the band (1.9062 waves at
+ * 430 nm to 0.4247 at 656) and each channel's best focus is balanced against its
  * own spherical aberration. A chromatic-focal-shift figure does not say where a
  * channel focuses (§ 6bb.7).
  *

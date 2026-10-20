@@ -94,7 +94,7 @@ const OBJ: Record<Cell, FiniteConjugateObjective> = Object.fromEntries(
   ]),
 ) as Record<Cell, FiniteConjugateObjective>;
 const LENS: Record<Cell, OpticalSystem> = Object.fromEntries(
-  CELLS.map((c) => [c, finiteConjugateMicroscope({ objective: OBJ[c]! }).system]),
+  CELLS.map((c) => [c, finiteConjugateMicroscope({ objective: OBJ[c]!, rayAiming: "paraxial" }).system]),
 ) as Record<Cell, OpticalSystem>;
 
 /** § 6bo's shapes at k = 1. `size` and `pupilSamples`, in that order. */

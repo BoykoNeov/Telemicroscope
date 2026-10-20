@@ -23,7 +23,7 @@ import { Prescription } from "../src/trace/prescription";
 import { traceRay } from "../src/trace/sequential";
 import { makeRay } from "../src/trace/ray";
 import { vec3 } from "../src/math/vec3";
-import { OpticalSystem } from "../src/trace/system";
+import { OpticalSystem, type RayAiming } from "../src/trace/system";
 import { opdMap } from "../src/pupil/opd";
 import { pupilGrid } from "../src/pupil/aiming";
 import { bestFocus, withFocus } from "../src/analysis/focus";
@@ -394,7 +394,9 @@ describe("§ 6c.2 — the DIN objective re-solved through the slip", () => {
         coverslip: {},
         stopPlacement,
       });
-      const m = finiteConjugateMicroscope({ objective: o });
+      // On the paraxial aim, which aims at the paraxial radius it is handed:
+      // over-filling by the tangents' ratio is that construction's (§ 2z.5).
+      const m = finiteConjugateMicroscope({ objective: o, rayAiming: "paraxial" });
       const arm =
         stopPlacement === "rim"
           ? o.airEquivalentObjectDistanceMm
@@ -470,14 +472,23 @@ describe("§ 6c.3 — coverslip MISMATCH: the wrong slip on the right objective"
     // describes is between the marginal ray's LANDING HEIGHT and a stop that is a
     // hole in a plane, so it belongs to the rim placement. § 6ai's default aims
     // by slope instead, and the deficit nearly disappears.
-    const deficitAt = (M: number, stopPlacement: StopPlacement = "rim"): number => {
+    //
+    // The diagnosis is the PARAXIAL aim's, and is read there: its rays are aimed
+    // at the paraxial pupil, so the mismatch moves where the marginal ray lands
+    // on a rim stop. Real aiming solves every ray onto the stop wherever the
+    // specimen is, and that coupling goes with it — the rim's deficit falls to
+    // +1.02% at 4× and +0.61% at 20× (1.7× rather than 3.4×), and the
+    // telecentric lens's is −0.88% to −1.26%, no longer a sixth of the rim's nor
+    // flat in M. What is left on the real aim is not this section's subject
+    // either; the 3% the closed form is matched to holds on both.
+    const deficitAt = (M: number, stopPlacement: StopPlacement = "rim", rayAiming: RayAiming = "paraxial"): number => {
       const o = finiteConjugateObjective({
         magnification: M,
         numericalAperture: 0.1,
         coverslip: {},
         stopPlacement,
       });
-      const s = finiteConjugateMicroscope({ objective: o }).system;
+      const s = finiteConjugateMicroscope({ objective: o, rayAiming }).system;
       const ref = opdMap(s, 0, LAMBDA, grid);
       const mm = opdMap(withMismatch(s, 0.05), 0, LAMBDA, grid);
       expect(ref.lost).toBe(0);
@@ -503,6 +514,12 @@ describe("§ 6c.3 — coverslip MISMATCH: the wrong slip on the right objective"
     expect(Math.abs(t4)).toBeLessThan(Math.abs(d4) / 5);
     expect(t4).toBeLessThan(0);
     expect(Math.abs(t4 / t20 - 1)).toBeLessThan(0.25);
+
+    // The real aim's own numbers, stated so the move is on record.
+    expect(deficitAt(4, "rim", "real")).toBeCloseTo(0.01016, 4);
+    expect(deficitAt(20, "rim", "real")).toBeCloseTo(0.00612, 4);
+    expect(deficitAt(4, "backFocal", "real")).toBeCloseTo(-0.00875, 4);
+    expect(deficitAt(20, "backFocal", "real")).toBeCloseTo(-0.01261, 4);
   });
 
   it("cannot spoil a 4×/0.10 at any thickness a real slip could have", () => {

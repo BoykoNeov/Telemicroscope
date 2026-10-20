@@ -381,7 +381,10 @@ describe("§ 6az — the volumetric emitter density", () => {
         const axis = axisSlope * st;
         return (radial / axis - 1) / (tangential / axis - 1);
       };
-      const disagreementAt = (r: number): number => {
+      /** The tangential factor's departure, |h(r)/(r·h′(0)) − 1| — what the ratio divides by. */
+      const departureAt = (r: number): number => Math.abs(radialMap.heightAt(r) / r / axisSlope - 1);
+      /** The worst disagreement with the plane over three depths, in units of ε over that departure. */
+      const floorsAt = (r: number): number => {
         const flat = ratioAt(r, 0);
         expect(flat).toBeGreaterThan(2.99);
         expect(flat).toBeLessThan(3.01);
@@ -389,19 +392,24 @@ describe("§ 6az — the volumetric emitter density", () => {
         for (const depth of [0.1, 1, 5]) {
           worst = Math.max(worst, Math.abs(ratioAt(r, depth) / flat - 1));
         }
-        return worst;
+        return worst / (Number.EPSILON / departureAt(r));
       };
-      const outer = disagreementAt(frame.halfExtentMm);
-      const inner = disagreementAt(frame.halfExtentMm * 0.5);
       // Depth adds NO anisotropy: the stretch is a common factor of both terms
       // and cancels out of the ratio exactly. What is left is f64 cancellation
       // in the departures, which are 1e-8-sized here — so the residual is a
-      // property of the SUBTRACTION and not of the optics, and the proof of that
-      // is that halving the radius quarters the departure and makes the
-      // disagreement roughly four times worse rather than leaving it alone.
-      expect(outer).toBeLessThan(1e-7);
-      expect(inner / outer).toBeGreaterThan(2.5);
-      expect(inner / outer).toBeLessThan(6);
+      // property of the SUBTRACTION and not of the optics. Stated as that: each
+      // disagreement is a few rounding steps of the quotients, ε each, divided by
+      // the departure they are taken against. (It used to be asserted as "halving
+      // the radius makes it about four times worse", a ratio of two rounding
+      // residues; under real aiming the outer one rounded clean to 0 and the
+      // ratio was ∞ — the luck the floor below has no use for.)
+      // 0 and 1.0 such steps at the frame's edge and half way in (departures
+      // 4.46e-8 and 1.12e-8).
+      for (const r of [frame.halfExtentMm, frame.halfExtentMm * 0.5]) {
+        expect(floorsAt(r)).toBeLessThan(4);
+      }
+      // …and the departure itself is third order, so halving the radius quarters it.
+      expect(departureAt(frame.halfExtentMm * 0.5) / departureAt(frame.halfExtentMm)).toBeCloseTo(0.25, 2);
     });
   });
 

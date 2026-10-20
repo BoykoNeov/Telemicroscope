@@ -103,7 +103,7 @@ const OBJ: Record<Cell, FiniteConjugateObjective> = Object.fromEntries(
   ]),
 ) as Record<Cell, FiniteConjugateObjective>;
 const LENS: Record<Cell, OpticalSystem> = Object.fromEntries(
-  CELLS.map((c) => [c, finiteConjugateMicroscope({ objective: OBJ[c]! }).system]),
+  CELLS.map((c) => [c, finiteConjugateMicroscope({ objective: OBJ[c]!, rayAiming: "paraxial" }).system]),
 ) as Record<Cell, OpticalSystem>;
 
 /** Solve a 3x3 system by Gaussian elimination with partial pivoting. */
@@ -173,7 +173,7 @@ interface Reading {
  */
 function read(M: number, NA: number, parallel: boolean, ts: readonly number[]): Reading {
   const obj = finiteConjugateObjective({ magnification: M, numericalAperture: NA });
-  const system = finiteConjugateMicroscope({ objective: obj }).system;
+  const system = finiteConjugateMicroscope({ objective: obj, rayAiming: "paraxial" }).system;
   const comp = asCompiled(system.prescription);
   const p = pupils(system, 430);
   const planeZ = imagePlaneZ(comp, system);

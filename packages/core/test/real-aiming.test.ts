@@ -9,7 +9,18 @@ import { applyToPoint } from "../src/math/transform";
 import { simpleSystem, type OpticalSystem, type RayAiming } from "../src/trace/system";
 import { fitZernike, balancedRms } from "../src/wave/zernike";
 import type { Prescription, SurfaceSpec } from "../src/trace/prescription";
-import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/designs/microscope";
+import {
+  finiteConjugateMicroscope,
+  finiteConjugateObjective,
+  infinityCorrectedMicroscope,
+  microscopeObjective,
+  tubeLens,
+} from "../src/designs/microscope";
+import { listerObjective } from "../src/designs/lister";
+import { oilImmersionObjective } from "../src/designs/immersion";
+import { objectNumericalAperture } from "../src/pupil/microscope";
+import { visualMicroscope } from "../src/designs/visual-microscope";
+import { plosslEyepiece } from "../src/designs/eyepiece";
 
 /**
  * § 1.5.3 — REAL RAY AIMING: the stop a misalignment moved.
@@ -567,3 +578,234 @@ describe("§ 2z.4 — real aiming solves through the continuation", () => {
   });
 });
 
+/**
+ * § 2z.5 — the stop sized by a real ray.
+ *
+ * Every objective sized its stop paraxially, so its real marginal ray — the
+ * stop's rim ray, under real aiming — left the specimen at the engraving only to
+ * first order. Sized where the ray at exactly the engraved NA crosses the stop,
+ * the delivered NA is the engraving to rounding, on every architecture.
+ */
+describe("§ 2z.5 — the stop sized by a real ray delivers the engraved NA", () => {
+  const inf = (o: Parameters<typeof infinityCorrectedMicroscope>[0]["objective"]) =>
+    infinityCorrectedMicroscope({ objective: o, tubeLens: tubeLens({ focalLengthMm: 200 }), infinitySpaceMm: 100 });
+  const din = (magnification: number, numericalAperture: number) => {
+    const objective = finiteConjugateObjective({ magnification, numericalAperture });
+    return { objective, system: finiteConjugateMicroscope({ objective }).system };
+  };
+  const cases = () => {
+    const i4 = microscopeObjective({ magnification: 4, numericalAperture: 0.1, tubeFocalLengthMm: 200 });
+    const i10 = microscopeObjective({ magnification: 10, numericalAperture: 0.2, tubeFocalLengthMm: 200 });
+    const li = listerObjective({ magnification: 40, numericalAperture: 0.2, tubeFocalLengthMm: 200 });
+    const oil = oilImmersionObjective({ magnification: 100, numericalAperture: 1.25, tubeFocalLengthMm: 200 });
+    return [
+      ["DIN 4×/0.10", 0.1, din(4, 0.1)],
+      ["DIN 4×/0.20", 0.2, din(4, 0.2)],
+      ["DIN 10×/0.20", 0.2, din(10, 0.2)],
+      ["infinity 4×/0.10", 0.1, { objective: i4, system: inf(i4).system }],
+      ["infinity 10×/0.20", 0.2, { objective: i10, system: inf(i10).system }],
+      ["Lister 40×/0.20", 0.2, { objective: li, system: inf(li).system }],
+      ["oil 100×/1.25", 1.25, { objective: oil, system: inf(oil).system }],
+    ] as const;
+  };
+  /** The same chain on the objective's own paraxial stop radius. */
+  const onParaxialStop = (system: OpticalSystem, paraxial: number): OpticalSystem => {
+    const k = system.prescription.surfaces.findIndex((s) => s.isStop);
+    const sized = (system.aperture as { readonly value: number }).value;
+    return {
+      ...system,
+      aperture: { kind: "stopRadius", value: paraxial },
+      prescription: {
+        ...system.prescription,
+        surfaces: system.prescription.surfaces.map((s, i) =>
+          i === k && s.semiAperture === sized ? { ...s, semiAperture: paraxial } : s,
+        ),
+      },
+    };
+  };
+
+  /** How far past the stop's rim a rim ray lands, relative — the bundle's, or the readout's to the last bit. */
+  const rimLanding = (system: OpticalSystem, nm: number, lastBit: boolean): number => {
+    const k = system.prescription.surfaces.findIndex((s) => s.isStop);
+    const open = compile({
+      ...system.prescription,
+      surfaces: system.prescription.surfaces.map((s) => ({ ...s, semiAperture: Infinity })),
+    });
+    const ray = aimRay(system, pupils(system, nm), 0, { px: 1, py: 0 }, nm, { lastBit });
+    const local = applyToPoint(open.surfaces[k]!.inverseFrame, traceRay(open, ray).path[k]!);
+    // The aperture names the stop radius; the stop surface's own rim can be wider (the Lister's).
+    return Math.hypot(local.x, local.y) / (system.aperture as { readonly value: number }).value - 1;
+  };
+
+  it("on every architecture, to 1e-15 — where the paraxial stop delivered the engraving to first order", () => {
+    for (const [name, na, { objective, system }] of cases()) {
+      const nm = system.wavelengths[0]!.nm;
+      const got = objectNumericalAperture(system, nm);
+      const old = objectNumericalAperture(onParaxialStop(system, objective.stopRadiusMm), nm);
+      // The sizing is exact, and the readout re-solves the rim ray. A bundle's
+      // solve stops anywhere inside the clip's margin — 7.0e-15 inside the rim on
+      // the DIN 4×/0.20, whose NA reads 4.7e-15 low on it (6.0e-15 past, 3.6e-15
+      // high, before § 2z.6's Jacobian; 7.4e-14 inside on the infinity 4×) — so
+      // the readout solves its one ray on to the last bit: on the rim to an ulp on
+      // all seven, the NA within 4.4e-16.
+      expect(Math.abs(rimLanding(system, nm, true)), name).toBeLessThan(1e-15);
+      // The control: the bundle's own rim ray, where the 4×/0.20's stopped.
+      if (name === "DIN 4×/0.20") expect(Math.abs(rimLanding(system, nm, false)), name).toBeGreaterThan(5e-15);
+      expect(Math.abs(got / na - 1), name).toBeLessThan(1e-15);
+      // The control: on the paraxial stop the same rim ray read 0.10072, 0.18950,
+      // 0.19771, 0.10082, 0.20140 and 0.20090 down this list — off by 0.45% to
+      // 5.2%, either way — and the oil's, whose stop is its flat front face, is
+      // the one the paraxial radius already had right.
+      if (name.startsWith("oil")) expect(Math.abs(old / na - 1), name).toBeLessThan(1e-15);
+      else expect(Math.abs(old / na - 1), name).toBeGreaterThan(4e-3);
+    }
+  });
+
+  it("the diaphragm is the LENS's: the wrong slip keeps it, and a re-specified copy is re-sized", () => {
+    // § 2z.9. The constructor cuts the diaphragm once, on the objective as built;
+    // a composition handed that lens in another stack keeps it. Re-sized per
+    // stack, a 100×/1.40 meeting the wrong slip would deliver 1.40 at every
+    // thickness, and § 6e.5's slip-dependent NA — the physics a mismatch is read
+    // for — would vanish.
+    const oil = oilImmersionObjective({ magnification: 100, numericalAperture: 1.4, tubeFocalLengthMm: 200 });
+    const built = oil.realStop!;
+    expect(built.fromStopRadiusMm).toBe(oil.stopRadiusMm);
+    expect(built.numericalAperture).toBe(1.4);
+    const [s0, ...rest] = oil.prescription.surfaces;
+    for (const thicknessMm of [0.16, 0.17, 0.18]) {
+      const system = infinityCorrectedMicroscope({
+        objective: {
+          ...oil,
+          objectDistanceMm: thicknessMm,
+          prescription: { ...oil.prescription, surfaces: [{ ...s0!, thickness: s0!.thickness - (thicknessMm - 0.17) }, ...rest] },
+        },
+        tubeLens: tubeLens({ focalLengthMm: 200 }),
+      }).system;
+      expect(system.aperture).toEqual({ kind: "stopRadius", value: built.radiusMm });
+    }
+    // …and a copy that names another NA is not the lens the diaphragm was cut
+    // for: it is sized on what it was given, and delivers that.
+    const din = finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 });
+    const slower = finiteConjugateMicroscope({ objective: { ...din, numericalAperture: 0.095 } }).system;
+    expect(Math.abs(objectNumericalAperture(slower, din.designWavelengthNm) / 0.095 - 1)).toBeLessThan(1e-14);
+  });
+
+  it("an eyepiece behind the chain keeps its aim, so its stop is still filled to the engraving", () => {
+    // § 2z.9. `visualMicroscope` rebuilt the system without the chain's aim: a
+    // stop cut for the real marginal ray, aimed paraxially, under-filled to NA
+    // 0.0994 on the DIN 4×/0.10.
+    const eyepiece = plosslEyepiece({ focalLengthMm: 25, clearApertureMm: 22 }).prescription;
+    const objective = finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 });
+    for (const rayAiming of ["real", "paraxial"] as const) {
+      const visual = visualMicroscope({
+        microscope: finiteConjugateMicroscope({ objective, rayAiming }),
+        eyepiece,
+        wavelengthNm: objective.designWavelengthNm,
+      });
+      expect(visual.system.rayAiming).toBe(rayAiming);
+      expect(Math.abs(objectNumericalAperture(visual.system, objective.designWavelengthNm) / 0.1 - 1)).toBeLessThan(
+        1e-14,
+      );
+    }
+  });
+});
+
+/**
+ * § 2z.6 — a rim ray lands inside its own stop's clip.
+ *
+ * The trace clips where r² exceeds the rim's radius² × (1 + 1e-12) — 5e-13 of
+ * the radius — so a ray real aiming solved onto the rim must land closer than
+ * that, or the stop it was aimed at vignettes it. The solve's chord runs to a
+ * tenth of its 1e-12 tolerance for exactly this, but an early exit accepted
+ * anything inside `tol` when the chord stalled: on the DIN 4×/0.20 at 0.85 mm
+ * ten of 1600 rim rays landed up to 8.4e-13 past the rim, read "vignetted@3", and
+ * the exit layout's rim flickered between the stop and a cut by the stop until
+ * its corners never settled. External number: the clip's own 5e-13.
+ */
+describe("§ 2z.6 — a rim ray real aiming solved lands inside its stop's clip", () => {
+  const inf = (o: Parameters<typeof infinityCorrectedMicroscope>[0]["objective"]) =>
+    infinityCorrectedMicroscope({ objective: o, tubeLens: tubeLens({ focalLengthMm: 200 }), infinitySpaceMm: 100 });
+  const din = (magnification: number, numericalAperture: number) =>
+    finiteConjugateMicroscope({ objective: finiteConjugateObjective({ magnification, numericalAperture }) }).system;
+  const presets = (): readonly (readonly [string, number, OpticalSystem])[] => [
+    ["DIN 4×/0.10", 4, din(4, 0.1)],
+    ["DIN 4×/0.20", 4, din(4, 0.2)],
+    ["DIN 10×/0.20", 10, din(10, 0.2)],
+    ["infinity 4×/0.10", 4, inf(microscopeObjective({ magnification: 4, numericalAperture: 0.1, tubeFocalLengthMm: 200 })).system],
+    ["infinity 10×/0.20", 10, inf(microscopeObjective({ magnification: 10, numericalAperture: 0.2, tubeFocalLengthMm: 200 })).system],
+    ["Lister 40×/0.20", 40, inf(listerObjective({ magnification: 40, numericalAperture: 0.2, tubeFocalLengthMm: 200 })).system],
+    ["oil 100×/1.25", 100, inf(oilImmersionObjective({ magnification: 100, numericalAperture: 1.25, tubeFocalLengthMm: 200 })).system],
+  ];
+  /** The worst rim landing past the radius, relative, over `rays` azimuths. */
+  const worstPast = (system: OpticalSystem, h: number, nm: number, rays: number): number => {
+    const k = system.prescription.surfaces.findIndex((s) => s.isStop);
+    const radius = system.prescription.surfaces[k]!.semiAperture;
+    const open = compile({
+      ...system.prescription,
+      surfaces: system.prescription.surfaces.map((s) => ({ ...s, semiAperture: Infinity })),
+    });
+    const pupil = pupils(system, nm);
+    let worst = -Infinity;
+    for (let a = 0; a < rays; a++) {
+      const t = (2 * Math.PI * a) / rays;
+      let ray;
+      try {
+        ray = aimRay(system, pupil, h, { px: Math.cos(t), py: Math.sin(t) }, nm);
+      } catch (e) {
+        // A rim point vignetting makes unreachable is refused, not landed.
+        if (e instanceof UnreachableStopPoint) continue;
+        throw e;
+      }
+      const hit = traceRay(open, ray).path[k]!;
+      const local = applyToPoint(open.surfaces[k]!.inverseFrame, hit);
+      worst = Math.max(worst, Math.hypot(local.x, local.y) / radius - 1);
+    }
+    return worst;
+  };
+
+  it("on the DIN 4×/0.20 at 0.85 mm, where an accepted rim ray read vignetted by its own stop", () => {
+    const system = din(4, 0.2);
+    expect(worstPast(system, 0.85, 545, 64)).toBeLessThan(5e-13);
+  });
+
+  it("on every preset, across the field the mosaics are anchored over", () => {
+    for (const [name, M, system] of presets()) {
+      for (const h of [0, 0.75, 1.5, 2.25, 3, 3.75, 4.5].map((r) => r / M)) {
+        for (const nm of [430, 486.1327, 545, 587.5618, 656.2725]) {
+          expect(worstPast(system, h, nm, 64), `${name} at ${h} mm, ${nm} nm`).toBeLessThan(5e-13);
+        }
+      }
+    }
+  });
+
+  it("a ray's bits do not depend on the rays solved before it", () => {
+    // The shared Jacobian was taken at the first ray's seed, off differences of
+    // its misses, so it carried that ray's start and target in its last bits and
+    // every later ray's chord with them: the same stop point on two identical
+    // systems after different warm-ups came out 1e-16 to 1.5e-14 apart in
+    // direction (the DIN 4×/0.20 at 0.3 mm, 656 nm). Now it is taken at the
+    // chief's seed off the landings themselves.
+    const solve = (system: OpticalSystem, h: number, nm: number, point: { px: number; py: number }) => {
+      try {
+        return aimRay(system, pupils(system, nm), h, point, nm).dir;
+      } catch (e) {
+        if (e instanceof UnreachableStopPoint) return null;
+        throw e;
+      }
+    };
+    const fresh = presets();
+    const warmed = presets();
+    for (let i = 0; i < fresh.length; i++) {
+      const [name, M] = fresh[i]!;
+      for (const nm of [486.1327, 656.2725]) {
+        const h = 1.5 / M;
+        const target = { px: 0.3, py: 0.2 };
+        const cold = solve(fresh[i]![2], h, nm, target)!;
+        const system = warmed[i]![2];
+        for (const point of [{ px: 1, py: 0 }, { px: -0.7, py: 0.6 }, { px: 0, py: 0 }]) solve(system, h, nm, point);
+        const warm = solve(system, h, nm, target)!;
+        expect([warm.x, warm.y, warm.z], `${name} at ${nm} nm`).toEqual([cold.x, cold.y, cold.z]);
+      }
+    }
+  });
+});

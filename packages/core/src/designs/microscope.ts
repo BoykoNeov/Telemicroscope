@@ -1,10 +1,16 @@
 import { Prescription, SurfaceSpec, reversePrescription } from "../trace/prescription";
 import { paraxialTrace, systemProperties } from "../trace/paraxial";
 import { collimatingObjectDistance, spliceModules } from "../trace/compose";
-import { OpticalSystem } from "../trace/system";
+import { OpticalSystem, type RayAiming } from "../trace/system";
 import { LINE_D } from "../materials/dispersion";
 import { getMedium } from "../materials/catalog";
 import { seidelSums } from "../analysis/seidel";
+import { aimRay, objectPoint, UnreachableStopPoint } from "../pupil/aiming";
+import { pupils } from "../pupil/pupils";
+import { traceRay } from "../trace/sequential";
+import { compile } from "../trace/compile";
+import { makeRay } from "../trace/ray";
+import { vec3 } from "../math/vec3";
 import { AchromaticObjective, DoubletApertureRefusal, achromaticObjective } from "./achromat";
 import {
   Coverslip,
@@ -356,6 +362,11 @@ export type StopPlacement = "backFocal" | "rim";
  */
 export interface InfinityCorrectedObjective {
   /**
+   * The NA the stop is sized to deliver along a REAL marginal ray (§ 2z.5), or
+   * undefined to keep `stopRadiusMm` as given.
+   */
+  readonly numericalAperture: number | undefined;
+  /**
    * The objective alone, authored **specimen-side first**, trailing thickness 0:
    * the gap into the infinity space belongs to whatever follows.
    */
@@ -366,6 +377,18 @@ export interface InfinityCorrectedObjective {
   readonly objectDistanceMm: number;
   /** Aperture stop semi-diameter (mm): the cone that delivers the stated NA. */
   readonly stopRadiusMm: number;
+  /**
+   * The diaphragm's radius as BUILT under real aiming (§ 2z.5): where the ray
+   * leaving the axial specimen point at exactly the engraved NA crosses the
+   * stop, traced on this objective at its own design conjugate and slip. A
+   * composition aiming real takes it rather than re-sizing for the stack it is
+   * handed, so the same lens meeting a slip it was not made for keeps its
+   * diaphragm and delivers a different NA — which is the physics a mismatch is
+   * read for (§ 6e.5). It is kept only for the stop it was built from: a copy
+   * that re-sizes `stopRadiusMm` or names another NA or design wavelength is
+   * sized on what it was given, as is one that omits it.
+   */
+  readonly realStop?: BuiltRealStop;
   /**
    * How far past the module's last GLASS vertex its own stop sits (mm), if it
    * carries one there. Omitted or 0 means the stop is on the glass, which is
@@ -484,6 +507,94 @@ export interface MicroscopeObjective extends InfinityCorrectedObjective {
  * front focus.
  */
 export function microscopeObjective(spec: MicroscopeObjectiveSpec): MicroscopeObjective {
+  const key = spec.fieldNumberMm === undefined ? undefined : JSON.stringify(spec);
+  const settled = key === undefined ? undefined : SETTLED_GLASS_MM.get(key);
+  if (settled !== undefined) return builtObjective(spec, settled);
+  const closedForm = builtObjective(spec);
+  if (closedForm.fieldNumberMm === undefined) return closedForm;
+  // `f·NA + h` is the beam the PARAXIAL aim launched from the field edge. Real
+  // aiming fills the stop there, and the beam it launches is up to 2% wider off
+  // axis than the paraxial aim's (§ 2z.3), so on the catalogue's 4×, 10× and 20×
+  // at NA 0.10 and FN 18 the closed form was no longer a bound: the edge beam
+  // reached 1.0121 of it on the crown's outer face, past that face's 0.5% rim
+  // margin, and 6 of 769 rays from the field edge were lost there. The glass is
+  // therefore the closed form or the traced beam, whichever is wider — built at
+  // that aperture, for the header's reason — and re-traced on the lens it builds,
+  // whose principal planes and stop move with the glass (§ 2z.7).
+  let objective = closedForm;
+  for (let pass = 0; pass < 8; pass++) {
+    const beamMm = fieldEdgeBeamMm(objective, spec.tubeFocalLengthMm ?? DEFAULT_TUBE_FOCAL_LENGTH_MM);
+    if (beamMm <= objective.glassRadiusMm * (1 + 1e-9)) {
+      SETTLED_GLASS_MM.set(key!, objective.glassRadiusMm);
+      return objective;
+    }
+    objective = builtObjective(spec, beamMm);
+  }
+  throw new Error(
+    `microscopeObjective: the glass did not settle on the field edge's real beam in 8 passes (FN ${closedForm.fieldNumberMm} mm, NA ${spec.numericalAperture})`,
+  );
+}
+
+/**
+ * The glass each field-sized spec settled on, so a second build of the same lens
+ * is one construction at that aperture and not the search again: the catalogue's
+ * rows are built over and over, and the search is four constructions and two
+ * traced compositions. Keyed by the whole spec, which is plain data.
+ */
+const SETTLED_GLASS_MM = new Map<string, number>();
+
+/**
+ * Rim rays traced from the field edge to find how wide the real beam is on the
+ * glass. The widest is the meridional ray toward the field (azimuth 0 of 3600 on
+ * the 4×), which every count divisible by two includes; 16 keeps the rest of the
+ * rim in view on a lens where that would not hold.
+ */
+const FIELD_EDGE_RIM_RAYS = 16;
+
+/**
+ * How far from the axis the field edge's real-aimed rim reaches on the
+ * objective's glass faces (mm), on the chain as it ships: composed with a tube
+ * lens, its stop sized by a real ray, aimed real, at the design wavelength.
+ * Traced with every rim removed, so a ray the glass would cut still says where
+ * it lands.
+ */
+function fieldEdgeBeamMm(objective: MicroscopeObjective, tubeFocalLengthMm: number): number {
+  const system = infinityCorrectedMicroscope({
+    objective,
+    tubeLens: tubeLens({ focalLengthMm: tubeFocalLengthMm }),
+  }).system;
+  const nm = objective.designWavelengthNm;
+  const pupil = pupils(system, nm);
+  const open = compile({
+    ...system.prescription,
+    surfaces: system.prescription.surfaces.map((x) => ({ ...x, semiAperture: Infinity })),
+  });
+  // The glass faces: after the slip's upper face, if any, up to the diaphragm.
+  const first = objective.coverslip === undefined ? 0 : 1;
+  let widest = 0;
+  for (let i = 0; i < FIELD_EDGE_RIM_RAYS; i++) {
+    const t = (2 * Math.PI * i) / FIELD_EDGE_RIM_RAYS;
+    let ray;
+    try {
+      ray = aimRay(system, pupil, objective.objectFieldRadiusMm, { px: Math.cos(t), py: Math.sin(t) }, nm);
+    } catch (e) {
+      if (e instanceof UnreachableStopPoint) continue;
+      throw e;
+    }
+    const path = traceRay(open, ray).path;
+    for (let k = first; k < objective.stopSurfaceIndex; k++) {
+      const hit = path[k];
+      if (hit) widest = Math.max(widest, Math.hypot(hit.x, hit.y));
+    }
+  }
+  return widest;
+}
+
+/**
+ * `microscopeObjective`'s construction at a stated glass semi-diameter, or the
+ * closed form `f·NA + h` when none is given.
+ */
+function builtObjective(spec: MicroscopeObjectiveSpec, glassRadiusOverrideMm?: number): MicroscopeObjective {
   const M = spec.magnification;
   const NA = spec.numericalAperture;
   if (!(M > 0)) throw new Error("microscopeObjective: magnification must be positive");
@@ -527,7 +638,7 @@ export function microscopeObjective(spec: MicroscopeObjectiveSpec): MicroscopeOb
   // semi-field the field number implies (§ 6w). Sized to the axial beam alone —
   // no field number — that walk runs off the glass, which is § 6v.5's whole cost.
   const objectFieldRadiusMm = fieldNumberMm === undefined ? 0 : fieldNumberMm / (2 * M);
-  const glassRadiusMm = pupilRadiusMm + objectFieldRadiusMm;
+  const glassRadiusMm = glassRadiusOverrideMm ?? pupilRadiusMm + objectFieldRadiusMm;
   // 1/(2·NA) when the glass is the beam; faster than that once it is oversized,
   // and the doublet is genuinely built at the faster ratio — the thicknesses
   // default off D, and an element wider than its design aperture would pass an
@@ -814,8 +925,16 @@ export function microscopeObjective(spec: MicroscopeObjectiveSpec): MicroscopeOb
   }
 
   const front = glass.surfaces[0]!;
+  const built = builtRealStop({
+    prescription: withSlipPrescription,
+    objectDistanceMm,
+    stopRadiusMm,
+    numericalAperture: NA,
+    designWavelengthNm,
+  });
   return {
     prescription: withSlipPrescription,
+    ...(built === undefined ? {} : { realStop: built }),
     focalLengthMm: f,
     paraxialFocalLengthMm: systemProperties(prescription, designWavelengthNm).efl,
     pupilRadiusMm,
@@ -983,6 +1102,14 @@ export interface InfinityCorrectedSpec {
   readonly objectHeightsMm?: readonly number[];
   /** Wavelengths to evaluate. Defaults to the objective's design wavelength alone. */
   readonly wavelengths?: readonly { readonly nm: number; readonly weight: number }[];
+  /**
+   * How the system aims a pupil coordinate, and so how its stop is sized:
+   * `"real"` (default, § 2z) sizes it where the real marginal ray at the
+   * engraved NA crosses it; `"paraxial"` keeps the objective's paraxial radius,
+   * where the paraxial aim's cone is the engraving. Either way the system's own
+   * marginal ray delivers the NA it is engraved with (§ 2z.5).
+   */
+  readonly rayAiming?: RayAiming;
 }
 
 /**
@@ -1094,16 +1221,29 @@ export function infinityCorrectedMicroscope(
   }
   const imageDistanceMm = -probe.y / probe.u;
 
-  const prescription = build(imageDistanceMm);
   const wavelengths = spec.wavelengths ?? [{ nm: lambda, weight: 1 }];
   const objectHeightsMm = spec.objectHeightsMm ?? [0];
+  const conjugate = { kind: "finite", distance: objectDistanceMm } as const;
+  const rayAiming = spec.rayAiming ?? "real";
+  const sized = realStop(
+    build(imageDistanceMm),
+    conjugate,
+    objective.stopRadiusMm,
+    rayAiming === "real" ? objective.numericalAperture : undefined,
+    lambda,
+    builtStopFor(objective, lambda),
+  );
+  const prescription = sized.prescription;
 
   const system: OpticalSystem = {
     prescription,
-    aperture: { kind: "stopRadius", value: objective.stopRadiusMm },
+    aperture: { kind: "stopRadius", value: sized.stopRadiusMm },
     field: { kind: "objectHeight", values: objectHeightsMm },
     wavelengths,
-    conjugate: { kind: "finite", distance: objectDistanceMm },
+    conjugate,
+    // A pupil coordinate names a point on the stop (§ 2z): the paraxial pupil's
+    // rim is not the stop's, so the light it launched was the wrong cone.
+    rayAiming,
   };
 
   return {
@@ -1281,6 +1421,8 @@ export interface FiniteConjugateObjectiveSpec {
 }
 
 export interface FiniteConjugateObjective {
+  /** As `InfinityCorrectedObjective.realStop`: the diaphragm as built (§ 2z.5). */
+  readonly realStop?: BuiltRealStop;
   /**
    * The objective alone, authored **specimen-side first**, trailing thickness 0.
    *
@@ -1953,8 +2095,16 @@ export function finiteConjugateObjective(
   const freeWorkingDistanceMm =
     (slip === undefined ? airEquivalentObjectDistanceMm : airGapMm) -
     sag(front.curvature, front.semiAperture);
+  const built = builtRealStop({
+    prescription,
+    objectDistanceMm,
+    stopRadiusMm,
+    numericalAperture: NA,
+    designWavelengthNm,
+  });
   return {
     prescription,
+    ...(built === undefined ? {} : { realStop: built }),
     focalLengthMm: f,
     paraxialFocalLengthMm,
     objectDistanceMm,
@@ -1993,6 +2143,14 @@ export interface FiniteConjugateSpec {
   /** Object heights (mm from the axis) the system's field is spelled with. */
   readonly objectHeightsMm?: readonly number[];
   readonly wavelengths?: readonly { readonly nm: number; readonly weight: number }[];
+  /**
+   * How the system aims a pupil coordinate, and so how its stop is sized:
+   * `"real"` (default, § 2z) sizes it where the real marginal ray at the
+   * engraved NA crosses it; `"paraxial"` keeps the objective's paraxial radius,
+   * where the paraxial aim's cone is the engraving. Either way the system's own
+   * marginal ray delivers the NA it is engraved with (§ 2z.5).
+   */
+  readonly rayAiming?: RayAiming;
 }
 
 export interface FiniteConjugateMicroscope extends ImageFormingMicroscope {
@@ -2014,17 +2172,25 @@ export interface FiniteConjugateMicroscope extends ImageFormingMicroscope {
  */
 export function finiteConjugateMicroscope(spec: FiniteConjugateSpec): FiniteConjugateMicroscope {
   const { objective } = spec;
-  const prescription = asObjective(
-    objective.prescription,
-    objective.imageDistanceMm,
-    objective.stopSurfaceIndex,
+  const conjugate = { kind: "finite", distance: objective.objectDistanceMm } as const;
+  const rayAiming = spec.rayAiming ?? "real";
+  const sized = realStop(
+    asObjective(objective.prescription, objective.imageDistanceMm, objective.stopSurfaceIndex),
+    conjugate,
+    objective.stopRadiusMm,
+    rayAiming === "real" ? objective.numericalAperture : undefined,
+    objective.designWavelengthNm,
+    builtStopFor(objective, objective.designWavelengthNm),
   );
+  const prescription = sized.prescription;
   const system: OpticalSystem = {
     prescription,
-    aperture: { kind: "stopRadius", value: objective.stopRadiusMm },
+    aperture: { kind: "stopRadius", value: sized.stopRadiusMm },
     field: { kind: "objectHeight", values: spec.objectHeightsMm ?? [0] },
     wavelengths: spec.wavelengths ?? [{ nm: objective.designWavelengthNm, weight: 1 }],
-    conjugate: { kind: "finite", distance: objective.objectDistanceMm },
+    conjugate,
+    // A pupil coordinate names a point on the stop (§ 2z), as on the infinity chain.
+    rayAiming,
   };
   return {
     system,
@@ -2034,4 +2200,137 @@ export function finiteConjugateMicroscope(spec: FiniteConjugateSpec): FiniteConj
     imageDistanceMm: objective.imageDistanceMm,
     opticalTubeLengthMm: objective.opticalTubeLengthMm,
   };
+}
+
+/**
+ * The stop sized by a REAL ray (§ 2z.5): the radius at which the marginal ray
+ * leaving the axial specimen point at exactly the engraved NA crosses the stop.
+ *
+ * Every objective here sizes its stop paraxially — `f·n·tan u` behind the glass,
+ * `s·tan u` on its rim — which is the engraving only to first order. Real aiming
+ * names a point on the stop, so its marginal ray is the stop's rim ray, and on
+ * the paraxial radius that ray leaves the specimen at 0.1007 on the DIN 4×/0.10
+ * and 0.1008 on the infinity 4×: the cone the paraxial aim under-filled, and the
+ * light § 2z.3 found it missing. A designer sizes the stop so the real marginal
+ * ray delivers the NA; this is that, at the design wavelength, by one trace — the
+ * ray is known, and only where it crosses the stop is not.
+ *
+ * A diaphragm whose rim is the paraxial stop radius takes the new one with it,
+ * so the clear aperture and the pupil stay one number; a stop flagged on a glass
+ * surface keeps that surface's own rim.
+ */
+function realStop(
+  prescription: Prescription,
+  conjugate: { readonly kind: "finite"; readonly distance: number },
+  paraxialRadiusMm: number,
+  numericalAperture: number | undefined,
+  wavelengthNm: number,
+  builtRadiusMm?: number,
+): { readonly prescription: Prescription; readonly stopRadiusMm: number } {
+  if (numericalAperture === undefined) return { prescription, stopRadiusMm: paraxialRadiusMm };
+  const stopIndex = prescription.surfaces.findIndex((s) => s.isStop);
+  if (stopIndex < 0) throw new Error("realStop: the chain declares no stop");
+  if (builtRadiusMm !== undefined) return withStopRadius(prescription, stopIndex, paraxialRadiusMm, builtRadiusMm);
+  const n = getMedium(prescription.objectMedium ?? "AIR").n(wavelengthNm);
+  const sinU = numericalAperture / n;
+  if (!(sinU > 0 && sinU < 1)) {
+    throw new NoRealCone(`realStop: NA ${numericalAperture} in a medium of index ${n} names no real cone`);
+  }
+  const probe: OpticalSystem = {
+    prescription,
+    aperture: { kind: "stopRadius", value: paraxialRadiusMm },
+    field: { kind: "objectHeight", values: [0] },
+    wavelengths: [{ nm: wavelengthNm, weight: 1 }],
+    conjugate,
+  };
+  const ray = makeRay(objectPoint(probe, 0), vec3(sinU, 0, Math.sqrt(1 - sinU * sinU)), wavelengthNm);
+  // Every rim removed: the stop's size is what is being found, and whether a
+  // lens rim passes this ray is the vignetting question, not this one.
+  const bare = compile({
+    ...prescription,
+    surfaces: prescription.surfaces.map((s) => ({ ...s, semiAperture: Infinity })),
+  });
+  const traced = traceRay(bare, ray);
+  const hit = traced.path[stopIndex];
+  if (hit === undefined || (traced.failedAt !== undefined && traced.failedAt <= stopIndex)) {
+    throw new NoRealCone(`realStop: the NA ${numericalAperture} marginal ray does not reach the stop (${traced.status})`);
+  }
+  if (!bare.surfaces[stopIndex]!.isAxial) throw new Error("realStop: a tilted or decentred stop is not sized here");
+  return withStopRadius(prescription, stopIndex, paraxialRadiusMm, Math.hypot(hit.x, hit.y));
+}
+
+/** The chain with a diaphragm whose rim was the paraxial radius re-cut to `stopRadiusMm`. */
+function withStopRadius(
+  prescription: Prescription,
+  stopIndex: number,
+  paraxialRadiusMm: number,
+  stopRadiusMm: number,
+): { readonly prescription: Prescription; readonly stopRadiusMm: number } {
+  const surfaces = prescription.surfaces.map((s, i) =>
+    i === stopIndex && s.semiAperture === paraxialRadiusMm ? { ...s, semiAperture: stopRadiusMm } : s,
+  );
+  return { prescription: { ...prescription, surfaces }, stopRadiusMm };
+}
+
+/** `realStop`'s refusal: the engraved NA has no real marginal ray on this lens. */
+class NoRealCone extends Error {}
+
+/** A diaphragm as built (§ 2z.5), with the paraxial stop, NA and wavelength it was sized from. */
+export interface BuiltRealStop {
+  readonly radiusMm: number;
+  readonly fromStopRadiusMm: number;
+  readonly numericalAperture: number;
+  readonly wavelengthNm: number;
+}
+
+/**
+ * An objective's diaphragm as built under real aiming: `realStop` on the
+ * objective alone, at its own specimen distance, slip and design wavelength.
+ * Every constructor calls it once, so a composition handed the same lens in
+ * another stack keeps the diaphragm the lens was made with.
+ */
+export function builtRealStop(objective: {
+  readonly prescription: Prescription;
+  readonly objectDistanceMm: number;
+  readonly stopRadiusMm: number;
+  readonly numericalAperture: number;
+  readonly designWavelengthNm: number;
+}): BuiltRealStop | undefined {
+  try {
+    return {
+      radiusMm: realStop(
+        objective.prescription,
+        { kind: "finite", distance: objective.objectDistanceMm },
+        objective.stopRadiusMm,
+        objective.numericalAperture,
+        objective.designWavelengthNm,
+      ).stopRadiusMm,
+      fromStopRadiusMm: objective.stopRadiusMm,
+      numericalAperture: objective.numericalAperture,
+      wavelengthNm: objective.designWavelengthNm,
+    };
+  } catch (e) {
+    // No real cone at this NA on this lens: a composition aiming real says so
+    // itself, and one aiming paraxially never asks.
+    if (e instanceof NoRealCone) return undefined;
+    throw e;
+  }
+}
+
+/** The built diaphragm, if the objective still names the stop, NA and wavelength it was built from. */
+function builtStopFor(
+  objective: {
+    readonly realStop?: BuiltRealStop;
+    readonly stopRadiusMm: number;
+    readonly numericalAperture?: number | undefined;
+  },
+  wavelengthNm: number,
+): number | undefined {
+  const b = objective.realStop;
+  return b !== undefined &&
+    b.fromStopRadiusMm === objective.stopRadiusMm &&
+    b.numericalAperture === objective.numericalAperture &&
+    b.wavelengthNm === wavelengthNm
+    ? b.radiusMm
+    : undefined;
 }

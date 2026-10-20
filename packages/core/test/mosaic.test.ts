@@ -395,6 +395,19 @@ const TELECENTRIC: OpticalSystem = finiteConjugateMicroscope({
  */
 const AIM = { layout: "aim" } as const;
 
+/**
+ * The two members on the paraxial aim and its stop, for what is read on the aim
+ * layout: that layout is the paraxial aim's affine map (§ 2z.7).
+ */
+const SYSTEM_AIM: OpticalSystem = finiteConjugateMicroscope({
+  objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1, stopPlacement: "rim" }),
+  rayAiming: "paraxial",
+}).system;
+const TELECENTRIC_AIM: OpticalSystem = finiteConjugateMicroscope({
+  objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
+  rayAiming: "paraxial",
+}).system;
+
 const layoutOf = (over: Partial<Parameters<typeof mosaicLayout>[1]> = {}) =>
   mosaicLayout(SYSTEM, {
     tiles: 2,
@@ -467,7 +480,7 @@ describe("§ 6o.6 — a mosaic's pitch is not its tile span, and the solve is sk
     // Growing, and monotone, so it is the ruler's real field dependence and not
     // f64 noise — it is simply far below the pixel that would make it matter.
     const drifts = [3, 5, 9, 17].map((tiles) =>
-      mosaicPitchDriftPx(SYSTEM, {
+      mosaicPitchDriftPx(SYSTEM_AIM, {
         tiles,
         size: SIZE,
         pupilSamples: TILE_PS,
@@ -493,7 +506,7 @@ describe("§ 6o.6 — a mosaic's pitch is not its tile span, and the solve is sk
     // ruler — the third-order distortion grew 70.7× at § 6ai and none of that
     // appears here, which is how a caller can tell the two apart.
     const telecentricDrifts = [3, 5, 9, 17].map((tiles) =>
-      mosaicPitchDriftPx(TELECENTRIC, {
+      mosaicPitchDriftPx(TELECENTRIC_AIM, {
         tiles,
         size: SIZE,
         pupilSamples: TILE_PS,
@@ -517,13 +530,13 @@ describe("§ 6o.6 — a mosaic's pitch is not its tile span, and the solve is sk
     }
     expect(departure[0]!).toBeLessThan(2e-5);
     expect(departure[departure.length - 1]!).toBeLessThan(2e-4);
-    const scale = objectFieldFrame(SYSTEM, {
+    const scale = objectFieldFrame(SYSTEM_AIM, {
       size: SIZE,
       pupilSamples: TILE_PS,
       wavelengthNm: LAMBDA,
       ...AIM,
     }).scale.referenceRadius;
-    const telecentricScale = objectFieldFrame(TELECENTRIC, {
+    const telecentricScale = objectFieldFrame(TELECENTRIC_AIM, {
       size: SIZE,
       pupilSamples: TILE_PS,
       wavelengthNm: LAMBDA,
@@ -593,12 +606,12 @@ describe("§ 6o.7 — composed on a traced objective, and the seam it makes", ()
       centreMm,
       ...AIM,
     } as const;
-    const l = mosaicLayout(SYSTEM, options);
+    const l = mosaicLayout(SYSTEM_AIM, options);
     const specimen = bars(8 * l.objectPixelScaleMm);
-    const mosaic = renderMosaic(SYSTEM, specimen, SOURCE, { ...options, patches: 2 });
+    const mosaic = renderMosaic(SYSTEM_AIM, specimen, SOURCE, { ...options, patches: 2 });
 
     const tile0 = l.tiles[0]!.frame;
-    const reference = objectFieldTile(SYSTEM, {
+    const reference = objectFieldTile(SYSTEM_AIM, {
       size: SIZE,
       pupilSamples: TILE_PS,
       wavelengthNm: LAMBDA,
@@ -606,8 +619,8 @@ describe("§ 6o.7 — composed on a traced objective, and the seam it makes", ()
       centreMm: { x: (tile0.centreMm.x + l.tiles[1]!.frame.centreMm.x) / 2, y: tile0.centreMm.y },
     });
     const truth = renderBrightfield(
-      rasterizeSpecimen(SYSTEM, reference, specimen, {}),
-      tracedFieldPupils(SYSTEM, reference),
+      rasterizeSpecimen(SYSTEM_AIM, reference, specimen, {}),
+      tracedFieldPupils(SYSTEM_AIM, reference),
       SOURCE,
       { scale: reference.scale, pupilSamples: TILE_PS, patches: 2 },
     );
@@ -868,17 +881,17 @@ describe("§ 6o.8 — the anchored tile, and rendering one alone", () => {
     //
     // Measured two ways, and they are two different sizes of mistake.
     const axis = { ...stageOptions(1), centreMm: { x: 0, y: 0 }, ...AIM } as const;
-    const anchored = mosaicTileAt(SYSTEM, axis, 8, 0);
+    const anchored = mosaicTileAt(SYSTEM_AIM, axis, 8, 0);
     const pxFrom = (centreMm: { x: number; y: number }, col: number): number =>
       Math.abs(
-        mosaicTileAt(SYSTEM, { ...axis, centreMm }, col, 0).frame.centreMm.x -
+        mosaicTileAt(SYSTEM_AIM, { ...axis, centreMm }, col, 0).frame.centreMm.x -
           anchored.frame.centreMm.x,
       ) / anchored.frame.pixelScaleMm;
 
     // Re-anchored on a tile CENTRE — the benign case, and the one that says the
     // ruler drift is real rather than f64 noise: 3.4e-3 px eight tiles out, which
     // is § 6m.4's parts per million arriving where it can be counted in pixels.
-    const onTile = pxFrom(mosaicTileAt(SYSTEM, axis, 4, 0).frame.centreMm, 4);
+    const onTile = pxFrom(mosaicTileAt(SYSTEM_AIM, axis, 4, 0).frame.centreMm, 4);
     expect(onTile).toBeGreaterThan(1e-4);
     expect(onTile).toBeLessThan(1e-2);
 

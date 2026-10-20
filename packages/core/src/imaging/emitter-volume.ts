@@ -140,8 +140,9 @@ import type { EmitterSlice, EmitterVolume } from "./volume";
  * **No deconvolution and no confocal** — § 6k names both by the missing cone.
  * **No axial sampling verdict**: `renderVolume` will image a stack whose slices
  * step by more than the kernel can resolve, and § 6k's list still owns that.
- * **Real ray aiming is paraxial in the rate.** With `rayAiming: "real"` the
- * chief ray is solved onto the stop rather than aimed at the paraxial pupil, so
+ * **Real ray aiming is paraxial in the rate.** Under `rayAiming: "real"` — the
+ * microscope presets' since § 2z — the chief ray is solved onto the stop
+ * rather than aimed at the paraxial pupil, so
  * the same-line argument still holds exactly — a ray from depth still crosses
  * the object plane somewhere, and the flat map still images that height — but
  * the crossing is no longer `h/(1 + z·k)` to all orders. The rate is a paraxial

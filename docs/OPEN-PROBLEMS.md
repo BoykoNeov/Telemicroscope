@@ -737,8 +737,17 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     has been audited (single-plane fluorescence left the aim layout at [§ 2p](VALIDATION.md#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone)). *What would close it:* the chain flips, or the
     aim layout's samples placed at `aimOrientation`·(px, py); `aimOrientation` is
     already the predicate, pinned against the paraxial pupil at § 2o.1.
-31. **Under the paraxial aim, an emitter's collected power is short — on axis and
-    more off it.** Found at [§ 2p](VALIDATION.md#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone). Since § 2n an emitter pupil's `formedSum` is
+    Since [§ 2z](VALIDATION.md#step-2z--real-aiming-for-the-finite-presets) the aim layout exists on the paraxial aim only: its direction map
+    is that aim's affine map, `pupilSlopeFrame` refuses a real-aiming system, and
+    every reading still on it is taken on a system built with `rayAiming:
+    "paraxial"` (§ 2z.7) — so a passing test there says nothing about the presets
+    as they ship. And the mirror is the paraxial aim's alone: real aiming names
+    stop points, `aimOrientation` reads 1 at every wavelength of § 2o.1's sweep,
+    and the real-aimed aim layout's centroid sits on the rays' side inside the
+    band (§ 2o.2's real leg) — the item is reached only by what is still read on
+    the paraxial aim.
+31. ~~**Under the paraxial aim, an emitter's collected power is short — on axis and more off it.**~~ **Closed at [§ 2z](VALIDATION.md#step-2z--real-aiming-for-the-finite-presets)**: every finite preset aims real, its stop sized where the ray at the engraved NA crosses it; every subject the hypothesis named reads within 2.6e-6 of a brute-force referee with no pupil coordinate in it, the paraxial control 1.41e-2 short. Left: the Lister's field edge (item 46), the DIN 4×/0.20's light (item 47), and the chains still read on the paraxial aim (item 48). Found
+    at [§ 2p](VALIDATION.md#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone). ~~Since § 2n an emitter pupil's `formedSum` is
     absolute, and fluorescence weights its patches and planes by it. Against a
     brute-force count (a direction-cosine lattice launched from the object point,
     every ray traced — the stop does clip, at its surface — Σ throughput/cos θ;
@@ -759,7 +768,7 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     reading that integrates a microscope pupil, so it is a flip of its own with the
     brute-force count as its rung, on and off axis. [§ 2y](VALIDATION.md#step-2y--the-outline-turns-at-the-rims-corners)'s
     located outline follows this aim: its arcs labelled "stop" are the aim disc's
-    rim, located to 1e-15, so closing this item moves them and their corners.
+    rim, located to 1e-15, so closing this item moves them and their corners.~~
 32. **A resolved rim's focus still moves with the lattice, smoothly.** Found at
     [§ 2q.3](VALIDATION.md#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout). With `edgeSamples` the 4×/0.10's
     rendered axial focus at 430 nm no longer scatters with `pupilSamples`, but it
@@ -999,6 +1008,38 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     see it). *Pin:* first a fixture with such a cut — a small aperture far
     off the beam — then a check of the rim between rays, e.g. the reach of a
     ray at each gap's midpoint.
+46. **The Lister's field edge reads its light by a point-sampled mask.** Found at
+    [§ 2z](VALIDATION.md#step-2z--real-aiming-for-the-finite-presets). On the Lister 40×/0.20's 9 mm tile (0.226 mm of object) a downstream
+    aperture cuts 244 of 12 853 pupil samples inside an outline that is the stop
+    all round, and the vignette mask there is point-sampled (item 25's note): the
+    light is −4.7e-5 off the referee and moves with the lattice under either aim —
+    −4.3e-6, −4.7e-5, −2.7e-4 at 64/128/256 real, a 3.8e-4 drift paraxial. Not the
+    aim. *Pin:* the referee already reads this tile; what is missing is an
+    outline that sees a cut interior to the stop's rim, or a mask resolved at its
+    edge as the rim is.
+47. **The DIN 4×/0.20's real-aimed light does not converge.** Found at [§ 2z](VALIDATION.md#step-2z--real-aiming-for-the-finite-presets).
+    Its stop grew 9% when sized by a real ray (7.853 → 8.570 mm; the paraxial
+    radius delivered 0.1895), and the stop-to-direction map's slope now halves
+    toward the rim (0.223 at the centre, 0.113 at it). Against the referee —
+    itself converged to 4e-15 between 16 and 32 nodes — its light reads 7.8e-5,
+    −2.9e-5, −5.5e-5, −6.1e-5 at 64/128/256/512: not monotone, and not settling
+    at the lattice's square as every other preset does. *Candidate:* the exit
+    density's fit across a pupil whose density varies by 4× rim to centre; first
+    read the density's own residue on this lens at those lattices.
+48. **Thirty-eight measurement chains are read on the paraxial aim.** Found at
+    [§ 2z](VALIDATION.md#step-2z--real-aiming-for-the-finite-presets). The anisotropy, seam, guard, escape, refusal, distortion,
+    flat-field, focus-surface, second-objective and stage-mosaic chains (the
+    list is § 2z.7's) are records of what was measured, on the aim and stop of
+    the time, and under real aiming about 350 of their 537 tests move (345
+    values, 5 refusals — a field that now runs out, a plateau). The thirty-eighth
+    is § 6be, the spectral field volume, whose findings move in kind rather than
+    in their figures: the clip coupling at 0.4 mm changes sign, the amplitude half
+    inside the clip is 5.8e-5 chromatic rather than 3.1e-7, and a frame's extent
+    stops tracking the cone's dispersion, which real aiming removes. They build their
+    systems with `rayAiming: "paraxial"`, so they still read what they recorded,
+    and say nothing about the presets as they ship. *What would close it:* each
+    chain re-measured on real aiming, one at a time — its own hypothesis and
+    threshold restated — the way item 24 flipped the layout chain by chain.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;

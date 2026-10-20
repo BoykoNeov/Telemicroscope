@@ -263,9 +263,18 @@ export interface InstrumentReadout {
 
 export type InstrumentResult = { readonly ok: true; readonly readout: InstrumentReadout } | Refusal;
 
-/** The chain the eyepiece goes behind — any spec, catalogue row or not (Part F). */
+/**
+ * The chain the eyepiece goes behind — any spec, catalogue row or not (Part F).
+ *
+ * On the paraxial aim, by name, as the stage is (APP.md D4). The panel reads
+ * § 6q.5's sec u = NA_paraxial/NA_engraved, which is exact on a stop sized
+ * `f·n·tan u`; real aiming cuts the stop where the real marginal ray crosses
+ * (§ 2z.5), and there the paraxial NA falls to 0.9991 of the engraving on the
+ * DIN 4× — the textbook form lands within 0.09% and the guard's label stops
+ * being a secant. Moving the panel onto the stop as built is its own change.
+ */
 function microscopeOf(spec: BuildSpec): ImageFormingMicroscope {
-  return buildMicroscope(spec).chain;
+  return buildMicroscope(spec, { rayAiming: "paraxial" }).chain;
 }
 
 /**

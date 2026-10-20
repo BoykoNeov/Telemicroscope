@@ -141,7 +141,13 @@ function systemFor(spec: BuildSpec): OpticalSystem {
   const key = specKey(spec);
   const hit = SYSTEMS.get(key);
   if (hit) return hit;
-  const system = buildMicroscope(spec).system;
+  // Aimed paraxially, though the preset aims real (§ 2z): the stage is on the
+  // aim layout (below), whose condenser directions go through the paraxial aim's
+  // affine map, and the engine refuses that layout under real aiming. The stop
+  // follows the aim (§ 2z.5) — the paraxial radius, where this aim's cone is the
+  // engraved NA — so the stage is the instrument it was. It takes real aiming
+  // when it takes the exit layout, the same open move.
+  const system = buildMicroscope(spec, { rayAiming: "paraxial" }).system;
   SYSTEMS.set(key, system);
   return system;
 }

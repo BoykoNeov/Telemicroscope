@@ -40,12 +40,13 @@ export interface CameraExposure {
  * its exit direction away from the axis is sin u′ — the image-space numerical
  * aperture in air. Trace-emergent: it is 1/(2F) only to first order, and departs
  * by the sine condition, which is the whole reason to read it rather than compute
- * it.
+ * it. Under real aiming the rim ray is solved onto the stop's rim to the last
+ * bit, as for the NA (§ 2z.5): this is a reading of that one ray.
  */
 export function imageSpaceMarginalSin(system: OpticalSystem, wavelengthNm: number): number {
   const c = asCompiled(system.prescription);
   const pupil = pupils(system, wavelengthNm);
-  const m = marginalRay(system, pupil, 0, wavelengthNm);
+  const m = marginalRay(system, pupil, 0, wavelengthNm, { lastBit: true });
   const traced = traceRay(system.prescription, m);
   if (traced.status !== "ok" || !traced.ray) {
     throw new Error(`marginal ray failed (${traced.status})`);

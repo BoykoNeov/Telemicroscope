@@ -8,7 +8,7 @@ import {
   tubeLens,
   type ImageFormingMicroscope,
 } from "@telemicroscope/core/designs";
-import type { OpticalSystem } from "@telemicroscope/core/trace";
+import type { OpticalSystem, RayAiming } from "@telemicroscope/core/trace";
 import { AppRefusal } from "./refusal";
 
 /**
@@ -205,6 +205,13 @@ export interface BuildOptions {
    * diagram existed. The DIN architecture has no tube lens and ignores it.
    */
   readonly tubeFocalLengthMm?: number;
+  /**
+   * How the instrument aims, and so how its stop is sized (§ 2z.5): real by
+   * default, where the stop delivers the engraved NA along a real marginal ray;
+   * paraxial for the stage, whose aim layout places condenser directions
+   * through the paraxial aim's map and so keeps the paraxial stop.
+   */
+  readonly rayAiming?: RayAiming;
 }
 
 /** The composed instrument, plus the objective's own solved numbers. */
@@ -346,7 +353,7 @@ export function buildMicroscope(spec: BuildSpec, options: BuildOptions = {}): Bu
             },
           }),
     });
-    const chain = finiteConjugateMicroscope({ objective });
+    const chain = finiteConjugateMicroscope({ objective, ...aimOf(options) });
     return {
       system: chain.system,
       chain,
@@ -355,7 +362,7 @@ export function buildMicroscope(spec: BuildSpec, options: BuildOptions = {}): Bu
         focalLengthMm: objective.focalLengthMm,
         paraxialFocalLengthMm: objective.paraxialFocalLengthMm,
         objectDistanceMm: objective.objectDistanceMm,
-        stopRadiusMm: objective.stopRadiusMm,
+        stopRadiusMm: stopRadiusOf(chain.system),
         workingFocalRatio: objective.workingFocalRatio,
         freeWorkingDistanceMm: objective.freeWorkingDistanceMm,
         airGapMm: objective.airGapMm,
@@ -383,6 +390,7 @@ export function buildMicroscope(spec: BuildSpec, options: BuildOptions = {}): Bu
       objective,
       tubeLens: tube,
       infinitySpaceMm: spec.infinitySpaceMm,
+      ...aimOf(options),
     });
 
   if (spec.form === "doublet") {
@@ -403,7 +411,7 @@ export function buildMicroscope(spec: BuildSpec, options: BuildOptions = {}): Bu
         focalLengthMm: objective.focalLengthMm,
         paraxialFocalLengthMm: objective.paraxialFocalLengthMm,
         objectDistanceMm: objective.objectDistanceMm,
-        stopRadiusMm: objective.stopRadiusMm,
+        stopRadiusMm: stopRadiusOf(chain.system),
         focalRatio: objective.focalRatio,
         pupilRadiusMm: objective.pupilRadiusMm,
         glassRadiusMm: objective.glassRadiusMm,
@@ -434,7 +442,7 @@ export function buildMicroscope(spec: BuildSpec, options: BuildOptions = {}): Bu
         focalLengthMm: objective.focalLengthMm,
         paraxialFocalLengthMm: objective.paraxialFocalLengthMm,
         objectDistanceMm: objective.objectDistanceMm,
-        stopRadiusMm: objective.stopRadiusMm,
+        stopRadiusMm: stopRadiusOf(chain.system),
         ...listerNumbers(objective),
       },
     };
@@ -466,7 +474,7 @@ export function buildMicroscope(spec: BuildSpec, options: BuildOptions = {}): Bu
       focalLengthMm: objective.focalLengthMm,
       paraxialFocalLengthMm: objective.paraxialFocalLengthMm,
       objectDistanceMm: objective.objectDistanceMm,
-      stopRadiusMm: objective.stopRadiusMm,
+      stopRadiusMm: stopRadiusOf(chain.system),
       domeRadiusMm: objective.domeRadiusMm,
       rearNumericalAperture: objective.rearNumericalAperture,
       groupGapMm: objective.groupGapMm,
@@ -742,3 +750,14 @@ export const oilSpec = (numericalAperture: number): BuildSpec => ({
     medium: ENGINE_DEFAULTS.slipMedium,
   },
 });
+
+/** The aim to hand a composition — only when one was asked for, so the default stays the core's. */
+function aimOf(options: BuildOptions): { readonly rayAiming?: RayAiming } {
+  return options.rayAiming === undefined ? {} : { rayAiming: options.rayAiming };
+}
+
+/** The stop the composed system carries — real-sized under real aiming (§ 2z.5), not the objective's paraxial radius. */
+function stopRadiusOf(system: OpticalSystem): number {
+  if (system.aperture.kind !== "stopRadius") throw new Error("builder: a microscope's aperture is its stop radius");
+  return system.aperture.value;
+}

@@ -643,8 +643,12 @@ export const TRIPLET_SPEC = {
 export function benchSeeds(): readonly BenchSeed[] {
   const pair = refractorPair(REFRACTOR_FOCAL_MM, REFRACTOR_SEMI_APERTURE_MM);
   const cass = cassegrain({ apertureMm: 200, focalRatio: 10, primaryFocalRatio: 4 });
+  // On the paraxial aim, as the bench aims (`toSystem` names no `rayAiming`): the
+  // stop follows the aim (§ 2z.5), and the real-aimed chain's stop, sized for a
+  // real marginal ray, would open the form 0.7% wide on a paraxially aimed lens.
   const dinChain = finiteConjugateMicroscope({
     objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
+    rayAiming: "paraxial",
   });
   const triplet = apochromaticObjective(TRIPLET_SPEC);
 

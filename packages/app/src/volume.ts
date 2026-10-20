@@ -1394,9 +1394,11 @@ export function axialResponse(request: AxialRequest): AxialResult {
     const minusOneWave = Math.round((-1 + RESPONSE_HALF_WAVES) / RESPONSE_STEP);
     // `measured` is already divided by the value at w₂₀ = 0, so the floor is a
     // bare comparison here.
+    // The ratio of the two kernels' own values, as `ratioAt` takes it: through
+    // `measured` it is (up/focus)/(down/focus), which rounds differently.
     const asymmetry =
       measured[minusOneWave]! > ASYMMETRY_FLOOR
-        ? measured[oneWave]! / measured[minusOneWave]!
+        ? onAxis(response[oneWave]!) / onAxis(response[minusOneWave]!)
         : null;
 
     const cone0 = buildFrame({

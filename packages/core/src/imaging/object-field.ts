@@ -11,7 +11,7 @@ import {
   type SpiderSpec,
 } from "../wave/psf";
 import { aimOrientation, canonicalApertureSine, exitApertureSine, opdMap } from "../pupil/opd";
-import { aimRay, pupilGrid, type AimOptions } from "../pupil/aiming";
+import { aimRay, pupilGrid, UnreachableStopPoint, type AimOptions } from "../pupil/aiming";
 import { pupils } from "../pupil/pupils";
 import { isPowerOfTwo } from "../math/fft";
 import { primaryWavelength, type OpticalSystem } from "../trace/system";
@@ -805,10 +805,19 @@ export function pupilDirectionMap(
   // slope runs — and reads that at half the pupil, not at the rim: under real
   // aiming an off-axis rim point can lie past a lens's knife edge, where no ray
   // exists to read (§ 2z.3), while the paraxial aim is affine and gives the same
-  // sign at either.
+  // sign at either. Far enough off axis half the pupil is past one too, and
+  // there the refusal's own launch — the continuation's, on the smooth map the
+  // solve ran over — gives the slope the aim runs along, as
+  // `objectNumericalAperture` reads it (§ 2z.4).
   const geometry = pupils(system, wavelengthNm);
   const slopeAt = (px: number): number => {
-    const ray = aimRay(system, geometry, objectHeightMm, { px, py: 0 }, wavelengthNm, options.aim ?? {});
+    let ray;
+    try {
+      ray = aimRay(system, geometry, objectHeightMm, { px, py: 0 }, wavelengthNm, options.aim ?? {});
+    } catch (e) {
+      if (!(e instanceof UnreachableStopPoint) || e.launch === undefined) throw e;
+      ray = e.launch;
+    }
     return ray.dir.x / ray.dir.z;
   };
   const chief = slopeAt(0);
@@ -896,11 +905,11 @@ export function pupilSlopeFrame(
   // names a point on the STOP, whose slope is not linear in it — the departure
   // is the pupil's own aberration, the 1% of light § 2z found the paraxial aim
   // missing — so any two aims would make this a secant, wrong across the
-  // interior in the shape of the very offset it places. Refused (§ 2z.4).
+  // interior in the shape of the very offset it places. Refused (§ 2z.7).
   if (system.rayAiming === "real") {
     throw new Error(
       `${who}: the aim layout places a direction through the paraxial aim's affine map, and this system aims real — ` +
-        "use the exit layout, or aim the system paraxially (§ 2z.4)",
+        "use the exit layout, or aim the system paraxially (§ 2z.7)",
     );
   }
   const geometry = pupils(system, wavelengthNm);

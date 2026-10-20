@@ -36,7 +36,10 @@ import type { EmitterSlice, EmitterVolume } from "../src/imaging/volume";
  * **§ 6bc read the field profile exactly where it is flat.** Throughput is even
  * in field radius, so its gradient vanishes at the axis; the 1.9e-8 § 6bc
  * measured across an on-axis frame is the one frame in the field the pupil does
- * not vary across. A frame at 4.5 mm spans 6.73e-3 of throughput across its own
+ * not vary across. (Under real aiming, § 2z, that frame spans 4.89e-6: the real
+ * stop's cone GROWS as 4.47e-3·h², object mm, which the paraxial aim's cone hid
+ * and § 2z.2's referee confirms — still the flattest frame by 700×, and the
+ * profile is convex there, which § 6bd.4 now records.) A frame at 4.5 mm spans 6.73e-3 of throughput across its own
  * patches. That is a different interval from § 6bc.4's axis-to-2.25 mm deficit,
  * not a contradiction of it — the patch centres at 4.5 mm cover 4.402–4.600 mm
  * of radius — and § 6bd.3 pins both so no later step can read one as the other.
@@ -271,11 +274,15 @@ describe("§ 6bd.3 — the field varies fastest where § 6bc did not read it", (
 
   it("the on-axis frame is the one frame the pupil does not vary across", () => {
     const axis = spanAt(0);
-    // 1.9e-8, and it is not a small number badly measured — it is the gradient
-    // of an EVEN function at its own centre. § 6bc.4 probed here and concluded
-    // the within-frame variation was nothing anywhere.
-    expect(axis.span).toBeLessThan(1e-7);
-    expect(axis.span).toBeGreaterThan(1e-9);
+    // It is the gradient of an EVEN function at its own centre, so what is left
+    // is the curvature's: 4.89e-6 under real aiming — the stop's cone growing as
+    // h², the same 4.889e-6 § 2q.4 reads off the launches and § 2z.2's referee
+    // off object-space directions — 730× under the frame at 2.25 mm. On the
+    // paraxial aim it read 1.9e-8, that aim's cone not following the stop.
+    // § 6bc.4 probed here and concluded the within-frame variation was nothing
+    // anywhere.
+    expect(axis.span).toBeCloseTo(4.89e-6, 8);
+    expect(axis.span).toBeLessThan(spanAt(2.25).span / 500);
   });
 
   it("and a frame where the clip begins spans more than the field beneath it does", () => {
@@ -287,9 +294,10 @@ describe("§ 6bd.3 — the field varies fastest where § 6bc did not read it", (
     // the staircase, which at 23 samples is a different staircase. Resolved on
     // the aim layout, 23 samples read 3.2090e-3, 6.4833e-3 and 7.3036e-3 — the
     // rest of the gap is the frame, which is pupilSamples wide.
-    expect(at225.span).toBeCloseTo(3.1435e-3, 6);
-    expect(at450.span).toBeCloseTo(6.6527e-3, 6);
-    expect(at600.span).toBeCloseTo(7.3134e-3, 6);
+    // Real aim and the engraved stop (§ 2z: was 3.1435e-3, 6.6527e-3, 7.3134e-3).
+    expect(at225.span).toBeCloseTo(3.5596e-3, 6);
+    expect(at450.span).toBeCloseTo(6.7550e-3, 6);
+    expect(at600.span).toBeCloseTo(7.3695e-3, 6);
     // The comparison, stated so it cannot be read as a correction of § 6bc.4:
     // that rung's figure is the AXIS-to-2.25 mm ratio; this is the span across
     // one frame whose patch centres cover only these radii.
@@ -297,11 +305,11 @@ describe("§ 6bd.3 — the field varies fastest where § 6bc did not read it", (
     expect(at225.radii[1]).toBeCloseTo(2.3513, 3);
     expect(at450.radii[0]).toBeCloseTo(4.4009, 3);
     expect(at450.radii[1]).toBeCloseTo(4.6003, 3);
-    // 0.315% across 0.200 mm of radius, against 0.260% across the 2.25 mm
-    // beneath it: the clip begins inside this frame. The staircase read 3.0×,
-    // the aim layout 1.1831.
+    // 0.356% across 0.200 mm of radius, against 0.277% across the 2.25 mm
+    // beneath it: the clip begins inside this frame (0.315% against 0.260%,
+    // 1.2118, before § 2z). The staircase read 3.0×, the aim layout 1.1831.
     const deficit = 1 - spanAt(2.25).centre / spanAt(0).centre;
-    expect(at225.span / deficit).toBeCloseTo(1.2118, 3);
+    expect(at225.span / deficit).toBeCloseTo(1.2849, 3);
     expect(at225.span / deficit).toBeGreaterThan(1);
   });
 
@@ -312,14 +320,21 @@ describe("§ 6bd.3 — the field varies fastest where § 6bc did not read it", (
     // 0.997303 / 0.936682 / 0.888489 on the aim one, and 0.997365 / 0.936488 /
     // 0.888087 there at 23 samples, so the lattice is not what remains).
     const axial = spanAt(0).centre;
-    expect(spanAt(2.25).centre / axial).toBeCloseTo(0.997406, 6);
-    expect(spanAt(4.5).centre / axial).toBeCloseTo(0.9370693, 6);
-    expect(spanAt(6).centre / axial).toBeCloseTo(0.8890829, 6);
+    // Real aim and the engraved stop (§ 2z: was 0.997406, 0.9370693, 0.8890829).
+    expect(spanAt(2.25).centre / axial).toBeCloseTo(0.9972297, 6);
+    expect(spanAt(4.5).centre / axial).toBeCloseTo(0.9350258, 6);
+    expect(spanAt(6).centre / axial).toBeCloseTo(0.8866551, 6);
   });
 });
 
-describe("§ 6bd.4 — the error of one pupil has one sign", () => {
-  it("a frame patched holds less light than its centre, at every radius", () => {
+describe("§ 6bd.4 — the error of one pupil has one sign where the clip bends it", () => {
+  it("a frame patched holds less light than its centre past the axis, and more on it", () => {
+    // DISPROVED at the axis under real aiming (§ 2z): there the profile is the
+    // stop's cone growing as h² — CONVEX — and Jensen runs the other way, the
+    // frame holding 3.0e-6 more than its centre. Past it the clip bends the
+    // profile concave and the sign below holds. The text that follows is the
+    // paraxial reading's.
+    //
     // The profile is concave — 1 − a·r² before the aperture clips, and a disc's
     // cut-off segment grows as depth^{3/2} once it does — so the centre value
     // sits above its own frame average wherever the frame is (Jensen). The
@@ -339,10 +354,12 @@ describe("§ 6bd.4 — the error of one pupil has one sign", () => {
       });
       return four.weightedEmittedFlux / one.weightedEmittedFlux;
     };
-    expect(ratioAt(0)).toBeCloseTo(1.000000007, 8);
-    expect(ratioAt(2.25)).toBeCloseTo(0.99987853, 8);
-    expect(ratioAt(4.5)).toBeCloseTo(0.999919312, 8);
+    // Real aim and the engraved stop (§ 2z: was 1.000000007, 0.99987853, 0.999919312).
+    expect(ratioAt(0)).toBeCloseTo(1.000003039, 8);
+    expect(ratioAt(2.25)).toBeCloseTo(0.99988462, 8);
+    expect(ratioAt(4.5)).toBeCloseTo(0.999919114, 8);
     // stated as the finding rather than as three numbers
+    expect(ratioAt(0)).toBeGreaterThan(1);
     expect(ratioAt(2.25)).toBeLessThan(1);
     expect(ratioAt(4.5)).toBeLessThan(1);
   });
@@ -373,11 +390,20 @@ describe("§ 6bd.4 — the error of one pupil has one sign", () => {
       );
     const secondDifferences = (t: readonly number[]): number[] =>
       t.slice(1, -1).map((v, i) => t[i]! - 2 * v + t[i + 2]!);
+    //
+    // Under real aiming (§ 2z) the trend before the clip is no longer under the
+    // density's reach: the stop's cone grows as 4.47e-3·h² (object mm), and every
+    // second difference out to 1.5 mm reads +3.47e-6 to +3.50e-6 — 3.5e-5 of the
+    // axial light, convex, the curvature § 6bd.3's on-axis span is. The clip
+    // begins by 1.75 mm, and from there on every one is negative.
     const t = throughputs(32);
     const resolved = secondDifferences(t);
-    const clip = radii.indexOf(2) - 1;
+    const clip = radii.indexOf(1.75) - 1;
     for (const d of resolved.slice(clip)) expect(d).toBeLessThan(0);
-    for (const d of resolved.slice(0, clip)) expect(d).toBeLessThan(4 * 7e-8 * t[0]!);
+    for (const d of resolved.slice(0, clip)) {
+      expect(d / t[0]!).toBeGreaterThan(3.4e-5);
+      expect(d / t[0]!).toBeLessThan(3.5e-5);
+    }
     expect(Math.min(...resolved)).toBeLessThan(-2e-4);
     expect(Math.max(...secondDifferences(throughputs(1)))).toBeGreaterThan(1e-3);
   });
@@ -400,11 +426,13 @@ describe("§ 6bd.5 — out-of-focus light dilutes the field variation", () => {
     // Resolved on the exit layout (§ 2q.6); the aim layout read 2.8774e-2,
     // 2.0514e-2, 5.3913e-2, 3.8914e-2 and a ratio of 0.7218 (0.7172 at 23
     // samples), the staircase 2.6852e-2, 2.0606e-2, 5.5543e-2, 4.1055e-2 and 0.7392.
-    expect(moveAt(2.25, thin)).toBeCloseTo(2.8701e-2, 5);
-    expect(moveAt(2.25, thick)).toBeCloseTo(2.0609e-2, 5);
-    expect(moveAt(4.5, thin)).toBeCloseTo(5.4171e-2, 5);
-    expect(moveAt(4.5, thick)).toBeCloseTo(3.9290e-2, 5);
-    expect(moveAt(4.5, thick) / moveAt(4.5, thin)).toBeCloseTo(0.7253, 3);
+    // Real aim and the engraved stop (§ 2z: was 2.8701e-2, 2.0609e-2, 5.4171e-2,
+    // 3.9290e-2 and 0.7253).
+    expect(moveAt(2.25, thin)).toBeCloseTo(2.8632e-2, 5);
+    expect(moveAt(2.25, thick)).toBeCloseTo(2.0603e-2, 5);
+    expect(moveAt(4.5, thin)).toBeCloseTo(5.4014e-2, 5);
+    expect(moveAt(4.5, thick)).toBeCloseTo(3.9395e-2, 5);
+    expect(moveAt(4.5, thick) / moveAt(4.5, thin)).toBeCloseTo(0.7293, 3);
 
     // The corollary that does NOT follow is "a thick specimen needs fewer
     // patches". Haze carries no detail and is nearly insensitive to which
@@ -424,11 +452,12 @@ describe("§ 6bd.5 — out-of-focus light dilutes the field variation", () => {
     const pupils = fieldDefocusing(tracedFieldPupils(SYSTEM, frame));
     const four = renderFieldVolume(thick, pupils, { ...OPT, patches: 4 });
     const eight = renderFieldVolume(thick, pupils, { ...OPT, patches: 8 });
-    // 6.4632e-3 on the staircase rim, 4.0973e-3 on the aim layout.
-    expect(rel(eight.intensity, four.intensity)).toBeCloseTo(4.1741e-3, 5);
+    // 6.4632e-3 on the staircase rim, 4.0973e-3 on the aim layout, 4.1741e-3
+    // before § 2z.
+    expect(rel(eight.intensity, four.intensity)).toBeCloseTo(4.2347e-3, 5);
     // an order of magnitude under the 1-against-4 move, not two: the field is
     // not resolved at four patches, it is merely no longer ignored
-    expect(rel(eight.intensity, four.intensity)).toBeLessThan(3.9284e-2 / 5);
+    expect(rel(eight.intensity, four.intensity)).toBeLessThan(3.9395e-2 / 5);
   });
 });
 
@@ -453,16 +482,17 @@ describe("§ 6bd.6 — what the patches buy is the phase, not the clip", () => {
     };
 
     const edge = split(4.5);
-    expect(edge.full).toBeCloseTo(3.9290e-2, 5);
-    expect(edge.phase).toBeCloseTo(3.9077e-2, 5);
-    expect(edge.amplitude).toBeCloseTo(4.0279e-3, 5);
-    // the aberration is 10× the clip (9.7×; the aim layout's 3.8537e-2 over
+    // Real aim and the engraved stop (§ 2z: was 3.9290e-2, 3.9077e-2, 4.0279e-3).
+    expect(edge.full).toBeCloseTo(3.9395e-2, 5);
+    expect(edge.phase).toBeCloseTo(3.9164e-2, 5);
+    expect(edge.amplitude).toBeCloseTo(4.0612e-3, 5);
+    // the aberration is 10× the clip (9.6×; 9.7× before § 2z; the aim layout's 3.8537e-2 over
     // 3.7609e-3 was 10.2×). The staircase read the clip at 8.9971e-3, 2.4× too
     // large, and the ratio at 4.4×; resolved at 23 samples, 9.8×.
     expect(edge.phase / edge.amplitude).toBeGreaterThan(9);
 
-    // On axis the amplitude half is 1.3e-4 against 1.8e-2 — 130× under the
-    // phase half. On the aim layout it vanished outright (2.8e-7), § 6bd.3's
+    // On axis the amplitude half is 5.7e-5 against 1.8e-2 — 310× under the
+    // phase half (1.35e-4, 130×, before § 2z). On the aim layout it vanished outright (2.8e-7), § 6bd.3's
     // even function seen a third way: that layout lays every field point's rim
     // on the unit circle, so there was no clip gradient at the axis to buy. The
     // exit layout lays the rim where the rays went, and off axis that bundle sits
@@ -471,7 +501,7 @@ describe("§ 6bd.6 — what the patches buy is the phase, not the clip", () => {
     // throughput profile and no traced wavefront has the small half of the
     // effect everywhere.
     const axis = split(0);
-    expect(axis.amplitude).toBeCloseTo(1.351e-4, 7);
+    expect(axis.amplitude).toBeCloseTo(5.667e-5, 8);
     expect(axis.amplitude).toBeLessThan(axis.full / 100);
     // and the phase half alone misses the whole by less than the amplitude half
     expect(Math.abs(axis.phase - axis.full)).toBeLessThan(axis.amplitude);
@@ -520,11 +550,12 @@ describe("§ 6bd.7 — the haze fraction is the specimen's only if the specimen 
     expect(flat).toBeCloseTo(0.2, 12);
     // Resolved on the exit layout (§ 2q.6); the aim layout read 0.19937138 and
     // −3.1431e-3, the staircase 0.19927341 and −3.6329e-3.
-    expect(varied).toBeCloseTo(0.19938142, 7);
-    expect(varied / flat - 1).toBeCloseTo(-3.0929e-3, 6);
+    // Real aim and the engraved stop (§ 2z: was 0.19938142 and −3.0929e-3).
+    expect(varied).toBeCloseTo(0.19937196, 7);
+    expect(varied / flat - 1).toBeCloseTo(-3.1402e-3, 6);
     // and it is the throughput span that carries it — under the frame's
-    // 6.6540e-3, the most the two halves could disagree by
-    expect(Math.abs(varied / flat - 1)).toBeLessThan(6.6540e-3);
+    // 6.7550e-3 (§ 6bd.3), the most the two halves could disagree by
+    expect(Math.abs(varied / flat - 1)).toBeLessThan(6.7550e-3);
     expect(Math.abs(varied / flat - 1)).toBeGreaterThan(1e-3);
   });
 });
@@ -599,13 +630,14 @@ describe("§ 6bd.8 — the lattice's Nyquist and the frame's containment are one
       atHalfWave.push(escaped(pupil, waves, SIZE, PS));
     }
     // the defocus that reaches a half-wave step spans very nearly 2×…
-    // (1.5887 on the exit layout, § 2q.6; 1.5965 on the aim one)
-    expect(Math.min(...defocus)).toBeCloseTo(1.5887, 3);
+    // (1.5937 on the exit layout under real aiming, § 2z; 1.5887 before it,
+    // § 2q.6; 1.5965 on the aim one)
+    expect(Math.min(...defocus)).toBeCloseTo(1.5937, 3);
     expect(Math.max(...defocus)).toBeCloseTo(3.1304, 3);
     expect(Math.max(...defocus) / Math.min(...defocus)).toBeGreaterThan(1.9);
-    // …and the escape at it spans well under that (the least is 0.0518 on the
-    // exit layout, 0.0367 on the aim one)
-    expect(Math.min(...atHalfWave)).toBeCloseTo(0.0518, 3);
+    // …and the escape at it spans well under that (the least is 0.0516 on the
+    // exit layout under real aiming, 0.0518 before it, 0.0367 on the aim one)
+    expect(Math.min(...atHalfWave)).toBeCloseTo(0.0516, 3);
     expect(Math.max(...atHalfWave)).toBeCloseTo(0.0649, 3);
     expect(Math.max(...atHalfWave) / Math.min(...atHalfWave)).toBeLessThan(1.8);
   });

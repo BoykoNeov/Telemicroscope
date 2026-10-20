@@ -258,7 +258,23 @@ describe("§ 6s.2 — the interpolation error falls as the fourth power of the s
       return eLarge;
     };
     expect(floorOf(RIM_SYSTEM, 32, 64)).toBeLessThan(10 * ulp);
-    expect(floorOf(SYSTEM, FLOOR_NODES, 256)).toBeLessThan(10 * ulp);
+    // 12.0 ulp at the radii the real-aimed frame asks for (§ 2z: its ruler moved
+    // the span 2.1951 → 2.1965 mm), where the same lens on the paraxial aim reads
+    // 9.7 at its own frame's radii (below) — the floor is the radii's, as the
+    // exit layout's 11.1 above already said.
+    expect(floorOf(SYSTEM, FLOOR_NODES, 256)).toBeLessThan(13 * ulp);
+    {
+      const P = finiteConjugateMicroscope({
+        objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
+        rayAiming: "paraxial",
+      }).system;
+      const pf = objectFieldTile(P, { size: 64, pupilSamples: 32, wavelengthNm: LAMBDA, centreMm: { x: 2, y: 0 }, layout: "aim" });
+      const pr = tileRadii(pf);
+      const pe = pr.map((r) => objectHeightForImageRadius(P, r, LAMBDA, {}));
+      const pspan = radialMapCovering(P, [pf], { nodes: 8 }).maxRadiusMm;
+      const e = worstError(buildRadialMap(P, { maxRadiusMm: pspan, nodes: 256, wavelengthNm: LAMBDA }), pr, pe);
+      expect(e).toBeLessThan(10 * Math.abs(pe[pe.length - 1]!) * Number.EPSILON);
+    }
     // …and 32 nodes is NOT at the floor on the shipped lens: it reads 9.2e-13,
     // three orders above it, which is what makes the six a measurement.
     expect(errorAt(32)).toBeGreaterThan(100 * ulp);

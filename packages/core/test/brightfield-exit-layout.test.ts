@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { OpticalSystem } from "../src/trace/system";
+import type { OpticalSystem, RayAiming } from "../src/trace/system";
 import { LINE_D } from "../src/materials/dispersion";
 import { getMedium } from "../src/materials/catalog";
 import { paraxialTrace } from "../src/trace/paraxial";
@@ -83,21 +83,32 @@ import { diskSource } from "../src/illumination/source";
 const L = LINE_D;
 const FIELD = { source: "field" } as const;
 
-const oil = () =>
+/*
+ * Each lens is the shipped one, real-aimed (§ 2z), unless a rung asks for
+ * `PARAXIAL`: the rungs that read the aim layout beside the exit one, or a
+ * Jacobian derived for the paraxial aim, take the paraxial aim and its stop —
+ * the aim layout is that aim's affine map (§ 2z.7).
+ */
+const PARAXIAL = "paraxial" as const;
+const oil = (rayAiming?: RayAiming) =>
   infinityCorrectedMicroscope({
     objective: oilImmersionObjective({ magnification: 100, numericalAperture: 1.25, tubeFocalLengthMm: 200 }),
     tubeLens: tubeLens({ focalLengthMm: 200 }),
     objectHeightsMm: [0],
+    ...(rayAiming === undefined ? {} : { rayAiming }),
   }).system;
 /** § 6x's rim-stopped DIN: not object-space telecentric, so its offset is alive. */
-const rimDin = () =>
+const rimDin = (rayAiming?: RayAiming) =>
   finiteConjugateMicroscope({
     objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1, stopPlacement: "rim" }),
+    ...(rayAiming === undefined ? {} : { rayAiming }),
   }).system;
 /** The shipped DIN 4×/0.10, back-focal stopped since § 6ai: object-space telecentric. */
-const din = () =>
-  finiteConjugateMicroscope({ objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }) })
-    .system;
+const din = (rayAiming?: RayAiming) =>
+  finiteConjugateMicroscope({
+    objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
+    ...(rayAiming === undefined ? {} : { rayAiming }),
+  }).system;
 
 /** § 6al's singlet, its stop at the front focus: image-space telecentric. */
 const LENS_FRONT = { kind: "refract" as const, curvature: 1 / 40, semiAperture: 20, thickness: 9, medium: "N-BK7" };
@@ -179,7 +190,7 @@ describe("§ 2n.1 — a finite pupil's units are absolute", () => {
     // Jacobian derived for the paraxial aim. Checked here against that Jacobian
     // DIFFERENCED off the launch directions, so the derivation is measured rather
     // than trusted: |∂(L,M)/∂a| / d_z⁴ is one constant across the pupil.
-    for (const s of [rimDin(), oil(), singlet()]) {
+    for (const s of [rimDin(PARAXIAL), oil(PARAXIAL), singlet()]) {
       const geo = pupils(s, L);
       const d = 1e-5;
       const cos = (px: number, py: number) => {
@@ -256,11 +267,11 @@ describe("§ 2n.2 — a direction sits at its optical sine", () => {
     };
     const gap = (s: OpticalSystem, h: number) =>
       Math.abs(illuminationOffset(s, h, L, { layout: "exit" }) / traced(s, h) - 1);
-    const o = oil();
+    const o = oil(PARAXIAL);
     expect(gap(o, 1e-4)).toBeLessThan(3e-7);
     // ×4 in h, ×16 in the gap: second order.
     expect(gap(o, 2e-3) / gap(o, 5e-4)).toBeCloseTo(16, 0);
-    const r = rimDin();
+    const r = rimDin(PARAXIAL);
     expect(gap(r, 0.01)).toBeLessThan(2e-7);
     expect(gap(r, 0.25) / gap(r, 0.01)).toBeGreaterThan(400);
     // …and against the aim coordinate it is 1/cos-ish wrong at FIRST order: the
@@ -271,7 +282,7 @@ describe("§ 2n.2 — a direction sits at its optical sine", () => {
   });
 
   it("an object-space telecentric objective's offset is the f64 zero on both layouts", () => {
-    const s = din();
+    const s = din(PARAXIAL);
     for (const h of [0, 0.25, 1, 2.25, 3.2]) {
       expect(illuminationOffset(s, h, L, { layout: "exit" })).toBe(0);
       expect(illuminationOffset(s, h, L, { layout: "aim" })).toBe(0);
@@ -279,7 +290,7 @@ describe("§ 2n.2 — a direction sits at its optical sine", () => {
   });
 
   it("a frame's tile carries its layout's offset, read through the frame's own probe", () => {
-    const s = rimDin();
+    const s = rimDin(PARAXIAL);
     for (const layout of ["aim", "exit"] as const) {
       const tile = objectFieldTile(s, {
         size: 32,
@@ -301,7 +312,7 @@ describe("§ 2n.3 — the traced condenser's currency, inverted", () => {
   // aberration-free cone converged on tan(NA_c)/tan(u_max) as NA³ and the sine
   // ratio floored at 0.5%. On the exit layout the coordinate is the optical sine
   // over ν, so the finding must turn over.
-  const s = rimDin();
+  const s = rimDin(PARAXIAL);
   const edgeOf = (na: number) => {
     const c = abbeCondenser({ numericalAperture: na });
     const rev = reverseCondenser(c, L);
@@ -348,7 +359,7 @@ describe("§ 2n.5 — the traced condenser, on the exit layout", () => {
   // diaphragm nearly uniformly onto direction SINES, so read in sines the axial
   // cone is flat to 2.4e-4. Off axis the spread is the condenser's own field
   // aberration and survives the change of units almost whole.
-  const s = rimDin();
+  const s = rimDin(PARAXIAL);
   const rev = reverseCondenser(abbeCondenser({ numericalAperture: 0.1 }), L);
   const coneAt = (h: number, layout: "aim" | "exit") =>
     tracedCondenserCone(s, rev, h, { pupilSamples: 16, apertureFraction: 0.8, layout });

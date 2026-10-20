@@ -25,7 +25,7 @@ import {
 } from "../src/pupil/microscope";
 import { psfFromPupilFunction, type PupilFunction, type PupilScale } from "../src/wave/psf";
 import { coefficient } from "../src/wave/zernike";
-import { simpleSystem, type OpticalSystem } from "../src/trace/system";
+import { simpleSystem, type OpticalSystem, type RayAiming } from "../src/trace/system";
 import type { Prescription } from "../src/trace/prescription";
 
 /**
@@ -53,10 +53,18 @@ const GRATING: ObjectField = cosineGratingObject({
   modulation: 0.6,
 });
 
-/** § 6b's DIN 4×/0.10 — the finite-conjugate member of the ladder. */
-const din4x = () =>
-  finiteConjugateMicroscope({ objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }) })
-    .system;
+/**
+ * § 6b's DIN 4×/0.10 — the finite-conjugate member of the ladder.
+ *
+ * On the paraxial aim and its stop unless asked: § 6h's frame and § 6m's tiles
+ * are the aim layout's (below), and that layout is the paraxial aim's affine map
+ * (§ 2z.7). § 2s's exit-layout block at the end reads the shipped real aim.
+ */
+const din4x = (rayAiming: RayAiming = "paraxial") =>
+  finiteConjugateMicroscope({
+    objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
+    rayAiming,
+  }).system;
 
 /**
  * The same objective with § 6x's stop placement, kept as a named control.
@@ -65,13 +73,14 @@ const din4x = () =>
  * read one number on the shipped lens and its pair on this one. The ratio
  * between them is the finding; re-pinning the new number alone would hide it.
  */
-const rimDin4x = () =>
+const rimDin4x = (rayAiming: RayAiming = "paraxial") =>
   finiteConjugateMicroscope({
     objective: finiteConjugateObjective({
       magnification: 4,
       numericalAperture: 0.1,
       stopPlacement: "rim",
     }),
+    rayAiming,
   }).system;
 
 /**
@@ -1605,7 +1614,7 @@ describe("§ 2s — § 6h.4's and § 6m.4's field laws on the exit layout", () =
     // pupilGrid(21) launches 313 rays; a vignetted field loses some (8 on the
     // shipped lens at 0.8 mm), and every survivor is fitted.
     const TRACED = 313;
-    for (const [member, bound] of [[din4x(), 2e-3], [rimDin4x(), 1e-3]] as const) {
+    for (const [member, bound] of [[din4x("real"), 2e-3], [rimDin4x("real"), 1e-3]] as const) {
       const axis = fieldPupilAt(member, exitFrame(member), 0.5, 0.5);
       expect(axis.fit.samplesUsed).toBe(TRACED);
       for (const h of [1e-6, ...HEIGHTS]) {
@@ -1615,7 +1624,7 @@ describe("§ 2s — § 6h.4's and § 6m.4's field laws on the exit layout", () =
       for (const q of ratios(defocusFrom(member, axis))) expect(Math.abs(q / 4 - 1)).toBeLessThan(bound);
     }
     // −3.248e-5 waves before § 2t; field curvature itself at 1e-6 mm is ~6e-14.
-    for (const member of [din4x(), rimDin4x()]) {
+    for (const member of [din4x("real"), rimDin4x("real")]) {
       const step =
         coefficient(fieldPupilAt(member, exitTile(member, imageRadius(member, 1e-6)), 0.5, 0.5).fit, 4) -
         coefficient(fieldPupilAt(member, exitFrame(member), 0.5, 0.5).fit, 4);
@@ -1629,7 +1638,7 @@ describe("§ 2s — § 6h.4's and § 6m.4's field laws on the exit layout", () =
     // them between the coordinate and item 42's dropped rim. With the rim back
     // in the fit (§ 2t) they read 1.0007 and 2.0003: the dropped rim was nearly
     // all of astigmatism's departure and two thirds of coma's.
-    const rim = rimDin4x();
+    const rim = rimDin4x("real");
     const pupils = HEIGHTS.map((h) => fieldPupilAt(rim, exitTile(rim, imageRadius(rim, h)), 0.5, 0.5));
     const coma = pupils.map((p) => Math.hypot(coefficient(p.fit, 7), coefficient(p.fit, 8)));
     const astig = pupils.map((p) => Math.hypot(coefficient(p.fit, 5), coefficient(p.fit, 6)));
@@ -1639,15 +1648,16 @@ describe("§ 2s — § 6h.4's and § 6m.4's field laws on the exit layout", () =
 
   it("the axis's odd terms stay two orders under the nearest patch's coma", () => {
     // § 6h.4's margin: 183× and 886× on the aim layout; 161× and 488× on the
-    // exit layout before § 2t, 163.9× and 491.5× since. The rim was not the
-    // gap to the aim layout's margins: that is the exit coordinate's own.
+    // exit layout before § 2t, 163.9× and 491.5× since, and 162.3× and 495.6× on
+    // the stops as built (§ 2z.5). The rim was not the gap to the aim layout's
+    // margins: that is the exit coordinate's own.
     const odd = (p: FieldPupil) => Math.hypot(coefficient(p.fit, 7), coefficient(p.fit, 8));
     const margin = (member: OpticalSystem) => {
       const f = exitFrame(member);
       const u = 0.5 + imageRadius(member, 0.05) / (2 * f.halfExtentMm);
       return odd(fieldPupilAt(member, f, u, 0.5)) / odd(fieldPupilAt(member, f, 0.5, 0.5));
     };
-    expect(margin(din4x())).toBeCloseTo(163.9, 0);
-    expect(margin(rimDin4x())).toBeCloseTo(491.5, 0);
+    expect(margin(din4x("real"))).toBeCloseTo(162.3, 0);
+    expect(margin(rimDin4x("real"))).toBeCloseTo(495.6, 0);
   });
 });

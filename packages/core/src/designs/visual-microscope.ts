@@ -263,6 +263,9 @@ export function visualMicroscope(spec: VisualMicroscopeSpec): VisualMicroscope {
     field: { kind: "objectHeight", values: spec.objectHeightsMm ?? [0] },
     wavelengths: microscope.system.wavelengths,
     conjugate: { kind: "finite", distance: objectDistanceMm },
+    // The aim the microscope's stop was sized for (§ 2z.5): a real-aimed chain's
+    // stop is cut for the real marginal ray, and aimed paraxially it under-fills.
+    ...(microscope.system.rayAiming === undefined ? {} : { rayAiming: microscope.system.rayAiming }),
   };
 
   const eyepieceMagnification = nearPointMm / eyepieceFocalLengthMm;

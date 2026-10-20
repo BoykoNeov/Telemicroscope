@@ -11,7 +11,7 @@ import { bestFocus, withFocus } from "../src/analysis/focus";
 import { opdMap } from "../src/pupil/opd";
 import { marginalRay, pupilGrid } from "../src/pupil/aiming";
 import { traceRay } from "../src/trace/sequential";
-import type { OpticalSystem } from "../src/trace/system";
+import type { OpticalSystem, RayAiming } from "../src/trace/system";
 
 /**
  * Step 6ai — the finite conjugate's default stop placement, flipped.
@@ -162,6 +162,16 @@ describe("§ 6ai.2 — stop in front, barrel; stop behind, pincushion", () => {
 
   const SHIPPED = finiteConjugateMicroscope({ objective: objectiveAt() }).system;
   const RIM = finiteConjugateMicroscope({ objective: objectiveAt("rim") }).system;
+  /**
+   * The lever's flatness and Welford's closed form are read on the paraxial aim:
+   * S_V's stop shift is a statement about the paraxial chief ray, which that aim
+   * launches. The real chief ray through the real stop's centre is not it — on
+   * the telecentric member it tilts as h³ (§ 6v.4) — and the traced lever then
+   * reads −70.757 at 0.4 mm (0.08% off Welford) and spreads 5.2% over the
+   * eight-fold, where the paraxial aim's spreads 1.5%.
+   */
+  const SHIPPED_PARAXIAL = finiteConjugateMicroscope({ objective: objectiveAt(), rayAiming: "paraxial" }).system;
+  const RIM_PARAXIAL = finiteConjugateMicroscope({ objective: objectiveAt("rim"), rayAiming: "paraxial" }).system;
 
   it("EXTERNAL: the sign flips, and it is a traced ray that says so", () => {
     // The textbook stop-shift sign rule, on the quantity a picture is made of.
@@ -189,7 +199,7 @@ describe("§ 6ai.2 — stop in front, barrel; stop behind, pincushion", () => {
     // the flip would have re-shaped the map and every downstream rung would have
     // needed re-deriving; because it does not, they needed re-reading, and the
     // ones that pin an ORDER did not move at all.
-    const lever = [0.4, 0.8, 1.6, 3.2].map((h) => departure(SHIPPED, h) / departure(RIM, h));
+    const lever = [0.4, 0.8, 1.6, 3.2].map((h) => departure(SHIPPED_PARAXIAL, h) / departure(RIM_PARAXIAL, h));
     for (const value of lever) {
       expect(value).toBeLessThan(0);
       expect(Math.abs(value / -70.7 - 1)).toBeLessThan(1.5e-2);
@@ -198,6 +208,10 @@ describe("§ 6ai.2 — stop in front, barrel; stop behind, pincushion", () => {
     // Flat: the whole eight-fold sweep moves it by 1.5%, which is the h⁵ term
     // showing through and not a second lever.
     expect(Math.abs(lever[lever.length - 1]! / lever[0]! - 1)).toBeLessThan(1.6e-2);
+    // Real aiming: the same number at small field, and less flat out at 3.2 mm.
+    const real = [0.4, 3.2].map((h) => departure(SHIPPED, h) / departure(RIM, h));
+    expect(real[0]!).toBeCloseTo(-70.757, 2);
+    expect(real[1]! / real[0]! - 1).toBeCloseTo(0.0524, 3);
   });
 
   it("EXTERNAL: and 70.7 is a CLOSED FORM — Welford's S_V shift, confirmed to 0.024%", () => {
@@ -242,7 +256,7 @@ describe("§ 6ai.2 — stop in front, barrel; stop behind, pincushion", () => {
       expect(Math.abs(value / predictions[0]! - 1)).toBeLessThan(1e-12);
     }
 
-    const traced = departure(SHIPPED, 0.4) / departure(RIM, 0.4);
+    const traced = departure(SHIPPED_PARAXIAL, 0.4) / departure(RIM_PARAXIAL, 0.4);
     expect(Math.abs(traced / predictions[0]! - 1)).toBeLessThan(3e-4);
   });
 
@@ -286,12 +300,12 @@ const objectiveFor = (M: number, NA: number, placement?: StopPlacement) =>
     ...(placement === undefined ? {} : { stopPlacement: placement }),
   });
 
-const scopeAt = (M: number, NA: number, placement?: StopPlacement): OpticalSystem =>
-  finiteConjugateMicroscope({ objective: objectiveFor(M, NA, placement) }).system;
+const scopeAt = (M: number, NA: number, placement?: StopPlacement, rayAiming: RayAiming = "real"): OpticalSystem =>
+  finiteConjugateMicroscope({ objective: objectiveFor(M, NA, placement), rayAiming }).system;
 
 /** The axial wavefront map at best focus, in the currency § 6b.4 reports in. */
-const mapAt = (M: number, NA: number, placement?: StopPlacement) => {
-  const s = scopeAt(M, NA, placement);
+const mapAt = (M: number, NA: number, placement?: StopPlacement, rayAiming: RayAiming = "real") => {
+  const s = scopeAt(M, NA, placement, rayAiming);
   const focus = bestFocus(s, "minRmsWavefront", { pupilSamples: 21 });
   return opdMap(withFocus(s, focus.offsetFromLastVertex), 0, L, pupilGrid(21));
 };
@@ -305,8 +319,13 @@ const mapAt = (M: number, NA: number, placement?: StopPlacement) => {
  * one traced ray's height over one surface's semi-aperture, so it carries no
  * fixture in it and moves with the lens alone.
  */
-const diaphragmFill = (M: number, NA: number, placement?: StopPlacement): number => {
-  const system = scopeAt(M, NA, placement);
+const diaphragmFill = (
+  M: number,
+  NA: number,
+  placement?: StopPlacement,
+  rayAiming: RayAiming = "paraxial",
+): number => {
+  const system = scopeAt(M, NA, placement, rayAiming);
   const p = system.prescription;
   expect(p.surfaces.filter((s) => s.isStop).length).toBe(1);
   const stop = p.surfaces.findIndex((s) => s.isStop);
@@ -316,10 +335,10 @@ const diaphragmFill = (M: number, NA: number, placement?: StopPlacement): number
 };
 
 /** The highest NA whose axial wavefront clears Maréchal on an UNCLIPPED pupil. */
-const marechalReach = (M: number, placement?: StopPlacement): number =>
+const marechalReach = (M: number, placement?: StopPlacement, rayAiming: RayAiming = "real"): number =>
   highest(0.05, 0.3, (NA) => {
     try {
-      const map = mapAt(M, NA, placement);
+      const map = mapAt(M, NA, placement, rayAiming);
       return map.lost === 0 && map.rmsWaves <= MARECHAL;
     } catch {
       return false;
@@ -341,6 +360,13 @@ const fillCrossing = (M: number): number =>
     30,
   );
 
+/**
+ * § 6ai.4 is the PARAXIALLY sized diaphragm's, and is read on the paraxial aim
+ * and its stop (`diaphragmFill` defaults to it): the overfill is the real
+ * marginal ray passing outside a hole sized `f·tan u`. Real aiming cuts the
+ * diaphragm where that very ray crosses (§ 2z.5), so the fill is 1 by
+ * construction and nothing below happens there — its own rung closes the block.
+ */
 describe("§ 6ai.4 — the shipped member clips its own diaphragm, and where", () => {
   it("the real marginal ray overfills the paraxial diaphragm above NA 0.1461", () => {
     // The claim seven call sites — `doublet-wall` ×2, `microscope` ×2,
@@ -365,7 +391,7 @@ describe("§ 6ai.4 — the shipped member clips its own diaphragm, and where", (
     // sample of a square grid clipped to the disc IS the marginal ray at every
     // odd resolution — so the threshold is the lens's and not the fixture's.
     const lostAt = (NA: number, n: number): number => {
-      const s = scopeAt(4, NA);
+      const s = scopeAt(4, NA, undefined, "paraxial");
       const focus = bestFocus(s, "minRmsWavefront", { pupilSamples: 21 });
       return opdMap(withFocus(s, focus.offsetFromLastVertex), 0, L, pupilGrid(n)).lost;
     };
@@ -384,14 +410,14 @@ describe("§ 6ai.4 — the shipped member clips its own diaphragm, and where", (
     expect(diaphragmFill(4, 0.2, "rim")).toBeCloseTo(0.89339, 5);
     for (const NA of [0.1, 0.14, 0.16, 0.2]) {
       expect(diaphragmFill(4, NA, "rim")).toBeLessThan(1);
-      expect(mapAt(4, NA, "rim").lost).toBe(0);
+      expect(mapAt(4, NA, "rim", "paraxial").lost).toBe(0);
     }
     // …while the shipped member loses rays over the same sweep, 28 of this grid
     // at the top of it. An RMS over a clipped pupil is a different quantity from
     // the one Maréchal's criterion is stated on, which is the whole reason
     // `doublet-wall`'s far-band rungs name `"rim"`.
-    expect(mapAt(4, 0.16).lost).toBe(8);
-    expect(mapAt(4, 0.2).lost).toBe(28);
+    expect(mapAt(4, 0.16, undefined, "paraxial").lost).toBe(8);
+    expect(mapAt(4, 0.2, undefined, "paraxial").lost).toBe(28);
   }, 30_000);
 
   it("and it reads SMALLER when it clips — the guard is not bookkeeping", () => {
@@ -401,10 +427,11 @@ describe("§ 6ai.4 — the shipped member clips its own diaphragm, and where", (
     // control's: a plausible smaller number arriving as an improvement rather
     // than as a failure. The two members are the same glass to the bit
     // (§ 6ae.4), so the whole of the difference is which rays survived.
+    const at = (NA: number, placement?: StopPlacement) => mapAt(4, NA, placement, "paraxial").rmsWaves;
     for (const NA of [0.16, 0.17, 0.2]) {
-      expect(mapAt(4, NA).rmsWaves).toBeLessThan(mapAt(4, NA, "rim").rmsWaves);
+      expect(at(NA)).toBeLessThan(at(NA, "rim"));
     }
-    expect(mapAt(4, 0.17).rmsWaves / mapAt(4, 0.17, "rim").rmsWaves).toBeCloseTo(0.8086, 3);
+    expect(at(0.17) / at(0.17, "rim")).toBeCloseTo(0.8086, 3);
   }, 30_000);
 
   it("but it never bites inside the band a wavefront claim is made in", () => {
@@ -413,7 +440,7 @@ describe("§ 6ai.4 — the shipped member clips its own diaphragm, and where", (
     // diffraction-limited at all passes its own diaphragm whole. The margin is
     // not constant — the reach climbs faster than the crossing does — and it is
     // quoted here so that a member built past 40× is checked rather than assumed.
-    const rows = [4, 20, 40].map((M) => ({ M, crossing: fillCrossing(M), reach: marechalReach(M) }));
+    const rows = [4, 20, 40].map((M) => ({ M, crossing: fillCrossing(M), reach: marechalReach(M, undefined, "paraxial") }));
     expect(rows[0]!.crossing).toBeCloseTo(0.146146, 5);
     expect(rows[2]!.crossing).toBeCloseTo(0.205083, 5);
     for (const r of rows) expect(r.crossing).toBeGreaterThan(r.reach);
@@ -425,6 +452,16 @@ describe("§ 6ai.4 — the shipped member clips its own diaphragm, and where", (
       );
     }
   }, 60_000);
+
+  it("on the REAL aim the diaphragm is cut where the marginal ray crosses, so it never clips", () => {
+    // § 2z.5's construction, read on the quantity this block is about: the fill
+    // is 1 to the solve's own margin (6.8e-15 inside) at the catalogued NA and
+    // at the top of the far band, and the sampled pupil keeps every ray.
+    for (const NA of [0.1, 0.16, 0.2]) {
+      expect(Math.abs(diaphragmFill(4, NA, undefined, "real") - 1)).toBeLessThan(1e-13);
+    }
+    expect(mapAt(4, 0.16).lost).toBe(0);
+  }, 30_000);
 });
 
 describe("§ 6ai.6 — the optical ceiling is the GLASS's, not the diaphragm's", () => {
@@ -444,9 +481,10 @@ describe("§ 6ai.6 — the optical ceiling is the GLASS's, not the diaphragm's",
     });
     // The 4× value is § 6b.5.1's own, and this file is not free to disagree.
     expect(rows[0]!.shipped).toBeCloseTo(0.10295, 4);
-    expect(rows[0]!.rim).toBeCloseTo(0.103114, 5);
-    expect(rows[2]!.shipped).toBeCloseTo(0.181517, 5);
-    expect(rows[2]!.rim).toBeCloseTo(0.182742, 5);
+    // Real aiming and the engraved stop (§ 2z: was 0.103114, 0.181517, 0.182742).
+    expect(rows[0]!.rim).toBeCloseTo(0.103108, 5);
+    expect(rows[2]!.shipped).toBeCloseTo(0.181452, 5);
+    expect(rows[2]!.rim).toBeCloseTo(0.182718, 5);
     for (const r of rows) {
       // The control always reaches slightly FURTHER, and the sign is the point:
       // it has no diaphragm to fill, so nothing but the glass limits it.
@@ -458,7 +496,10 @@ describe("§ 6ai.6 — the optical ceiling is the GLASS's, not the diaphragm's",
     for (let i = 1; i < rows.length; i++) {
       expect(rows[i]!.ratio).toBeGreaterThan(rows[i - 1]!.ratio);
     }
-    expect(rows[0]!.ratio).toBeCloseTo(1.00159, 5);
-    expect(rows[2]!.ratio).toBeCloseTo(1.00675, 5);
-  }, 60_000);
+    expect(rows[0]!.ratio).toBeCloseTo(1.00152, 5); // 1.00159 paraxial
+    expect(rows[2]!.ratio).toBeCloseTo(1.00698, 5); // 1.00675 paraxial
+    // Six real-aimed bisections, each ray a solve (§ 2z.6): 5.7 s alone on the
+    // paraxial aim, 19.6 s on the real one, 129 s on a saturated full run — so it
+    // runs under the suite's own budget (vitest.config.ts) rather than one of its own.
+  });
 });

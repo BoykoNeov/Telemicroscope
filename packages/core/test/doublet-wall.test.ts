@@ -226,8 +226,9 @@ describe("§ 6b.5.1 — the optical ceiling: Maréchal, bisected (EXTERNAL)", ()
     expect(reach).toBeGreaterThan(0.1); // the catalogued member does clear it
     const atReach = finiteConjugateObjective({ magnification: 4, numericalAperture: reach });
     expect(atReach.workingFocalRatio).toBeCloseTo(3.9620, 3);
-    // And the pinned member's own σ, which § 6b.4 reports as λ/17.
-    expect(sigmaWaves(4, 0.1)).toBeCloseTo(0.059454, 5);
+    // And the pinned member's own σ, which § 6b.4 reports as λ/17 — over the
+    // real cone at the engraved NA (§ 2z.5; 0.059454 over the paraxial aim's).
+    expect(sigmaWaves(4, 0.1)).toBeCloseTo(0.059448, 5);
   });
 
   it("σ runs as NA^6.2 there, so the reach is bisected and not interpolated", () => {
@@ -253,9 +254,9 @@ describe("§ 6b.5.1 — the optical ceiling: Maréchal, bisected (EXTERNAL)", ()
       return { M, NA, F: finiteConjugateObjective({ magnification: M, numericalAperture: NA }).workingFocalRatio };
     });
     expect(rows[0]!.NA).toBeCloseTo(0.10295, 4);
-    expect(rows[3]!.NA).toBeCloseTo(0.18152, 4);
+    expect(rows[3]!.NA).toBeCloseTo(0.181452, 5); // 0.18152 on the paraxial aim (§ 2z)
     expect(rows[0]!.F).toBeCloseTo(3.9620, 3);
-    expect(rows[3]!.F).toBeCloseTo(2.8404, 3);
+    expect(rows[3]!.F).toBeCloseTo(2.8414, 3); // 2.8404 on the paraxial aim (§ 2z)
     // Monotone in both, opposite ways: a slower objective reaches a higher NA
     // and does it at a faster working cone.
     for (let i = 1; i < rows.length; i++) {
@@ -879,7 +880,7 @@ describe("§ 6b.5.6 — the seed is no longer the wall, and what that did and di
     for (const NA of opened) {
       expect(sigmaWaves(4, NA, RIM) / MARECHAL).toBeGreaterThan(45);
     }
-    expect(sigmaWaves(4, opened[0]!, RIM)).toBeCloseTo(3.4507, 3);
+    expect(sigmaWaves(4, opened[0]!, RIM)).toBeCloseTo(3.4588, 3); // 3.4507 on the paraxial aim (§ 2z)
     expect(sigmaWaves(4, opened[2]!, RIM)).toBeGreaterThan(5.5);
     // …and the diffraction-limited reach itself did not move at all, which is
     // the negative control: this touched the refusal, not the optics.
@@ -989,7 +990,7 @@ describe("§ 6b.5.7 — the scan window's `3`, and the boundary it stops decidin
     // end, and its bottom end is the new crown-first wall.
     const lost = { orientation: "crownFirst", ...RIM };
     const bottom = sigmaWaves(4, measured(4, "crownFirst") * 0.9999, lost);
-    expect(bottom).toBeCloseTo(2.9425, 3);
+    expect(bottom).toBeCloseTo(2.9496, 3); // 2.9425 on the paraxial aim (§ 2z)
     expect(bottom / MARECHAL).toBeGreaterThan(41);
     const rising = [0.14, 0.16, 0.1715].map((NA) => sigmaWaves(4, NA * 0.9999, lost));
     for (let i = 1; i < rising.length; i++) expect(rising[i]).toBeGreaterThan(rising[i - 1]!);

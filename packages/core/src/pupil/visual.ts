@@ -225,6 +225,8 @@ export function visualMicroscopeSystem(
     wavelengths: visual.system.wavelengths,
     conjugate: { kind: "finite", distance: visual.objectDistanceMm },
     apertureStop: { kind: "limiting" },
+    // The instrument's own aim, which its objective stop was sized for (§ 2z.5).
+    ...(visual.system.rayAiming === undefined ? {} : { rayAiming: visual.system.rayAiming }),
   };
 
   const eyeIrisIndex = prescription.surfaces.length - 1;

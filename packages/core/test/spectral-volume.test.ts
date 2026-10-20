@@ -27,6 +27,7 @@ import { defocusing, renderVolume } from "../src/imaging/volume";
 import { idealPupil } from "../src/illumination/transfer";
 import { incoherentPsf } from "../src/imaging/fluorescence";
 import { opdMap } from "../src/pupil/opd";
+import { aimRay } from "../src/pupil/aiming";
 import { boxcarBand } from "../src/imaging/emission";
 import { quadratureSamples } from "../src/photometry/spectrum";
 import { objectNumericalAperture } from "../src/pupil/microscope";
@@ -133,23 +134,35 @@ const totalOf = (values: Float64Array): number => {
  * ∫|P|²/|P(0)|² over the axial exit pupil, over π — predicted from traced rays
  * and one closed form, with no layout code in it.
  *
- * An emitter's power per unit of the aim, which is linear in the object-space
- * slope, goes as T·cos³θ (dΩ = cos³θ·d²tanθ), and a ray tube carries it to its
- * exit coordinate e(a), spread by the Jacobian (e/a)·de/da of a symmetric map. So
- * on a radius |P|² ∝ T·cos³θ/((e/a)·de/da), integrated over the disc in e.
+ * An emitter's power per unit of the aim goes as T·cos³θ (dΩ = cos³θ·d²tanθ)
+ * times the aim's own Jacobian onto the slope, (t/a)·dt/da of a symmetric map,
+ * and a ray tube carries it to its exit coordinate e(a), spread by (e/a)·de/da.
+ * So on a radius |P|² ∝ T·cos³θ·(t/a)·(dt/da)/((e/a)·de/da), integrated over the
+ * disc in e. The slope is each ray's own launch: under the paraxial aim it is
+ * linear in a and its Jacobian a constant that cancels (as this read before
+ * § 2z, with t = a·tan u); under real aiming each ray is solved onto the stop,
+ * and the slope is not linear in the coordinate (§ 2z.7).
  */
 function rimShape(nm: number, n = 1001): number {
-  const map = opdMap(SYSTEM, 0, nm, Array.from({ length: n }, (_, i) => ({ px: i / (n - 1), py: 0 })));
+  const grid = Array.from({ length: n }, (_, i) => ({ px: i / (n - 1), py: 0 }));
+  const map = opdMap(SYSTEM, 0, nm, grid);
   const a = map.samples.map((p) => p.px);
   const e = map.samples.map((p) => p.exitX / map.samples[n - 1]!.exitX);
-  const tanMax = Math.tan(Math.asin(objectNumericalAperture(SYSTEM, nm)));
-  const density = (k: number): number => {
+  const t = grid.map((q) => {
+    const d = aimRay(SYSTEM, map.pupil, 0, q, nm).dir;
+    return d.x / d.z;
+  });
+  const derivative = (f: readonly number[], k: number): number => {
     const lo = Math.max(k - 1, 0);
     const hi = Math.min(k + 1, n - 1);
-    const slope = (e[hi]! - e[lo]!) / (a[hi]! - a[lo]!);
-    const jacobian = k === 0 ? slope * slope : (e[k]! / a[k]!) * slope;
-    const t = a[k]! * tanMax;
-    return (map.samples[k]!.throughput * (1 + t * t) ** -1.5) / jacobian;
+    return (f[hi]! - f[lo]!) / (a[hi]! - a[lo]!);
+  };
+  const density = (k: number): number => {
+    const de = derivative(e, k);
+    const dt = derivative(t, k);
+    const exit = k === 0 ? de * de : (e[k]! / a[k]!) * de;
+    const aim = k === 0 ? dt * dt : (t[k]! / a[k]!) * dt;
+    return (map.samples[k]!.throughput * (1 + t[k]! * t[k]!) ** -1.5 * aim) / exit;
   };
   let sum = 0;
   for (let k = 0; k < n - 1; k++) {
@@ -356,7 +369,7 @@ describe("§ 6bb — the spectral volume", () => {
         diff = Math.max(diff, Math.abs(image.intensity[i]! - plane.image.intensity[i]!));
       }
       expect(diff).toBe(0);
-      expect(plane.numericalAperture).toBeCloseTo(0.10001613548968476, 15);
+      expect(plane.numericalAperture).toBeCloseTo(0.09995938110004654, 15); // was 0.10001613548968476 (§ 2z)
       expect(plane.numericalAperture).not.toBe(0.1);
     });
   });
@@ -412,26 +425,27 @@ describe("§ 6bb — the spectral volume", () => {
       // On the exit layout (§ 2q.6). The aim layout read 0.17641773149460835
       // and 0.17757798551517912; point-sampled, 0.17484106620284498 and
       // 0.1759909445448711.
-      expect(sums.get(430)!).toBeCloseTo(0.17645329245685296, 15);
-      expect(sums.get(680)!).toBeCloseTo(0.17920478048786664, 15);
+      expect(sums.get(430)!).toBeCloseTo(0.1764652207442036, 15); // was 0.17645329245685296 (§ 2z)
+      expect(sums.get(680)!).toBeCloseTo(0.17920512628301952, 15); // was 0.17920478048786664 (§ 2z)
 
       // The factor's own spectrum: 1.56% across the band, and it is two things,
       // neither of them the pupil grid's quantization. One is the objective's
       // transmission, 0.658% — the on-axis amplitude squared, and on the aim
       // layout, which lays the pupil uniform, the whole of it (to 4.4e-6). The
       // other is the exit pupil brightening toward its rim, which is a colour:
-      // `rimShape` predicts it from traced rays and cos³ alone, 0.897% from 430 to
-      // 680 nm, and the product meets the formed sums to 1.1e-5 — the 32-sample
-      // edge cells' share, which a fine quadrature of the same pupil puts at 1.2e-5.
+      // `rimShape` predicts it from traced rays and cos³ alone, 0.891% from 430 to
+      // 680 nm (0.897% before § 2z), and the product meets the formed sums to
+      // 1.07e-5 — the 32-sample edge cells' share, which a fine quadrature of the
+      // same pupil puts at 1.2e-5.
       const tilt = sums.get(680)! / sums.get(430)!;
-      expect(tilt).toBeCloseTo(1.0155933, 6);
+      expect(tilt).toBeCloseTo(1.0155266, 6); // was 1.0155933 (§ 2z)
       const ampTilt =
         (fieldPupilAt(SYSTEM, tile(680), 0.5, 0.5, {}).pupil.amplitude(0, 0) /
           fieldPupilAt(SYSTEM, tile(430), 0.5, 0.5, {}).pupil.amplitude(0, 0)) **
         2;
       expect(ampTilt).toBeCloseTo(1.0065732, 6);
       const shapeTilt = rimShape(680) / rimShape(430);
-      expect(shapeTilt).toBeCloseTo(1.0089721, 6);
+      expect(shapeTilt).toBeCloseTo(1.0089055, 6); // was 1.0089721 (§ 2z)
       expect(Math.abs(tilt - ampTilt * shapeTilt)).toBeLessThan(1.5e-5);
       // and the transmission alone is no longer the answer
       expect(tilt - ampTilt).toBeGreaterThan(8e-3);
@@ -512,9 +526,9 @@ describe("§ 6bb — the spectral volume", () => {
       // On the exit layout (§ 2q.6); the aim layout read −2.489404e-6,
       // 7.869282e-8 and −7.384180e-7. The point-sampled rim read −2.163917e-6,
       // 7.891797e-8 and −7.578683e-7: 15% low in the blue at this lattice, and 1% at 47.
-      expect(blue.ideal).toBeCloseTo(-2.480642e-6, 11);
-      expect(green.ideal).toBeCloseTo(7.774197e-8, 13);
-      expect(red.ideal).toBeCloseTo(-7.271317e-7, 12);
+      expect(blue.ideal).toBeCloseTo(-2.468054e-6, 11); // was -2.480642e-6 (§ 2z)
+      expect(green.ideal).toBeCloseTo(7.766377e-8, 13); // was 7.774197e-8 (§ 2z)
+      expect(red.ideal).toBeCloseTo(-7.280106e-7, 12); // was -7.271317e-7 (§ 2z)
       expect(Math.sign(blue.ideal)).toBe(-1);
       expect(Math.sign(green.ideal)).toBe(+1);
       expect(Math.sign(red.ideal)).toBe(-1);
@@ -543,9 +557,9 @@ describe("§ 6bb — the spectral volume", () => {
       const red = dilution(680);
       // On the exit layout (§ 2q.6); the aim layout read 5.2438e-2, 7.8040e-2
       // and 8.1315e-2, the point-sampled rim 4.5582e-2, 7.8263e-2 and 8.3631e-2.
-      expect(blue).toBeCloseTo(5.2253e-2, 5);
-      expect(green).toBeCloseTo(7.7095e-2, 5);
-      expect(red).toBeCloseTo(8.0038e-2, 5);
+      expect(blue).toBeCloseTo(5.1988e-2, 5); // was 5.2253e-2 (§ 2z)
+      expect(green).toBeCloseTo(7.7017e-2, 5); // was 7.7095e-2 (§ 2z)
+      expect(red).toBeCloseTo(8.016e-2, 5); // was 8.0038e-2 (§ 2z)
       // Monotone with wavelength: the same depth is fewer waves of defocus in
       // the red, so less of the geometry is smeared away.
       expect(blue).toBeLessThan(green);
@@ -561,7 +575,7 @@ describe("§ 6bb — the spectral volume", () => {
       // On the exit layout (§ 2q.6; 0.8547819 on the aim one). Point-sampled,
       // 0.8483541 and above 3.9e5 — the ratio fell because the ideal-pupil
       // denominator rose 15%.
-      expect(traced).toBeCloseTo(0.8557766, 6);
+      expect(traced).toBeCloseTo(0.8562133, 6); // was 0.8557766 (§ 2z)
       expect(Math.abs(traced / ideal)).toBeGreaterThan(3.4e5);
       // Not a perspective at all: the objective's focus is not where the stage
       // is, so ±z are not equally blurred. That is § 6bb.6's subject, and it is
@@ -570,7 +584,7 @@ describe("§ 6bb — the spectral volume", () => {
   });
 
   describe("§ 6bb.6 — the channels focus at different stage positions", () => {
-    it("0.161 mm from the blue channel to the design wavelength — 3.75 depths of focus", () => {
+    it("0.164 mm from the blue channel to the design wavelength — 3.82 depths of focus", () => {
       const blue = pictureFocusMm(430);
       const green = pictureFocusMm(546.074);
       const design = pictureFocusMm(DESIGN);
@@ -580,17 +594,18 @@ describe("§ 6bb — the spectral volume", () => {
       // 0.047701 and 0.067900, and the blue 0.210131 at 56 samples, 2.8e-4 away.
       // Point-sampled these read 0.213627, 0.051049, 0.046893 and 0.067222, and
       // the blue 0.211107 at 56 samples, 2.5e-3 away.
-      expect(blue).toBeCloseTo(0.208698, 5);
-      expect(green).toBeCloseTo(0.051648, 5);
+      expect(blue).toBeCloseTo(0.211903, 5); // was 0.208698 (§ 2z)
+      expect(green).toBeCloseTo(0.051525, 5); // was 0.051648 (§ 2z)
       expect(design).toBeCloseTo(0.047478, 5);
-      expect(red).toBeCloseTo(0.067734, 5);
+      expect(red).toBeCloseTo(0.067844, 5); // was 0.067734 (§ 2z)
 
       const halfDepth430 = (430 * 1e-6) / (2 * 0.1 * 0.1);
       expect(halfDepth430).toBeCloseTo(0.0215, 12);
       // § 6k's depth of focus is half a wave across the full range, so it is
-      // twice this half-depth: the two channels are 3.75 of them apart (3.7709 on
+      // twice this half-depth: the two channels are 3.82 of them apart (3.75 before
+      // § 2z; 3.7709 on
       // the aim layout and 3.7770 there at 56 samples; 3.8775 point-sampled).
-      expect((blue - design) / (2 * halfDepth430)).toBeCloseTo(3.7493, 3);
+      expect((blue - design) / (2 * halfDepth430)).toBeCloseTo(3.8238, 3); // was 3.7493 (§ 2z)
 
       // Non-monotone in colour, and the minimum is not at either end: the
       // best-focus curve turns around inside the band exactly as the rate does.
@@ -609,7 +624,7 @@ describe("§ 6bb — the spectral volume", () => {
   });
 
   describe("§ 6bb.7 — and it is NOT the paraxial chromatic focal shift", () => {
-    it("`focusDepthMm` is 32% short, because each channel balances its own spherical", () => {
+    it("`focusDepthMm` is 33% short, because each channel balances its own spherical", () => {
       expect(focusDepthMm(SYSTEM, 430)).toBeCloseTo(0.110213, 6);
       expect(focusDepthMm(SYSTEM, 486.1327)).toBeCloseTo(0.010050, 6);
       expect(focusDepthMm(SYSTEM, 546.074)).toBeCloseTo(-0.009622, 6);
@@ -622,17 +637,17 @@ describe("§ 6bb — the spectral volume", () => {
       expect(paraxial).toBeCloseTo(0.110213, 6);
       // On the exit layout (§ 2q.6); the aim layout read 0.162150 and 1.4712,
       // the point-sampled rim 0.166734 and 1.5129.
-      expect(picture).toBeCloseTo(0.161220, 5);
-      expect(picture / paraxial).toBeCloseTo(1.4628, 3);
+      expect(picture).toBeCloseTo(0.164425, 5); // was 0.161220 (§ 2z)
+      expect(picture / paraxial).toBeCloseTo(1.4919, 3); // was 1.4628 (§ 2z)
 
       // The cause, measured rather than asserted: the ρ⁴ term of the traced
-      // wavefront falls 4.59× across the band, so the defocus each channel is
+      // wavefront falls 4.49× across the band (4.59× before § 2z), so the defocus each channel is
       // balanced against is its own. (Read in the exit coordinate, § 2q.6; in
       // the aim one 1.928392, 0.620972, 0.419576 and 4.5960.)
-      expect(sphericalWaves(430)).toBeCloseTo(1.942338, 5);
-      expect(sphericalWaves(DESIGN)).toBeCloseTo(0.621378, 5);
-      expect(sphericalWaves(656.2725)).toBeCloseTo(0.422800, 5);
-      expect(sphericalWaves(430) / sphericalWaves(656.2725)).toBeCloseTo(4.5940, 3);
+      expect(sphericalWaves(430)).toBeCloseTo(1.906235, 5); // was 1.942338 (§ 2z)
+      expect(sphericalWaves(DESIGN)).toBeCloseTo(0.621416, 5); // was 0.621378 (§ 2z)
+      expect(sphericalWaves(656.2725)).toBeCloseTo(0.424736, 5); // was 0.422800 (§ 2z)
+      expect(sphericalWaves(430) / sphericalWaves(656.2725)).toBeCloseTo(4.488, 3); // was 4.5940 (§ 2z)
     });
 
     it("refuses an infinite conjugate, which has no plane for a stage to focus on", () => {
@@ -797,13 +812,14 @@ describe("§ 6bb — the spectral volume", () => {
       // blue, on the same stack, at the same stage position.
       expect(share(656.2725) / share(430)).toBeCloseTo(1.5455, 3);
 
-      // The NA is chromatic too — 0.26% across the band against the
-      // wavelength's own 53%, so it is small and it is not nothing.
+      // The NA is chromatic too — 0.60% across the band against the
+      // wavelength's own 53%, so it is small and it is not nothing. (0.26% on the
+      // paraxial aim: the real rim ray carries the doublet's spherochromatism, § 6r.9.)
       const naBlue = objectNumericalAperture(SYSTEM, 430);
       const naRed = objectNumericalAperture(SYSTEM, 680);
       expect(objectNumericalAperture(SYSTEM, DESIGN)).toBeCloseTo(0.1, 15);
       expect(Math.abs(naRed / naBlue - 1)).toBeGreaterThan(1e-3);
-      expect(Math.abs(naRed / naBlue - 1)).toBeLessThan(3e-3);
+      expect(Math.abs(naRed / naBlue - 1)).toBeLessThan(7e-3);
     });
   });
 

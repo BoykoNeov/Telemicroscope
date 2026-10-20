@@ -111,6 +111,19 @@ const infinity = (stopPlacement: StopPlacement): OpticalSystem =>
  */
 const AIM = { layout: "aim" } as const;
 
+/** § 6x.1's members on the paraxial aim and its stop: the aim layout is that aim's affine map (§ 2z.7). */
+const dinAim = (): OpticalSystem =>
+  finiteConjugateMicroscope({
+    objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1, stopPlacement: "rim" }),
+    rayAiming: "paraxial",
+  }).system;
+const infinityAim = (stopPlacement: StopPlacement): OpticalSystem =>
+  infinityCorrectedMicroscope({
+    objective: microscopeObjective({ magnification: 4, numericalAperture: 0.1, stopPlacement }),
+    tubeLens: tubeLens(),
+    rayAiming: "paraxial",
+  }).system;
+
 /** Brightfield frames are on the exit layout since § 2n; § 6x.1's closed form stays the aim coordinate's. */
 const frameOf = (system: OpticalSystem, pupilSamples = PS, size = SIZE) =>
   objectFieldFrame(system, { size, pupilSamples, wavelengthNm: L, layout: "exit" });
@@ -152,7 +165,7 @@ describe("§ 6x.1 — the illumination offset IS h/R_ep, and telecentricity kill
     // paraxial statement about where a parallel ray crosses the entrance pupil.
     // They share no code — `illuminationOffset` never asks for `entrance.radius`
     // — so the agreement is a check and not a restatement.
-    for (const system of [din(), infinity("rim")]) {
+    for (const system of [dinAim(), infinityAim("rim")]) {
       const R = pupils(system, L).entrance.radius;
       expect(Number.isFinite(R)).toBe(true);
       for (const h of [0.0235, 0.1, 0.5, 1, 2]) {
@@ -165,7 +178,7 @@ describe("§ 6x.1 — the illumination offset IS h/R_ep, and telecentricity kill
     // The number the whole step is about, stated once in the units it bites in.
     // S is rarely above 1, so at a millimetre of field the cone this objective is
     // lit through sits a fifth of the way out of the aperture that must catch it.
-    const system = din();
+    const system = dinAim();
     const perMm = illuminationOffset(system, 1, L, AIM);
     expect(perMm).toBeCloseTo(0.21736, 5);
     // Exactly linear in the field, because h/R_ep is: the ratio over 100× of
@@ -180,14 +193,14 @@ describe("§ 6x.1 — the illumination offset IS h/R_ep, and telecentricity kill
     // so the chief ray's slope is the literal 0 of § 6v.4 and the quotient never
     // happens. That is what licenses `translateSource` returning its input object
     // and every telecentric render staying byte-identical.
-    const tele = infinity("backFocal");
+    const tele = infinityAim("backFocal");
     expect(pupils(tele, L).entrance.radius).toBe(Infinity);
     for (const h of [0, 0.001, 0.1, 1, 3]) {
       expect(illuminationOffset(tele, h, L, AIM)).toBe(0);
     }
     // And its own negative control, on identical geometry, is not zero anywhere
     // off axis — so the null is the stop placement and not the lens.
-    const rim = infinity("rim");
+    const rim = infinityAim("rim");
     expect(illuminationOffset(rim, 0, L, AIM)).toBe(0);
     for (const h of [0.001, 0.1, 1, 3]) {
       expect(Math.abs(illuminationOffset(rim, h, L, AIM))).toBeGreaterThan(0);
@@ -275,14 +288,26 @@ describe("§ 6x.2 — the aperture stops admitting the whole cone, and that is c
     // 0.8158 → 0.7737 over the same sweep — for § 6v.5's reason, which is the
     // imaging bundle walking off the glass. The two mechanisms are separated by
     // this count and not by a brightness.
-    const tele = infinity("backFocal");
+    //
+    // The offset is exactly zero on the paraxial aim, whose chief ray leaves
+    // parallel, so the source comes back as the same object. On the real aim the
+    // chief ray tilts as h³ (§ 6v.4) and the offset is that tilt — 4.35e-5 of the
+    // pupil at 0.5 mm, 3.49e-4 at 1 mm, the cube's factor 8 — a translated copy,
+    // and still all 97 inside.
     const source = diskSource(0.9, 11);
-    for (const h of [0, 0.5, 1]) {
-      const tile = tileAtHeight(tele, h, PS, 128);
-      const p = fieldPupilAt(tele, tile, 0.5, 0.5, FIELD);
-      const lit = translateSource(source, p.illuminationOffset.sx, p.illuminationOffset.sy);
-      expect(lit).toBe(source);
-      expect(lit.points.filter((q) => Math.hypot(q.sx, q.sy) <= 1)).toHaveLength(97);
+    for (const rayAiming of ["paraxial", "real"] as const) {
+      const tele = rayAiming === "paraxial" ? infinityAim("backFocal") : infinity("backFocal");
+      for (const h of [0, 0.5, 1]) {
+        const tile = tileAtHeight(tele, h, PS, 128);
+        const p = fieldPupilAt(tele, tile, 0.5, 0.5, FIELD);
+        const lit = translateSource(source, p.illuminationOffset.sx, p.illuminationOffset.sy);
+        if (rayAiming === "paraxial") expect(lit).toBe(source);
+        else if (h > 0) {
+          const offset = Math.hypot(p.illuminationOffset.sx, p.illuminationOffset.sy);
+          expect(Math.abs(offset / h ** 3 / 3.4922e-4 - 1)).toBeLessThan(5e-3);
+        }
+        expect(lit.points.filter((q) => Math.hypot(q.sx, q.sy) <= 1)).toHaveLength(97);
+      }
     }
   });
 

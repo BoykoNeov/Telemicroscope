@@ -525,7 +525,7 @@ describe("§ 6i.5 — a traced objective, and why beads are the first specimen",
     const corner = split(1, 1);
     // 3.2787e-4 and 1.0375e-2 before § 2q.5's rim densities; the support's split
     // did not move.
-    expect(corner.full / axis.full - 1).toBeCloseTo(8.5864e-5, 7);
+    expect(corner.full / axis.full - 1).toBeCloseTo(8.578e-5, 7); // 8.5864e-5 before § 2z
     expect(corner.supportOnly / axis.supportOnly - 1).toBeCloseTo(-2.5094e-3, 7);
     expect(Math.abs(frame.objectHalfExtentMm * 1000 - 47.3121)).toBeLessThan(0.01);
 
@@ -534,7 +534,7 @@ describe("§ 6i.5 — a traced objective, and why beads are the first specimen",
     const telecentricPeakAt = (u: number, v: number): number =>
       peakOf(fieldPupilAt(telecentric, telecentricFrame, u, v).pupil);
     const telecentricRatio = telecentricPeakAt(1, 1) / telecentricPeakAt(0.5, 0.5);
-    expect(telecentricRatio - 1).toBeCloseTo(1.02043e-2, 6);
+    expect(telecentricRatio - 1).toBeCloseTo(1.02009e-2, 6); // 1.02043e-2 before § 2z
   });
 
   it("a bead field renders through the traced pupils, and holds the light they passed", () => {
@@ -566,8 +566,25 @@ describe("§ 6i.5 — a traced objective, and why beads are the first specimen",
     // the image holds exactly that share of the light. On the aim layout this was
     // a bracket, lo ≤ held/emitted ≤ hi, and at § 2p it collapsed: the share fell
     // 1.9e-16 below the smallest patch's, by rounding. Stated as what it is.
+    //
+    // Equal to the last bits on the paraxial aim, whose four mirror-image field
+    // points launch their rays in closed form. Under real aiming each ray is
+    // solved onto the stop (§ 2z.6), and a mirror image is a different point
+    // with its own last bits: the four shares agree to 1.9e-15, 8.5 ulp, the
+    // solve's and not the optics'. Both are asserted.
     const share = formed.patchThroughput[0]!;
-    for (const p of formed.patchThroughput) expect(Math.abs(p / share - 1)).toBeLessThan(1e-15);
+    for (const p of formed.patchThroughput) expect(Math.abs(p / share - 1)).toBeLessThan(2.5e-15);
+    const paraxialSystem = finiteConjugateMicroscope({
+      objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1, stopPlacement: "rim" }),
+      rayAiming: "paraxial",
+    }).system;
+    const paraxialShares = renderFluorescence(field, tracedFieldPupils(paraxialSystem, frameOf(paraxialSystem)), {
+      patches: 2,
+      pupilSamples: PUPIL_SAMPLES,
+      scale: frame.scale,
+      throughput: { kind: "transmitted" },
+    }).patchThroughput;
+    for (const p of paraxialShares) expect(Math.abs(p / paraxialShares[0]! - 1)).toBeLessThan(1e-15);
     expect(Math.abs(held / emitted / share - 1)).toBeLessThan(1e-14);
     // And it is a share of the light, nowhere near 1 (§ 6bc).
     expect(share).toBeLessThan(0.2);

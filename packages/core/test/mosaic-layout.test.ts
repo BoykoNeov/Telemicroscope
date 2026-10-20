@@ -35,9 +35,15 @@ import type { PupilLayout } from "../src/wave/psf";
 
 const LAMBDA = 587.5618;
 
-/** § 6o's own mosaic system, the rim-stopped DIN 4×/0.10. */
+/**
+ * § 6o's own mosaic system, the rim-stopped DIN 4×/0.10 — on the paraxial aim
+ * and its stop, because every identity here is read in both layouts and the aim
+ * layout is that aim's affine map (§ 2z.7). The pin is plumbing: which layout a
+ * tile is asked for, not what either layout reads.
+ */
 const SYSTEM: OpticalSystem = finiteConjugateMicroscope({
   objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1, stopPlacement: "rim" }),
+  rayAiming: "paraxial",
 }).system;
 
 const ANCHOR = { x: 1.6, y: 0.8 } as const;

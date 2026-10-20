@@ -135,13 +135,14 @@ describe("§ 2r.1 — a focus sweep lays its rim out once", () => {
   });
 
   it("the resolved sweep reads the best focus the engine read before it kept a book", () => {
-    // 0.18926688263787453 mm: the 4× at 430 nm and 0.55 mm on the exit layout,
+    // 0.1907400966434843 mm: the 4× at 430 nm and 0.55 mm on the exit layout,
     // resolved, read with no plan anywhere in the engine. First read at § 2r.1
     // (0.1892332100975374 mm, 22.7 s on that engine); re-read at § 2t, whose fit
     // moved it, with the plan switched off in `renderFieldVolume` for the run —
     // 49 s, and bitwise the planned sweep's — and again at § 2u (0.18926908475291915
     // before), and at § 2v's outline (0.18926908474842344 before), the same way
-    // and with the same result.
+    // and with the same result; and at § 2z's real aim and real-sized stop
+    // (0.18926688263787453 before), plan off, 93 s, bitwise the planned sweep's.
     const point = renderedBestFocus(SYSTEM, 430, 0.55, {
       size: 128,
       pupilSamples: 48,
@@ -154,7 +155,7 @@ describe("§ 2r.1 — a focus sweep lays its rim out once", () => {
       peak: "band-limited",
       ...EDGE,
     });
-    expect(point.focusMm).toBe(0.18926688263787453);
+    expect(point.focusMm).toBe(0.1907400966434843);
   });
 });
 

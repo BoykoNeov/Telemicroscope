@@ -35,11 +35,23 @@ import type { PupilLayout } from "../src/wave/psf";
  * content at the Nyquist row and column, which is measured here, not assumed.
  */
 
-const build = (M: number, NA: number): OpticalSystem =>
+/**
+ * A lens as shipped, real-aimed (§ 2z) — or, for a reading on the aim layout,
+ * on the paraxial aim and its stop: that layout is the paraxial aim's affine
+ * map (§ 2z.7).
+ */
+const build = (M: number, NA: number, layout: PupilLayout = "exit"): OpticalSystem =>
   finiteConjugateMicroscope({
     objective: finiteConjugateObjective({ magnification: M, numericalAperture: NA }),
+    ...(layout === "aim" ? { rayAiming: "paraxial" as const } : {}),
   }).system;
 const FOUR = build(4, 0.1);
+const FOUR_AIM = build(4, 0.1, "aim");
+/** The same lens on the paraxial aim and its stop, read on the exit layout. */
+const FOUR_PARAXIAL = finiteConjugateMicroscope({
+  objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
+  rayAiming: "paraxial",
+}).system;
 
 const SIZE = 128;
 const PS = 48;
@@ -83,12 +95,13 @@ function spectralTail(values: Float64Array, n: number, ps: number) {
 }
 
 function plane(nm: number, h: number, focusMm: number, size: number, ps: number, layout: PupilLayout) {
-  const frame = objectFieldTile(FOUR, {
+  const system = layout === "aim" ? FOUR_AIM : FOUR;
+  const frame = objectFieldTile(system, {
     size,
     pupilSamples: ps,
     wavelengthNm: nm,
     layout,
-    centreMm: { x: imageRadiusForObjectHeight(FOUR, h, nm), y: 0 },
+    centreMm: { x: imageRadiusForObjectHeight(system, h, nm), y: 0 },
   });
   const ball = gaussianBallEmitter({
     waistMm: 0.005,
@@ -97,7 +110,7 @@ function plane(nm: number, h: number, focusMm: number, size: number, ps: number,
     centreMm: { x: frame.centreObjectMm.x, y: frame.centreObjectMm.y, z: 0 },
   });
   return formVolumePlane(
-    FOUR,
+    system,
     neutralVolumeEmitterDensity(ball),
     { size, pupilSamples: ps, samples: [], slabs: uniformSlabs(-0.008, 0.008, 3), focusMm, layout },
     { nm, weight: 1 },
@@ -171,22 +184,29 @@ describe("§ 2q.2 — a swept peak is read off the image, not off its brightest 
   });
 
   it("the sample § 2q's flip refused is step-invariant and sharp, where the pixel readout swung past 1", () => {
-    const at = (peak: "pixel" | "band-limited", step: number) =>
-      renderedBestFocus(FOUR, 430, 0.825, { ...sweep("exit", peak, step), aboutMm: 0.169 }).plateauDepths;
+    const at = (peak: "pixel" | "band-limited", step: number, system: OpticalSystem = FOUR) =>
+      renderedBestFocus(system, 430, 0.825, { ...sweep("exit", peak, step), aboutMm: 0.169 }).plateauDepths;
     const band = STEPS.map((s) => at("band-limited", s));
     // 0.7323 before § 2q.5: the rim nodes' densities moved the exit pupil's light;
-    // 0.7322 before § 2t, whose fit keeps the off-axis rim (pixel: 1.1875).
-    expect(band[1]).toBeCloseTo(0.7320, 4);
+    // 0.7322 before § 2t, whose fit keeps the off-axis rim (pixel: 1.1875); 0.7320
+    // before § 2z, whose real aim fills the stop as built.
+    expect(band[1]).toBeCloseTo(0.7114, 4);
     expect(spread(band)).toBeLessThan(0.002);
     for (const p of band) expect(p).toBeLessThan(1);
-    // The same sweep read off the brightest pixel: the corner at the vertex.
-    expect(at("pixel", 0.005)).toBeCloseTo(1.1690, 4);
+    // The same sweep read off the brightest pixel: the corner at the vertex. That
+    // swing is the paraxial aim's at this sample — there the band-limited peak
+    // reads 0.7320 and the pixel 1.1690 — and under real aiming the pixel lands
+    // at 0.7137, beside the image's own 0.7114: a corner this sample no longer
+    // meets, not a readout that stopped needing the fix.
+    expect(at("band-limited", STEPS[1]!, FOUR_PARAXIAL)).toBeCloseTo(0.7320, 4);
+    expect(at("pixel", 0.005, FOUR_PARAXIAL)).toBeCloseTo(1.1690, 4);
+    expect(at("pixel", 0.005)).toBeCloseTo(0.7137, 4);
   });
 
   it("§ 6bf.5's ragged exception was the same corner: read off the image it is regular", () => {
     const band = STEPS.map(
       (s) =>
-        renderedBestFocus(FOUR, 430, 1.1, { ...sweep("aim", "band-limited", s), aboutMm: 0.1313 })
+        renderedBestFocus(FOUR_AIM, 430, 1.1, { ...sweep("aim", "band-limited", s), aboutMm: 0.1313 })
           .plateauDepths,
     );
     // 23.5% on the brightest pixel (§ 6bf.5); 0.3% here.
@@ -195,10 +215,9 @@ describe("§ 2q.2 — a swept peak is read off the image, not off its brightest 
   });
 
   it("and the genuine plateau is still refused, on both layouts", () => {
-    const two = build(2, 0.1);
     for (const layout of ["aim", "exit"] as const) {
       expect(() =>
-        renderedBestFocus(two, 430, 0.7, {
+        renderedBestFocus(build(2, 0.1, layout), 430, 0.7, {
           ...sweep(layout, "band-limited", 0.005),
           aboutMm: 0.5036,
           maxPlateauDepths: 1,

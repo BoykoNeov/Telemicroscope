@@ -11,6 +11,7 @@ import { GroupOrientation, ListerObjective, listerObjective } from "./lister";
 import {
   DEFAULT_TUBE_FOCAL_LENGTH_MM,
   InfinityCorrectedObjective,
+  builtRealStop,
 } from "./microscope";
 
 /**
@@ -821,8 +822,16 @@ export function oilImmersionObjective(
     surfaces: spliced.surfaces.map((s, i) => ({ ...s, isStop: i === 0 })),
   };
 
+  const built = builtRealStop({
+    prescription,
+    objectDistanceMm: frontGroup.objectDistanceMm,
+    stopRadiusMm: frontGroup.stopRadiusMm,
+    numericalAperture: NA,
+    designWavelengthNm,
+  });
   return {
     prescription,
+    ...(built === undefined ? {} : { realStop: built }),
     focalLengthMm: tubeFocalLengthMm / M,
     paraxialFocalLengthMm: systemProperties(prescription, designWavelengthNm).efl,
     objectDistanceMm: frontGroup.objectDistanceMm,

@@ -15,7 +15,7 @@ import { seidelSums } from "../src/analysis/seidel";
 import { LINE_D } from "../src/materials/dispersion";
 import { Prescription } from "../src/trace/prescription";
 import { systemProperties } from "../src/trace/paraxial";
-import { OpticalSystem } from "../src/trace/system";
+import { OpticalSystem, type RayAiming } from "../src/trace/system";
 import { opdMap } from "../src/pupil/opd";
 import { pupilGrid } from "../src/pupil/aiming";
 import { pupils } from "../src/pupil/pupils";
@@ -59,8 +59,8 @@ const objective4x = (withSlip: boolean) =>
     ...(withSlip ? { coverslip: {} } : {}),
   });
 
-const scope = (o: ReturnType<typeof microscopeObjective>) =>
-  infinityCorrectedMicroscope({ objective: o, tubeLens: tubeLens() });
+const scope = (o: ReturnType<typeof microscopeObjective>, rayAiming: RayAiming = "real") =>
+  infinityCorrectedMicroscope({ objective: o, tubeLens: tubeLens(), rayAiming });
 
 const rmsWaves = (s: OpticalSystem): number => {
   const focus = bestFocus(s, "minRmsWavefront", { pupilSamples: 21 });
@@ -239,8 +239,11 @@ describe("§ 6z.4 — it still delivers its NA and its magnification, both place
     const naive = Math.abs(slip.paraxialFocalLengthMm) * (NA / Math.sqrt(1 - NA * NA));
     expect(naive / slip.stopRadiusMm).toBeCloseTo(overSized, 12);
     expect(overSized - 1).toBeCloseTo(0.00287, 5);
+    // On the paraxial aim, which aims at the paraxial radius it is handed: the
+    // over-fill by the tangents' ratio is that construction's (real aiming would
+    // solve onto the naive radius and read the real ray there, 0.10082).
     const misSized = {
-      ...scope(slip).system,
+      ...scope(slip, "paraxial").system,
       aperture: { kind: "stopRadius" as const, value: naive },
     };
     expect(objectNumericalAperture(misSized, LAMBDA)).toBeCloseTo(0.1002857, 6);
@@ -263,9 +266,10 @@ describe("§ 6z.5 — the field number does not enter the currency", () => {
       fieldNumberMm: 18,
       coverslip: {},
     });
-    // Two different lenses — the fielded one is built at a 1.45× wider aperture…
+    // Two different lenses — the fielded one is built at a 1.4675× wider aperture:
+    // § 6w.1's 1.45 widened to the real beam at the field edge (§ 2z.8)…
     const k = fielded.glassRadiusMm / fielded.pupilRadiusMm;
-    expect(k).toBeCloseTo(1.45, 12);
+    expect(k).toBeCloseTo(1.4675084, 6);
     expect(fielded.doublet.targetS1Mm / plain.doublet.targetS1Mm).toBeGreaterThan(4);
     // …and the aberration each one actually carries is the same number, because
     // the plate in front of them is.
@@ -296,7 +300,7 @@ describe("§ 6z.5 — the field number does not enter the currency", () => {
     // plate rather than what was asked for.
     const left = 1 - naive.seidelS1 / fielded.doublet.targetS1Mm;
     expect(left).toBeCloseTo(1 - 1 / k ** 4, 9);
-    expect(left).toBeCloseTo(0.7738, 4);
+    expect(left).toBeCloseTo(0.7844, 4); // 0.7738 at the closed form's k = 1.45
   });
 });
 
@@ -402,22 +406,31 @@ describe("§ 6z.7 — a telecentric aperture assumed the object and the stop sha
    */
   it("the aperture is the object-medium slope, and reads the NA back exactly", () => {
     const o = objective4x(true);
-    const m = scope(o);
+    const m = scope(o, "paraxial");
     const p = pupils(m.system, LAMBDA);
     expect(p.entrance.radius).toBe(Infinity);
     const sinU = 0.1 / N_SLIP;
     const tanU = sinU / Math.sqrt(1 - sinU * sinU);
     // The slope aperture is tan u IN THE SLIP — not n·tan u, which is what the
-    // un-corrected expression returned.
+    // un-corrected expression returned. On the paraxial aim, whose stop is sized
+    // `f·n·tan u`; on the real aim the slope is tan u times the built stop's ratio
+    // to that (0.99471, § 2z.5) and the NA is the engraving either way.
     expect(p.entrance.slopeRadius).toBeCloseTo(tanU, 12);
     expect(objectNumericalAperture(m.system, LAMBDA)).toBeCloseTo(0.1, 10);
+    const real = scope(o);
+    const built = o.realStop!;
+    const slope = pupils(real.system, LAMBDA).entrance.slopeRadius!;
+    expect(Math.abs(slope / tanU - built.radiusMm / built.fromStopRadiusMm)).toBeLessThan(1e-15);
+    expect(objectNumericalAperture(real.system, LAMBDA)).toBeCloseTo(0.1, 14);
   });
 
   it("NEGATIVE CONTROL: the old expression is 51.9% fast, and the symptom points elsewhere", () => {
     // Aiming with a slope n times too wide is the same trace as a stop n times
     // too big, which is what the old arithmetic amounted to.
+    // On the paraxial aim, as the stop the old arithmetic amounted to is a
+    // paraxial radius n times too big.
     const o = objective4x(true);
-    const m = scope(o);
+    const m = scope(o, "paraxial");
     const asOld = {
       ...m.system,
       aperture: { kind: "stopRadius" as const, value: o.stopRadiusMm * N_SLIP },
@@ -443,8 +456,9 @@ describe("§ 6z.7 — a telecentric aperture assumed the object and the stop sha
     // determinant is exactly 1 and the new expression multiplies and divides by
     // a literal 1.0 — bitwise the old one. Asserted rather than left to the
     // suite's silence, because a "no test moved" argument expires.
+    // The paraxial aim's stop is the radius the expression is fed (§ 2z.5).
     const bare = objective4x(false);
-    const m = scope(bare);
+    const m = scope(bare, "paraxial");
     const p = pupils(m.system, LAMBDA);
     const tanU = 0.1 / Math.sqrt(1 - 0.01);
     expect(p.entrance.n).toBe(1);
@@ -465,8 +479,8 @@ describe("§ 6z.8 — the chief invariant through a REAL stack, and § 6y's sent
    * assembly and the chief ray of the lens placed at the *paraxial* apparent
    * depth are not the same ray, and a plate's apparent depth depends on angle.
    */
-  const withoutSlipSystem = (o: ReturnType<typeof microscopeObjective>): OpticalSystem => {
-    const m = scope(o);
+  const withoutSlipSystem = (o: ReturnType<typeof microscopeObjective>, rayAiming: RayAiming = "real"): OpticalSystem => {
+    const m = scope(o, rayAiming);
     return {
       ...m.system,
       prescription: {
@@ -480,11 +494,22 @@ describe("§ 6z.8 — the chief invariant through a REAL stack, and § 6y's sent
 
   it("is a BITWISE zero at every height on the telecentric member, slab or no slab", () => {
     const o = microscopeObjective({ magnification: 4, numericalAperture: 0.1, coverslip: {} });
-    const assembly = scope(o).system;
-    const lens = withoutSlipSystem(o);
+    const assembly = scope(o, "paraxial").system;
+    const lens = withoutSlipSystem(o, "paraxial");
     for (const h of [0.05, 0.1, 0.5]) {
       expect(chiefRayInvariant(assembly, h, LAMBDA)).toBe(0);
       expect(chiefRayInvariant(lens, h, LAMBDA)).toBe(0);
+    }
+    // Real aiming: § 6v.4's h³ tilt, 3.4673e-8 at 0.1 mm, and the slab and the
+    // apparent depth agree on it to 3e-12 of itself — both chief rays are solved
+    // onto the same stop centre.
+    const real = scope(o).system;
+    const realLens = withoutSlipSystem(o);
+    expect(chiefRayInvariant(real, 0.1, LAMBDA)).toBeCloseTo(3.4673e-8, 12);
+    for (const h of [0.05, 0.1, 0.5]) {
+      expect(Math.abs(chiefRayInvariant(real, h, LAMBDA) / chiefRayInvariant(realLens, h, LAMBDA) - 1)).toBeLessThan(
+        3e-12,
+      );
     }
   });
 
@@ -495,15 +520,25 @@ describe("§ 6z.8 — the chief invariant through a REAL stack, and § 6y's sent
       coverslip: {},
       stopPlacement: "rim",
     });
-    const assembly = scope(o).system;
-    const lens = withoutSlipSystem(o);
-    const departure = (h: number): number =>
-      Math.abs(chiefRayInvariant(assembly, h, LAMBDA) / chiefRayInvariant(lens, h, LAMBDA) - 1);
-    // Non-zero to begin with, so the ratios below are not a null over a null.
-    expect(chiefRayInvariant(assembly, 0.1, LAMBDA)).toBeCloseTo(-2.0532e-3, 6);
-    expect(departure(0.05)).toBeGreaterThan(1e-8);
-    expect(departure(0.1) / departure(0.05)).toBeCloseTo(4, 1);
-    expect(departure(0.5) / departure(0.1)).toBeCloseTo(25, 0);
+    // The square law holds on both aims, and its size is mostly the paraxial
+    // aim's: aimed at the paraxial pupil, the assembly's chief ray and the lens's
+    // at the paraxial apparent depth are different rays, 3.0e-7 apart at 0.05 mm.
+    // Solved onto the real stop's centre they are nearly one ray, and what is left
+    // — 6.9e-10, 436× less — is the plate's angle-dependent apparent depth alone.
+    for (const [rayAiming, at005] of [
+      ["paraxial", 2.999e-7],
+      ["real", 6.871e-10],
+    ] as const) {
+      const assembly = scope(o, rayAiming).system;
+      const lens = withoutSlipSystem(o, rayAiming);
+      const departure = (h: number): number =>
+        Math.abs(chiefRayInvariant(assembly, h, LAMBDA) / chiefRayInvariant(lens, h, LAMBDA) - 1);
+      // Non-zero to begin with, so the ratios below are not a null over a null.
+      expect(chiefRayInvariant(assembly, 0.1, LAMBDA)).toBeCloseTo(-2.0532e-3, 6);
+      expect(Math.abs(departure(0.05) / at005 - 1)).toBeLessThan(1e-3);
+      expect(departure(0.1) / departure(0.05)).toBeCloseTo(4, 1);
+      expect(departure(0.5) / departure(0.1)).toBeCloseTo(25, 0);
+    }
   });
 });
 
@@ -569,7 +604,8 @@ describe("§ 6z.9 — what the correction is worth, and which way it points", ()
       conjugate: { kind: "finite" as const, distance: corrected.airEquivalentObjectDistanceMm },
     });
     expect(dry).toBeLessThan(matched);
-    expect(dry / matched).toBeCloseTo(0.977, 2);
+    // 0.994 on the real aim and the engraved stop (§ 2z); 0.977 on the paraxial.
+    expect(dry / matched).toBeCloseTo(0.994, 3);
     // Both are four orders over what the plate itself asks for, which is why the
     // sign is a curiosity here and a real trade only where the form can carry NA.
     const asked = plateW040Mm(T_SLIP, N_SLIP, 0.1) / (LAMBDA * 1e-6) / (6 * Math.sqrt(5));

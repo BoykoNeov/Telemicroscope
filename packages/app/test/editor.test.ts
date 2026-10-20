@@ -72,6 +72,8 @@ describe("the R ↔ c conversion, which is the only rewrite of the schema", () =
       cassegrain({ apertureMm: 200, focalRatio: 10, primaryFocalRatio: 4 }).prescription,
       finiteConjugateMicroscope({
         objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
+        // As the bench seed is built: on the paraxial aim, which the bench aims on.
+        rayAiming: "paraxial",
       }).system.prescription,
       apochromaticObjective(TRIPLET_SPEC).prescription,
     ];

@@ -272,8 +272,10 @@ describe("§ 2q.3 — the rim is resolved, not point-sampled", () => {
     // with § 2q.2's readout on the aim layout, at three lattices one of which
     // has rim nodes (48). Point-sampled 0.048320, 0.047095, 0.047753 mm at 47,
     // 48, 64 — 1.2e-3 apart; resolved 0.047896, 0.047878, 0.047905 — 2.7e-5.
+    // On the paraxial aim and its stop, whose affine map the aim layout is (§ 2z.7).
     const system = finiteConjugateMicroscope({
       objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
+      rayAiming: "paraxial",
     }).system;
     const sweep = (ps: number, edgeSamples?: number): number => {
       const options: FocusSweepOptions = {

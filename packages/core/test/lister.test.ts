@@ -361,7 +361,7 @@ describe("§ 6d.4 — reach: Maréchal, bisected", () => {
     expect(ceiling).toBeCloseTo(0.2733, 3);
     const sigma = measure(scopeOf(lister(ceiling * 0.999))).rms;
     expect(sigma).toBeLessThan(MARECHAL);
-    expect(sigma).toBeCloseTo(0.03691, 4);
+    expect(sigma).toBeCloseTo(0.03684, 4); // 0.03691 over the paraxial aim's cone (§ 2z)
   });
 
   it("NEGATIVE CONTROL: the single doublet's own ceiling is a different fact", () => {

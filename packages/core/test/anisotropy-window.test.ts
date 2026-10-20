@@ -76,6 +76,7 @@ const THIN: EmitterSlabs = { depthsMm: [0], thicknessMm: [0.016] };
 
 const build = (M: number, NA: number): OpticalSystem =>
   finiteConjugateMicroscope({
+    rayAiming: "paraxial", // measured on the paraxial aim and its stop; under real aiming it is open item 48 (§ 2z)
     objective: finiteConjugateObjective({ magnification: M, numericalAperture: NA }),
   }).system;
 

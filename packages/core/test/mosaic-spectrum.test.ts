@@ -71,6 +71,20 @@ const TELECENTRIC: OpticalSystem = finiteConjugateMicroscope({
 }).system;
 
 /**
+ * The two readings on the aim layout take the same lenses on the paraxial aim
+ * and its stop: the aim layout is that aim's affine map (§ 2z.7), so read on a
+ * real-aimed system it is not the ruler the law below is about.
+ */
+const SYSTEM_AIM: OpticalSystem = finiteConjugateMicroscope({
+  objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1, stopPlacement: "rim" }),
+  rayAiming: "paraxial",
+}).system;
+const TELECENTRIC_AIM: OpticalSystem = finiteConjugateMicroscope({
+  objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
+  rayAiming: "paraxial",
+}).system;
+
+/**
  * Three wavelengths, equally weighted — § 6r.6's own traced sampling.
  *
  * Deliberately the ends and the middle of § 3a's band rather than a fine comb:
@@ -243,7 +257,7 @@ describe("§ 6t.3 — the ruler plane is the LEAST guarded, and the rest by a cl
     // layout's ruler is ν = |M|·n′·σ, traced per λ, so it carries the lens's
     // lateral colour: the telecentric member's residual is 2.41e-3 there, not
     // 2.4e-10, and the separation the last lines pin does not exist on it.
-    const geometry = spectralMosaicGeometry(SYSTEM, optionsOf(AIM));
+    const geometry = spectralMosaicGeometry(SYSTEM_AIM, optionsOf(AIM));
     const pixelsPerCell = SIZE / PS;
 
     const ruler = geometry.planes[geometry.rulerIndex]!;
@@ -297,7 +311,7 @@ describe("§ 6t.3 — the ruler plane is the LEAST guarded, and the rest by a cl
     // It does NOT make the minimum-over-measured-scales redundant, and the rung
     // says so by pinning the floor rather than an equality: 2.4e-10 is still four
     // thousand ulp, so `stackBrightfieldPlanes` is still reading a measurement.
-    const telecentric = spectralMosaicGeometry(TELECENTRIC, optionsOf(AIM));
+    const telecentric = spectralMosaicGeometry(TELECENTRIC_AIM, optionsOf(AIM));
     const telecentricRuler = telecentric.planes[telecentric.rulerIndex]!;
     const telecentricWorst = Math.max(
       ...telecentric.planes.map((p) =>

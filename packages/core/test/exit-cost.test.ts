@@ -164,7 +164,10 @@ describe("§ 2k.2 — and every fit and sampler built on it, on traced pupils", 
     // sums are the same numbers added in another order, and each moved in its
     // last bit (the phase 1588.677585164183 before). The amplitude re-recorded at
     // § 2q.5 (744.571401627401 before): the field's throughput now rides in the
-    // density's fit, not a six-term one of its own. The phase did not move.
+    // density's fit, not a six-term one of its own. The phase did not move. Both
+    // re-recorded at § 2z (744.5653414552702 and 1588.6775851641826 before): the
+    // pupil is now the real-aimed one inside the stop as built — a stop 1.4% wider
+    // on this 10×/0.20, every sample solved onto it, and no mirror at 550 nm.
     const map = maps[0][1];
     const p = laidPupil(dry10(), map, { layout: "exit", source: "field" }).pupil;
     let a = 0;
@@ -183,5 +186,5 @@ describe("§ 2k.2 — and every fit and sampler built on it, on traced pupils", 
   });
 });
 
-const EXIT_AMPLITUDE_SUM = 744.5653414552702;
-const EXIT_PHASE_SUM = 1588.6775851641826;
+const EXIT_AMPLITUDE_SUM = 767.1164473467074;
+const EXIT_PHASE_SUM = 1815.124501636666;

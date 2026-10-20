@@ -39,6 +39,13 @@ export interface AimOptions {
    * ray, so the choice cancels — provided every ray in a bundle shares it.
    */
   readonly launchZ?: number;
+  /**
+   * Under real aiming, land the ray on its stop point as finely as the trace
+   * resolves it, not just inside the clip's margin. For a reading OF one ray —
+   * the NA is its rim ray's sine — that margin is the reading's error (§ 2z.5).
+   * It costs a few Newton steps on that one ray; a bundle never asks for it.
+   */
+  readonly lastBit?: boolean;
 }
 
 function defaultLaunchZ(pupil: PupilGeometry): number {
@@ -143,6 +150,7 @@ function aimObjectSpace(
   fieldValue: number,
   point: PupilPoint,
   wavelengthNm: number,
+  lastBit: boolean,
 ): Ray {
   const slope = pupil.entrance.slopeRadius;
   if (slope === undefined) {
@@ -166,10 +174,17 @@ function aimObjectSpace(
   // wavelength, and next to it the plane solve aims at a pupil 1e5 mm away; the
   // two land the same ray on the same stop point, which is the continuity the
   // paraxial aim, switching from a target to a slope at the crossing, never had.
-  const solved = solveOntoStop(system, pupil, fieldValue, point, wavelengthNm, seed, construct, {
-    space: "slope",
-    stepScale: slope,
-  });
+  const solved = solveOntoStop(
+    system,
+    pupil,
+    fieldValue,
+    point,
+    wavelengthNm,
+    seed,
+    construct,
+    { space: "slope", stepScale: slope },
+    lastBit,
+  );
   return construct(solved.qx, solved.qy);
 }
 
@@ -254,6 +269,7 @@ function solveOntoStop(
   seed: { qx: number; qy: number },
   construct: (qx: number, qy: number) => Ray,
   solve: SolveSpace = { space: "target" },
+  lastBit = false,
 ): { qx: number; qy: number } {
   const c = asCompiled(system.prescription);
   const solveIn = unclipped(c);
@@ -271,13 +287,18 @@ function solveOntoStop(
   // put it wherever the iteration happened to stall.
   // Nothing past the stop decides where a ray lands on it.
   const toStop = { ...CONTINUATION, lastSurface: k };
-  const miss = (qx: number, qy: number): StopMiss | null => {
+  /** Where a launch lands on the stop, in its frame — no target in it. */
+  const land = (qx: number, qy: number): StopMiss | null => {
     const res = traceRay(solveIn, construct(qx, qy), toStop);
     const hit = res.path[k];
     if (!hit) return null;
     const local = applyToPoint(stop.inverseFrame, hit);
     const behind = res.behindAt !== undefined && res.behindAt <= k ? res.behindAt : -1;
-    return [local.x - tx, local.y - ty, behind];
+    return [local.x, local.y, behind];
+  };
+  const miss = (qx: number, qy: number): StopMiss | null => {
+    const l = land(qx, qy);
+    return l && [l[0] - tx, l[1] - ty, l[2]];
   };
 
   // The scale everything here is measured against. A stop radius is the natural
@@ -288,17 +309,20 @@ function solveOntoStop(
   // plane, or a slope — where a millimetre-sized step would be a tenth of the cone.
   const h = 1e-5 * (solve.space === "slope" ? solve.stepScale : scaleMm);
 
+  // Differenced off the landings, not the misses: the target cancels from a
+  // difference of misses only to rounding, and the shared Jacobian then carried
+  // the target of whichever ray took it (§ 2z.6).
   const jacobianAt = (qx: number, qy: number): readonly number[] | null => {
-    const px = miss(qx + h, qy);
-    const mx = miss(qx - h, qy);
-    const py = miss(qx, qy + h);
-    const my = miss(qx, qy - h);
+    const px = land(qx + h, qy);
+    const mx = land(qx - h, qy);
+    const py = land(qx, qy + h);
+    const my = land(qx, qy - h);
     // One-sided where the centred stencil straddles the edge of the rays that
     // reach the stop at all — a lens's knife edge, where a solve for a point just
     // inside it otherwise stops one step short (§ 2z.1).
     const along = (p: StopMiss | null, m: StopMiss | null): [number, number] | null => {
       if (p && m) return [(p[0] - m[0]) / (2 * h), (p[1] - m[1]) / (2 * h)];
-      const f0 = miss(qx, qy);
+      const f0 = land(qx, qy);
       if (!f0) return null;
       if (p) return [(p[0] - f0[0]) / h, (p[1] - f0[1]) / h];
       if (m) return [(f0[0] - m[0]) / h, (f0[1] - m[1]) / h];
@@ -351,10 +375,16 @@ function solveOntoStop(
   // mapping plus distortion, so it is nearly affine and this converges in a
   // handful of steps at one trace each — the whole reason real aiming costs a
   // small multiple of paraxial aiming rather than a large one.
+  // Taken at the chief's seed, never at the first ray's: a Jacobian taken
+  // wherever the first ray of a field and λ happened to start makes every later
+  // ray's chord, and so its last bits, depend on which rays were solved before
+  // it — 1e-16 to 1.5e-14 in direction on four DIN cases (§ 2z.6). Where the
+  // chief's seed reaches nothing, this ray's own Jacobian serves it uncached.
   let j = perSystem.get(key) ?? null;
   if (!j) {
-    j = jacobianAt(qx, qy);
+    j = jacobianAt(0, 0);
     if (j) perSystem.set(key, j);
+    else j = jacobianAt(qx, qy);
   }
   // The chord runs on past `tol`: a rim ray is solved onto the stop's own rim,
   // and the trace clips at the rim's radius² × (1 + 1e-12), 5e-13 of the radius —
@@ -389,12 +419,15 @@ function solveOntoStop(
       f = next;
     }
   }
-  if (Math.hypot(f[0], f[1]) <= tol) return reached(qx, qy, f);
+  if (Math.hypot(f[0], f[1]) <= fine) return reached(qx, qy, f);
 
-  // Newton phase, entered only when the shared Jacobian was not good enough
-  // here — a rim ray of a strongly misaligned system, where the mapping is no
-  // longer close to its axial linearization.
-  for (let i = 0; i < MAX_NEWTON_STEPS && Math.hypot(f[0], f[1]) > tol; i++) {
+  // Newton phase, entered where the shared Jacobian was not good enough here — a
+  // rim ray of a strongly misaligned system, where the mapping is no longer close
+  // to its axial linearization — or where the chord stalled short of `fine`: the
+  // clip is finer than `tol`, so a rim ray accepted between the two read
+  // vignetted by its own stop (the DIN 4×/0.20 at 0.85 mm, 8.4e-13 past the rim;
+  // § 2z.6).
+  for (let i = 0; i < MAX_NEWTON_STEPS && Math.hypot(f[0], f[1]) > fine; i++) {
     const jl = jacobianAt(qx, qy);
     if (!jl) break;
     let [dx, dy] = step(jl, f);
@@ -429,12 +462,33 @@ function solveOntoStop(
 
   /** The solved launch — refused where its continuation crossed a surface behind itself on the way. */
   function reached(qx: number, qy: number, f: StopMiss): { qx: number; qy: number } {
+    if (lastBit) [qx, qy, f] = polished(qx, qy, f);
     if (f[2] < 0) return { qx, qy };
     throw new UnreachableStopPoint(
       `rayAiming 'real': (${point.px.toFixed(3)}, ${point.py.toFixed(3)}) on the stop lies past a knife edge — the launch toward it crosses surface ${f[2]} behind itself (§ 2z.4)`,
       `miss@${f[2]}`,
       construct(qx, qy),
     );
+  }
+
+  /**
+   * On from `fine` with a fresh Jacobian per step, for as long as the miss
+   * shrinks: where it stops shrinking is the trace's own resolution of the stop
+   * point, and that, not the clip's margin, is where a reading of this one ray
+   * wants it (§ 2z.5).
+   */
+  function polished(qx: number, qy: number, f: StopMiss): [number, number, StopMiss] {
+    for (let i = 0; i < MAX_NEWTON_STEPS && Math.hypot(f[0], f[1]) > 0; i++) {
+      const jl = jacobianAt(qx, qy);
+      if (!jl) break;
+      const [dx, dy] = step(jl, f);
+      const next = miss(qx + dx, qy + dy);
+      if (!next || !(Math.hypot(next[0], next[1]) < Math.hypot(f[0], f[1]))) break;
+      qx += dx;
+      qy += dy;
+      f = next;
+    }
+    return [qx, qy, f];
   }
 }
 
@@ -487,7 +541,7 @@ export function aimRay(
         "rayAiming 'real' is not defined for an entrance pupil at infinity with the object at infinity — no object-space cone to solve over (§ 1.5.3)",
       );
     }
-    return aimObjectSpace(system, pupil, fieldValue, point, wavelengthNm);
+    return aimObjectSpace(system, pupil, fieldValue, point, wavelengthNm, options.lastBit === true);
   }
 
   const construct = (qx: number, qy: number): Ray => {
@@ -508,7 +562,17 @@ export function aimRay(
   const seed = { qx: point.px * r, qy: point.py * r };
   if (system.rayAiming !== "real") return construct(seed.qx, seed.qy);
 
-  const solved = solveOntoStop(system, pupil, fieldValue, point, wavelengthNm, seed, construct);
+  const solved = solveOntoStop(
+    system,
+    pupil,
+    fieldValue,
+    point,
+    wavelengthNm,
+    seed,
+    construct,
+    { space: "target" },
+    options.lastBit === true,
+  );
   return construct(solved.qx, solved.qy);
 }
 

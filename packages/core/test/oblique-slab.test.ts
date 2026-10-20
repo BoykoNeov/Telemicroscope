@@ -31,7 +31,7 @@ import { constantIndex } from "../src/materials/dispersion";
 import { makeRay } from "../src/trace/ray";
 import { vec3 } from "../src/math/vec3";
 import type { Prescription } from "../src/trace/prescription";
-import type { OpticalSystem } from "../src/trace/system";
+import type { OpticalSystem, RayAiming } from "../src/trace/system";
 import type { PupilFunction } from "../src/wave/psf";
 
 /**
@@ -410,11 +410,17 @@ const din = (): OpticalSystem =>
     }),
   }).system;
 
-/** § 6v's infinity 4×/0.10, in both placements — the pair the claim needs. */
-const infinity = (stopPlacement: StopPlacement): OpticalSystem =>
+/**
+ * § 6v's infinity 4×/0.10, in both placements — the pair the claim needs. The
+ * telecentric arm's bitwise zeros are read on the paraxial aim, which launches
+ * the chief ray parallel because the paraxial entrance pupil is at infinity;
+ * the real chief ray tilts as h³ (§ 6v.4), and its leg is stated beside them.
+ */
+const infinity = (stopPlacement: StopPlacement, rayAiming: RayAiming = "real"): OpticalSystem =>
   infinityCorrectedMicroscope({
     objective: microscopeObjective({ magnification: 4, numericalAperture: 0.1, stopPlacement }),
     tubeLens: tubeLens(),
+    rayAiming,
   }).system;
 
 describe("§ 6y.5 — telecentricity makes the slab's wavefront field-INVARIANT", () => {
@@ -429,14 +435,21 @@ describe("§ 6y.5 — telecentricity makes the slab's wavefront field-INVARIANT"
   const HEIGHTS = [0, 0.02, 0.05, 0.1];
 
   it("reads a bitwise zero chief invariant at every height, on the telecentric lens", () => {
-    const sys = infinity("backFocal");
+    const sys = infinity("backFocal", "paraxial");
     for (const h of HEIGHTS) {
       expect(chiefRayInvariant(sys, h, LAMBDA)).toBe(0);
     }
+    // Real aiming: the chief ray through the real stop's centre carries § 6v.4's
+    // h³ tilt, 3.5e-8 at 0.1 mm — five orders under the rim-stopped lens's 2.2e-3,
+    // the quantity the rest of this step is about.
+    const real = chiefRayInvariant(infinity("backFocal"), 0.1, LAMBDA);
+    const rim = chiefRayInvariant(infinity("rim"), 0.1, LAMBDA);
+    expect(Math.abs(real)).toBeGreaterThan(0);
+    expect(Math.abs(real / rim)).toBeLessThan(2e-5);
   });
 
   it("so the slab's pupil phase is the SAME wavefront at every height, bit for bit", () => {
-    const sys = infinity("backFocal");
+    const sys = infinity("backFocal", "paraxial");
     const s = spec(0.1);
     const at = (h: number, px: number): number => {
       const qc = chiefRayInvariant(sys, h, LAMBDA);
@@ -532,7 +545,7 @@ describe("§ 6y.5 — telecentricity makes the slab's wavefront field-INVARIANT"
     // On the telecentric lens the same expression is a zero, from a chief
     // invariant that is itself zero. Signed, because A is negative for a mount
     // rarer than its immersion and the product keeps the sign bit.
-    const tele = Math.abs(chiefRayInvariant(infinity("backFocal"), 1, LAMBDA));
+    const tele = Math.abs(chiefRayInvariant(infinity("backFocal", "paraxial"), 1, LAMBDA));
     expect(Math.abs(stackObliqueSeidelMm(layers, N_OIL, 0.1, tele).w131)).toBe(0);
   });
 });

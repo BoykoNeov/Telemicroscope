@@ -43,6 +43,11 @@ const sinOffAxis = (dx: number, dy: number, dz: number): number =>
  * (§ 2z.4): the cone the STOP would admit, which is what this readout has always
  * reported where the glass cuts first — the paraxial aim's marginal ray there
  * was launched at that angle and lost on the way.
+ *
+ * The rim ray is solved onto the stop's rim to the last bit (`lastBit`), not to
+ * the clip's margin a bundle's ray stops at: the NA is that one ray's sine, so
+ * the margin would be its error — 3.6e-15 on the DIN 4×/0.20, against the
+ * sized stop's exact engraving (§ 2z.5).
  */
 export function objectNumericalAperture(system: OpticalSystem, wavelengthNm: number): number {
   if (system.conjugate.kind !== "finite") {
@@ -51,7 +56,7 @@ export function objectNumericalAperture(system: OpticalSystem, wavelengthNm: num
   const pupil = pupils(system, wavelengthNm);
   let m;
   try {
-    m = marginalRay(system, pupil, 0, wavelengthNm);
+    m = marginalRay(system, pupil, 0, wavelengthNm, { lastBit: true });
   } catch (e) {
     if (!(e instanceof UnreachableStopPoint) || e.launch === undefined) throw e;
     m = e.launch;
@@ -72,7 +77,8 @@ export function objectNumericalAperture(system: OpticalSystem, wavelengthNm: num
 export function imageNumericalAperture(system: OpticalSystem, wavelengthNm: number): number {
   const c = asCompiled(system.prescription);
   const pupil = pupils(system, wavelengthNm);
-  const m = marginalRay(system, pupil, 0, wavelengthNm);
+  // The same rim ray as `objectNumericalAperture`'s, to the last bit.
+  const m = marginalRay(system, pupil, 0, wavelengthNm, { lastBit: true });
   const traced = traceRay(system.prescription, m);
   if (traced.status !== "ok" || !traced.ray) {
     throw new Error(`imageNumericalAperture: marginal ray failed (${traced.status})`);

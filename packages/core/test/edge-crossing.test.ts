@@ -7,6 +7,7 @@ import { fieldPupilAt, objectFieldTile } from "../src/imaging/object-field";
 import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/designs/microscope";
 import type { PupilFunction } from "../src/wave/psf";
 import { exactPupilEnergy } from "./support/exitEnergy";
+import { collectedPower } from "./support/collected-power";
 
 /**
  * § 2q.4 — the edge is located, not counted.
@@ -202,11 +203,16 @@ describe("§ 2q.4 — the edge is located, not counted", () => {
 
   it("a depth stack's flux is still the emitters', on either layout", () => {
     // § 6bb.12's haze: the floor carries what the located cells' mean field does not.
-    const system = finiteConjugateMicroscope({
-      objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
-    }).system;
+    // The aim layout's lens on the paraxial aim and its stop: that layout is the
+    // paraxial aim's affine map (§ 2z.7).
+    const systemFor = (layout: "aim" | "exit") =>
+      finiteConjugateMicroscope({
+        objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
+        ...(layout === "aim" ? { rayAiming: "paraxial" as const } : {}),
+      }).system;
     const haze = slabEmitter({ lateral: gaussianEmitter({ waistMm: 0.012, peak: 1 }), fromMm: -1, toMm: 1 });
     for (const layout of ["aim", "exit"] as const) {
+      const system = systemFor(layout);
       const imaged: number[] = [];
       let ends: readonly number[] = [];
       for (const count of [3, 6, 12, 24]) {
@@ -275,11 +281,20 @@ describe("§ 2q.4 — the edge is located, not counted", () => {
     const exact = [...heights.values()].map((h) => exactPupilEnergy(system, h, 550, "exit", { radial: 48, angular: 256 }));
     const span = (xs: number[]) => Math.max(...xs) / Math.min(...xs) - 1;
     const truth = span(exact);
-    expect(truth).toBeCloseTo(1.46035e-8, 12);
+    // 4.889e-6 under real aiming, and that is the LIGHT's: § 2z.2's referee —
+    // object-space directions, no pupil coordinate — spans the same three heights
+    // by 4.889e-6 too, within 2e-10. The 1.46e-8 above was the paraxial aim's
+    // cone, which did not follow the stop and so hid a variation the stop's own
+    // cone has (item 31; the referee read 4.85e-6 there as well).
+    expect(truth).toBeCloseTo(4.888874e-6, 12);
+    const referee = [...heights.values()].map((h) => collectedPower(system, h, 550, { azimuths: 1024 }));
+    expect(Math.abs(span(referee) - truth)).toBeLessThan(1e-9);
     expect(Math.abs(span(located8) - truth)).toBeLessThan(6e-9);
     expect(Math.abs(span(located32) - truth)).toBeLessThan(6e-9);
     // Tile by tile, 8 sub-samples locate the light to within 5e-9 of 32.
     for (let i = 0; i < located8.length; i++) expect(Math.abs(located8[i]! / located32[i]! - 1)).toBeLessThan(5e-9);
-    expect(span(counted) / truth).toBeGreaterThan(25);
+    // Counted, the span is 15.4× the light's (7.5e-5): the grid's, not the lens's. (9000× on
+    // the paraxial aim, against that aim's 1.46e-8.)
+    expect(span(counted) / truth).toBeGreaterThan(15);
   });
 });

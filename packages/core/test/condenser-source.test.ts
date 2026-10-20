@@ -117,6 +117,7 @@ const FIELD_EDGE = 2.25;
 
 const din4x = () =>
   finiteConjugateMicroscope({
+    rayAiming: "paraxial", // every cone here is the aim layout's, the paraxial aim's affine map (§ 2z.7)
     objective: finiteConjugateObjective({
       magnification: 4,
       numericalAperture: 0.1,
@@ -127,6 +128,7 @@ const din4x = () =>
 /** The shipped objective since § 6ai — the same glass, telecentric. */
 const teleDin4x = () =>
   finiteConjugateMicroscope({
+    rayAiming: "paraxial", // every cone here is the aim layout's, the paraxial aim's affine map (§ 2z.7)
     objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
   }).system;
 

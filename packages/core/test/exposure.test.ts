@@ -102,11 +102,17 @@ describe("§ 5s.4 — the exposure scale", () => {
 // ── § 5s.5 / § 5s.6 — the entrance pupil is not always a radius, and not always
 //    the declared aperture ──────────────────────────────────────────────────
 
-/** The 4×/0.10 objective in its tube, at either stop placement (§ 6v, § 6ai). */
-function scope(stopPlacement: "backFocal" | "rim"): OpticalSystem {
+/**
+ * The 4×/0.10 objective in its tube, at either stop placement (§ 6v, § 6ai). The
+ * paraxial aim keeps the stop sized `f·tan u` (`s·tan u` on the rim), which is
+ * what makes the paraxial NA the closed form tan u exactly; real aiming cuts it
+ * where the real marginal ray crosses (§ 2z.5).
+ */
+function scope(stopPlacement: "backFocal" | "rim", rayAiming: "real" | "paraxial" = "real"): OpticalSystem {
   return infinityCorrectedMicroscope({
     objective: microscopeObjective({ magnification: 4, numericalAperture: 0.1, stopPlacement }),
     tubeLens: tubeLens({ apertureMm: 25 }),
+    rayAiming,
   }).system;
 }
 
@@ -153,9 +159,12 @@ describe("§ 5s.5 — the pupil that is not an area", () => {
     const radii = [430, 486.1327, FOCUS_NM, DESIGN_NM].map(
       (nm) => pupils(tele, nm).entrance.radius,
     );
-    expect(radii[0]).toBeCloseTo(2039.721255561574, 6); //   430 nm
-    expect(radii[1]).toBeCloseTo(11028.931252624274, 6); //  F line
-    expect(radii[2]).toBeCloseTo(64338.90508117544, 5); //   550 nm
+    // On the stop as built under real aiming (§ 2z.5); on the paraxially sized
+    // one they were 2039.72, 11028.93 and 64338.91 — the same pole, the radius
+    // scaled by the stop.
+    expect(radii[0]).toBeCloseTo(2023.1394184328278, 6); //   430 nm
+    expect(radii[1]).toBeCloseTo(10939.271971368804, 6); //  F line
+    expect(radii[2]).toBeCloseTo(63815.86437539813, 5); //   550 nm
     expect(radii[3]).toBe(Infinity); //                      the design line
     // Monotone on the way there, so this is a pole and not noise.
     expect(radii[1]! / radii[0]!).toBeGreaterThan(5);
@@ -166,7 +175,7 @@ describe("§ 5s.5 — the pupil that is not an area", () => {
     // the other one damning — the spread is the pupil's placement, not the glass.
     const rim = scope("rim");
     for (const nm of [430, 486.1327, FOCUS_NM, DESIGN_NM, 656.2725, 670]) {
-      expect.soft(pointSourceCollection(rim, nm), `rim @${nm}`).toBe(75.27838708883591);
+      expect.soft(pointSourceCollection(rim, nm), `rim @${nm}`).toBe(75.46982951302688); // 75.27838708883591 paraxial
     }
   });
 
@@ -188,10 +197,11 @@ describe("§ 5s.5 — the pupil that is not an area", () => {
     // § 6ah's identity, and the reason "read the cone instead" is a redirection
     // and not a consolation: at the line the objective is telecentric AT, the
     // slope branch and the semi-diameter-over-arm branch are the same double.
-    const slope = pupils(scope("backFocal"), DESIGN_NM).entrance.slopeRadius;
+    // On the paraxial aim's stops, whose sizing is the closed form (§ 6ah.2).
+    const slope = pupils(scope("backFocal", "paraxial"), DESIGN_NM).entrance.slopeRadius;
     expect(slope).toBe(0.1 / Math.sqrt(1 - 0.1 * 0.1));
-    expect(paraxialObjectNumericalAperture(scope("backFocal"), DESIGN_NM)).toBe(
-      paraxialObjectNumericalAperture(scope("rim"), DESIGN_NM),
+    expect(paraxialObjectNumericalAperture(scope("backFocal", "paraxial"), DESIGN_NM)).toBe(
+      paraxialObjectNumericalAperture(scope("rim", "paraxial"), DESIGN_NM),
     );
   });
 
@@ -202,14 +212,17 @@ describe("§ 5s.5 — the pupil that is not an area", () => {
     // default objective, into a readout (`visualDetailRatio`) that refuses a
     // non-positive NA. § 6ah repaired the ∞/∞ at the design line and this sat
     // one wavelength away from it.
-    const tele = scope("backFocal");
+    // Its values on the paraxial aim's stops, whose paraxial NA is tan u; the sign
+    // is checked on the shipped aim too.
+    const tele = scope("backFocal", "paraxial");
     expect(pupils(tele, FOCUS_NM).entrance.z + 48.70547841678924).toBeLessThan(0); // virtual
     const na = paraxialObjectNumericalAperture(tele, FOCUS_NM);
     expect(na).toBeGreaterThan(0);
     expect(na).toBeCloseTo(0.1005172697, 9);
+    expect(paraxialObjectNumericalAperture(scope("backFocal"), FOCUS_NM)).toBeGreaterThan(0);
     // The rim member never had the sign to get wrong, and is unmoved — so this
     // is a repair to one branch and not a rescaling of the quantity.
-    expect(paraxialObjectNumericalAperture(scope("rim"), FOCUS_NM)).toBe(0.10050378152592121);
+    expect(paraxialObjectNumericalAperture(scope("rim", "paraxial"), FOCUS_NM)).toBe(0.10050378152592121);
   });
 
   it("an INFINITE conjugate reaches a pupil at infinity too, and refuses differently", () => {

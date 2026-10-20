@@ -3757,6 +3757,13 @@ recording them:
    against the ~45 ms above, and the goldens re-recorded with the cause. Until
    then `STAGE_LAYOUT` in `stage.ts` says `"aim"`, and the pictures are
    unchanged.
+5. **It stays on the paraxial aim, by name** ([§ 2z](VALIDATION.md#step-2z--real-aiming-for-the-finite-presets)). When every finite
+   preset went to real aiming, the aim layout stayed the paraxial aim's: its
+   direction map is that aim's affine map, and it refuses a real-aiming system
+   (§ 2z.7). The stage builds its microscope with `rayAiming: "paraxial"`, and its
+   stop follows its aim — the paraxially sized one, not the real ray's — so the
+   tiles, the guard bound and the goldens are unchanged. **Open:** the stage on
+   real aiming, which needs the exit layout first (point 4).
 
 The original scope follows, unchanged.
 
@@ -3832,6 +3839,14 @@ wiring only: **no new engine capability, so no validation-ladder rung.** What th
 panel claims that no rung states is pinned app-side instead, in
 `packages/app/test/eyepiece.test.ts` (26 rungs), which is A6's and D10's
 convention. Seven findings, and the first two are corrections to things written here.
+
+- **It stays on the paraxial aim, by name** ([§ 2z](VALIDATION.md#step-2z--real-aiming-for-the-finite-presets)), as the stage does (D4). The
+  panel's guard prints sec u = NA_paraxial/NA_engraved, which is exact on a stop
+  sized `f·n·tan u`; on the stop real aiming cuts, the paraxial NA falls below the
+  sine (0.9991 of it on the DIN 4×) and the textbook 500·NA/M lands +0.21% over
+  the pupil rather than 0.50% under (§ 2z.7). `microscopeOf` builds with
+  `rayAiming: "paraxial"`. **Open:** the panel on the stop as built, which needs
+  the guard re-labelled for what it then reads.
 
 - **It runs on the MAIN THREAD**, the first microscope surface since A2 that
   does. § 6q's composition really is first-order work — one affine gap solve,
@@ -6852,8 +6867,9 @@ samples 64 and grid 256, over the five bench rows this surface reaches:*
   4×/0.20 to 7.80e−7 on the infinity 10×/0.10~~ is two parts ([§ 2p](VALIDATION.md#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone)): the
   frame's axial offset (`jacobianAxisOffset`, −3.4e−8 to −6.5e−8 — its uniform
   cell is the probe's magnification, not the map's axial element) and the
-  distortion over the emitter, which spreads **18×** across the same five
-  objectives (4.56e−8 on the DIN 4×/0.20 to 8.27e−7 on the infinity 10×/0.10) and
+  distortion over the emitter, which spreads **19×** across the same five
+  objectives (4.29e−8 on the DIN 4×/0.20 to 8.22e−7 on the infinity 10×/0.10, on
+  the real aim of [§ 2z](VALIDATION.md#step-2z--real-aiming-for-the-finite-presets); 18×, 4.56e−8 and 8.27e−7 before it) and
   grows **33.34×** off axis on every one of them — ⟨r²⟩'s 1 + 2(d/R)² = 33. The
   179× and the "35× to 380×, each lens's" factors were the two parts nearly
   cancelling; on the exit layout the 4×/0.20's worth went negative.
@@ -6907,8 +6923,9 @@ the check turned up is the thing worth recording.
 `abbeImage`’s criterion is half a wave between adjacent transmitting samples.
 *Over every crop this panel offers:* the DIN 4×/0.10, the infinity 4×/0.10 and the
 infinity 10×/0.10 stay under it everywhere — worst 0.273 — while the **DIN 4×/0.15
-runs 0.83 to 2.85 and the DIN 4×/0.20 runs 5.95 to 21.4** (0.272, 0.84–2.86 and
-6.58–21.8 on the aim layout, before [§ 2p](VALIDATION.md#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone)). Over the line at *every*
+runs 0.88 to 4.02 and the DIN 4×/0.20 runs 9.68 to 44.6** on the real aim of [§ 2z](VALIDATION.md#step-2z--real-aiming-for-the-finite-presets),
+whose stop the 4×/0.20 fills to its engraved 0.20 (0.83–2.85 and 5.95–21.4 on the
+paraxial aim; 0.272, 0.84–2.86 and 6.58–21.8 on the aim layout, before [§ 2p](VALIDATION.md#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone)). Over the line at *every*
 setting, not at the extreme of one: those two carry enough residual wavefront that
 the lattice cannot represent their pupil at any sampling this surface reaches.
 

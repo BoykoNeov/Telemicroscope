@@ -67,6 +67,12 @@ const SYSTEM = finiteConjugateMicroscope({
   objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
 }).system;
 
+/** The same lens on the paraxial aim and its stop, for the aim layout's figures: that layout is the paraxial aim's affine map (§ 2z.7). */
+const SYSTEM_AIM = finiteConjugateMicroscope({
+  objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
+  rayAiming: "paraxial",
+}).system;
+
 /** The tile a mosaic is built from: 4 px per resolution cell, so a guard is whole. */
 const SIZE = 128;
 const PS = 32;
@@ -225,7 +231,7 @@ describe("§ 6bh.1 — a one-tile mosaic IS the tile it composes", () => {
     for (const tile of even.tiles) {
       expect(tile.volume.pixelScaleMm).toBe(even.geometry.pixelScaleMm);
     }
-    const aim = renderFluorescenceMosaic(SYSTEM, DENSITY, mosaicOptions({ tiles: 2, layout: "aim" }));
+    const aim = renderFluorescenceMosaic(SYSTEM_AIM, DENSITY, mosaicOptions({ tiles: 2, layout: "aim" }));
     expect(aim.composed.pixelScaleMm).toBe(aim.geometry.pixelScaleMm);
     for (const tile of aim.tiles) {
       expect(tile.volume.pixelScaleMm).not.toBe(aim.geometry.pixelScaleMm);
@@ -245,11 +251,11 @@ describe("§ 6bh.2 — the ruler is the bluest plane, and `halfExtentMm` is ∝ 
     // wavelengths' alone only to 0.43%, the objective's own colour in σ. On the
     // aim layout it was the wavelengths' ratio to the last bit (1.5262151162790698,
     // `Object.is`), a property of the lattice; now it is the objective's too.
-    expect(blue.halfExtentMm).toBeCloseTo(0.1374325895173467, 15);
-    expect(red.halfExtentMm).toBeCloseTo(0.21065821928507714, 15);
+    expect(blue.halfExtentMm).toBeCloseTo(0.1379356972770223, 15); // was 0.1374325895173467 (§ 2z)
+    expect(red.halfExtentMm).toBeCloseTo(0.21052159507775858, 15); // was 0.21065821928507714 (§ 2z)
     const sines = blue.scale.apertureSine! / red.scale.apertureSine!;
     expect(red.halfExtentMm / blue.halfExtentMm).toBeCloseTo((RED / 430) * sines, 12);
-    expect(red.halfExtentMm / blue.halfExtentMm).toBeCloseTo(1.5328112496817063, 13);
+    expect(red.halfExtentMm / blue.halfExtentMm).toBeCloseTo(1.5262299697152277, 13); // was 1.5328112496817063 (§ 2z)
     expect(Math.abs(red.halfExtentMm / blue.halfExtentMm / (RED / 430) - 1)).toBeLessThan(4.4e-3);
   });
 
@@ -270,8 +276,8 @@ describe("§ 6bh.2 — the ruler is the bluest plane, and `halfExtentMm` is ∝ 
     // and the redder planes are over-guarded by a factor that is not constant.
     expect(geometry.planes[0]!.effectiveGuardCells).toBeCloseTo(expected, 12);
     expect(geometry.planes[0]!.effectiveGuardCells).toBeCloseTo(4.25, 12);
-    expect(geometry.planes[1]!.effectiveGuardCells).toBeCloseTo(7.4323524585404055, 12);
-    expect(geometry.planes[2]!.effectiveGuardCells).toBeCloseTo(8.334346448435884, 12);
+    expect(geometry.planes[1]!.effectiveGuardCells).toBeCloseTo(7.400988355052252, 12); // was 7.4323524585404055 (§ 2z)
+    expect(geometry.planes[2]!.effectiveGuardCells).toBeCloseTo(8.30129126464973, 12); // was 8.334346448435884 (§ 2z)
     expect(geometry.planes[1]!.effectiveGuardCells).toBeGreaterThan(
       geometry.planes[0]!.effectiveGuardCells,
     );
@@ -293,7 +299,7 @@ describe("§ 6bh.3 — the pitch is uniform, on a measurement", () => {
     // rather than inherited from the mono mosaic, whose kept span is a different
     // number of pixels (§ 6t's warning). It was each tile's paraxial reference
     // sphere, a ruler the exit layout does not have.
-    const drift = fluorescenceMosaicPitchDriftPx(SYSTEM, mosaicOptions({ tiles: 3, layout: "aim" }));
+    const drift = fluorescenceMosaicPitchDriftPx(SYSTEM_AIM, mosaicOptions({ tiles: 3, layout: "aim" }));
     expect(drift).toBeGreaterThan(0);
     expect(drift).toBeCloseTo(4.179802222032157e-5, 12);
   });
@@ -372,13 +378,13 @@ describe("§ 6bh.4 — what a tile's edge is made of is the STAGE", () => {
     // read 9.82% against 1.87%, 5.26×).
     const nominal = escaped(430, THIN);
     const corrected = escaped(430, THIN, CORR430);
-    expect(nominal).toBeCloseTo(0.10039247105778215, 12);
-    expect(corrected).toBeCloseTo(0.023289032673354026, 12);
-    expect(nominal / corrected).toBeCloseTo(4.310718803389608, 10);
+    expect(nominal).toBeCloseTo(0.09516994059342676, 12); // was 0.10039247105778215 (§ 2z)
+    expect(corrected).toBeCloseTo(0.02222382470708817, 12); // was 0.023289032673354026 (§ 2z)
+    expect(nominal / corrected).toBeCloseTo(4.282338519484129, 10); // was 4.310718803389608 (§ 2z)
     // And the tile crosses § 6bd.8's half-wave containment limit in the process:
     // an uncorrected blue tile is past it, a corrected one is not.
-    expect(step(430, THIN)).toBeCloseTo(0.6329205432555236, 12);
-    expect(step(430, THIN, CORR430)).toBeCloseTo(0.34088099768340685, 12);
+    expect(step(430, THIN)).toBeCloseTo(0.6227136592110099, 12); // was 0.6329205432555236 (§ 2z)
+    expect(step(430, THIN, CORR430)).toBeCloseTo(0.3278415825265495, 12); // was 0.34088099768340685 (§ 2z)
     expect(step(430, THIN)).toBeGreaterThan(0.5);
     expect(step(430, THIN, CORR430)).toBeLessThan(0.5);
   });
@@ -390,9 +396,9 @@ describe("§ 6bh.4 — what a tile's edge is made of is the STAGE", () => {
     // buy, which is what says the 430 nm figure above is the STAGE error and not
     // the traced pupil's aberration. The red end agrees, at 1.34%. (1.17%,
     // 1.10% and 1.14% on the aim layout's point-sampled rim, § 2r.2.)
-    expect(nominal).toBeCloseTo(0.01387528692640061, 12);
-    expect(corrected).toBeCloseTo(0.012679339209336171, 12);
-    expect(escaped(RED, THIN)).toBeCloseTo(0.013444081812252762, 12);
+    expect(nominal).toBeCloseTo(0.01387528462482313, 12); // was 0.01387528692640061 (§ 2z)
+    expect(corrected).toBeCloseTo(0.012679353683889727, 12); // was 0.012679339209336171 (§ 2z)
+    expect(escaped(RED, THIN)).toBeCloseTo(0.013458964963292575, 12); // was 0.013444081812252762 (§ 2z)
     expect(nominal / corrected).toBeLessThan(1.1);
   });
 
@@ -403,12 +409,12 @@ describe("§ 6bh.4 — what a tile's edge is made of is the STAGE", () => {
     // nominal adds 7.71. So "a thick specimen bleeds further, so guard it more"
     // is the wrong instinct on this branch by a factor of 30 (7.96 and 31 on the
     // aim layout's point-sampled rim, § 2r.2).
-    expect(thick).toBeCloseTo(0.025846130745007967, 12);
-    expect(thick - thin).toBeCloseTo(0.0025570980716539404, 12);
-    expect(escaped(430, THIN) - thin).toBeCloseTo(0.07710343838442812, 12);
+    expect(thick).toBeCloseTo(0.024530365574776725, 12); // was 0.025846130745007967 (§ 2z)
+    expect(thick - thin).toBeCloseTo(0.0023065408676885557, 12); // was 0.0025570980716539404 (§ 2z)
+    expect(escaped(430, THIN) - thin).toBeCloseTo(0.07294611588633859, 12); // was 0.07710343838442812 (§ 2z)
     expect((escaped(430, THIN) - thin) / (thick - thin)).toBeGreaterThan(30);
     // …and the two compound: uncorrected AND thick leaks 11.6%.
-    expect(escaped(430, THICK)).toBeCloseTo(0.11574371417064011, 12);
+    expect(escaped(430, THICK)).toBeCloseTo(0.1103583160269882, 12); // was 0.11574371417064011 (§ 2z)
   });
 
   it("and `maxGridPhaseStepWaves` ORDERS the escape over every configuration", () => {
@@ -463,9 +469,9 @@ describe("§ 6bh.5 — the seam's focus step is a FIELD quantity", () => {
     // the field is the discriminator for the same reason it was in § 6bg.8: the
     // focus surface is EVEN in field radius, so its gradient vanishes on axis
     // and a seam there joins two tiles that wanted the same stage.
-    expect(axis).toBeCloseTo(0.0001734352935287009, 14);
-    expect(edge).toBeCloseTo(0.0066810200678310006, 13);
-    expect(edge / axis).toBeCloseTo(38.52168686026638, 10);
+    expect(axis).toBeCloseTo(0.0001838887301290615, 14); // was 0.0001734352935287009 (§ 2z)
+    expect(edge).toBeCloseTo(0.006784006732329484, 13); // was 0.0066810200678310006 (§ 2z)
+    expect(edge / axis).toBeCloseTo(36.89191136165962, 10); // was 38.52168686026638 (§ 2z)
   });
 
   it("and reaches a sixth of a depth of focus at the field edge", () => {
@@ -478,8 +484,8 @@ describe("§ 6bh.5 — the seam's focus step is a FIELD quantity", () => {
     // but the factor is not derived here: the two are read on different grids
     // (32 against 48 pupil samples) at different radii, so the agreement is
     // suggestive and is not pinned as an identity.
-    expect(seamStepMm(0) / DOF430).toBeCloseTo(0.004012556939997724, 13);
-    expect(seamStepMm(4) / DOF430).toBeCloseTo(0.154570461951581, 12);
+    expect(seamStepMm(0) / DOF430).toBeCloseTo(0.004223786796132027, 13); // was 0.004012556939997724 (§ 2z)
+    expect(seamStepMm(4) / DOF430).toBeCloseTo(0.155823568093451, 12); // was 0.154570461951581 (§ 2z)
     expect(seamStepMm(0)).toBeLessThan(1.2e-3);
   });
 });

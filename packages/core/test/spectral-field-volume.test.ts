@@ -112,7 +112,10 @@ import { bandLimitedPeak } from "../src/math/band-limited-peak";
 
 /** § 6bb's own probe, unchanged: the DIN 4×/0.10. */
 const OBJECTIVE = finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 });
-const SYSTEM: OpticalSystem = finiteConjugateMicroscope({ objective: OBJECTIVE }).system;
+const SYSTEM: OpticalSystem = finiteConjugateMicroscope({
+  objective: OBJECTIVE,
+  rayAiming: "paraxial", // measured on the paraxial aim and its stop; under real aiming it is open item 48 (§ 2z)
+}).system;
 
 const DESIGN = 587.5618;
 const RED = 656.2725;

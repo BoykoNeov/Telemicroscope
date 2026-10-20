@@ -136,10 +136,20 @@ function worstNode(system: OpticalSystem, h: number): number {
   const n = Math.abs(map.pupil.entrance.n);
   const nu = canonicalApertureSine(system, L);
   const d = 1e-5;
+  // The stencil's rays step 1e-5 past a rim node, which under real aiming is
+  // past the stop itself (§ 2z.5): they are traced with every rim removed, the
+  // glass kept, as `exitDensity` traces its own rings.
+  const open: OpticalSystem = {
+    ...system,
+    prescription: {
+      ...system.prescription,
+      surfaces: system.prescription.surfaces.map((s) => ({ ...s, semiAperture: Infinity })),
+    },
+  };
   const at = (px: number, py: number) => {
     const r = aimRay(system, map.pupil, h, { px, py }, L).dir;
     const len = Math.hypot(r.x, r.y, r.z);
-    const q = opdMap(system, h, L, [{ px, py }]).samples[0]!;
+    const q = opdMap(open, h, L, [{ px, py }]).samples[0]!;
     return { l: r.x / len, m: r.y / len, dz: Math.abs(r.z) / len, ex: q.exitX / sigma, ey: q.exitY / sigma };
   };
   let worst = 0;
@@ -159,7 +169,12 @@ describe("§ 2q.5 — the ring past the stop is not always there", () => {
   it("on the DIN 4× a ray aimed past 1.168 of the stop misses the first lens's back surface", () => {
     // The chain `exitDensity` traces its rings through: every rim removed, the
     // glass kept. Its outer ring sits at 1 + 2h = 1.2 on the 21-node lattice.
-    const system = din();
+    // A paraxial aim's fact: it names points past the stop, which real aiming
+    // refuses at the knife edge instead (§ 2z.4) — so on that aim and its stop.
+    const system = finiteConjugateMicroscope({
+      objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
+      rayAiming: "paraxial",
+    }).system;
     const c = asCompiled(system.prescription);
     const open = compile({ ...c.prescription, surfaces: c.prescription.surfaces.map((s) => ({ ...s, semiAperture: Infinity })) });
     const map = opdMap(system, 0, L, pupilGrid(21));
@@ -194,13 +209,31 @@ describe("§ 2q.5 — the exit layout's light is the launches' light", () => {
     // under 2.2e-10. Before § 2q.5 the laid pupil read −9.6e-6 on axis and
     // −5.6e-6 to −1.9e-5 across the field. The rule is resolved: 48×256 agrees
     // to every printed digit at 2 mm.
-    const system = din();
-    for (const h of DIN_HEIGHTS) {
-      const bare = exitDensityEnergy(system, h, L) / emitterLaunchEnergy(system, h, L, { throughput: false }) - 1;
-      const laid = exactPupilEnergy(system, h, L, "exit") / emitterLaunchEnergy(system, h, L, { throughput: true }) - 1;
-      expect(Math.abs(bare)).toBeLessThan(7e-8);
-      expect(Math.abs(laid)).toBeLessThan(7e-8);
-      expect(Math.abs(laid - bare)).toBeLessThan(1e-9);
+    //
+    // Two lenses since § 2z. The numbers above are the un-sized DIN 4×/0.10 on
+    // the paraxial aim, which is where they were read: under real aiming the
+    // crown's knife edge cuts that lens's (1, 0) rim ray at 2 mm (§ 2z.4), the map
+    // vignettes, and the light is not § 2l's quantity there. The same lens sized
+    // for FN 18 passes its field under real aiming (§ 2z.8), and it carries the
+    // same claim over the same 0–2 mm: −3.12e-8 on the axis to −2.73e-8 at 2 mm,
+    // the laid pupil within 7e-11 of the density (the un-sized paraxial lens now
+    // reads −5.8e-8 … −3.1e-8).
+    const sized = finiteConjugateMicroscope({
+      objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1, fieldNumberMm: 18 }),
+    }).system;
+    const paraxial = finiteConjugateMicroscope({
+      objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
+      rayAiming: "paraxial",
+    }).system;
+    for (const system of [paraxial, sized]) {
+      for (const h of DIN_HEIGHTS) {
+        const bare = exitDensityEnergy(system, h, L) / emitterLaunchEnergy(system, h, L, { throughput: false }) - 1;
+        const laid =
+          exactPupilEnergy(system, h, L, "exit") / emitterLaunchEnergy(system, h, L, { throughput: true }) - 1;
+        expect(Math.abs(bare)).toBeLessThan(7e-8);
+        expect(Math.abs(laid)).toBeLessThan(7e-8);
+        expect(Math.abs(laid - bare)).toBeLessThan(1e-9);
+      }
     }
   });
 

@@ -463,6 +463,20 @@ const TELECENTRIC_4X: OpticalSystem = finiteConjugateMicroscope({
   objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
 }).system;
 
+/**
+ * The two members on the paraxial aim and its stop, for the readings on the aim
+ * layout: that layout is the paraxial aim's affine map (§ 2z.7), so beside the
+ * exit layout it is read on the system it was the map of.
+ */
+const DIN_4X_AIM: OpticalSystem = finiteConjugateMicroscope({
+  objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1, stopPlacement: "rim" }),
+  rayAiming: "paraxial",
+}).system;
+const TELECENTRIC_4X_AIM: OpticalSystem = finiteConjugateMicroscope({
+  objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
+  rayAiming: "paraxial",
+}).system;
+
 /** 450, 550 and 650 nm — § 3a's band at three samples, which is what a traced
  *  stack can afford. The blue one is the whole story of § 6r.7. */
 const THREE: readonly WavelengthSample[] = spectralSamples(equalEnergy, {
@@ -576,7 +590,7 @@ describe("§ 6r.7 — axial colour, in the wavefront the Abbe sum actually uses"
     const rim = excessOf(DIN_4X, "exit");
     const telecentric = excessOf(TELECENTRIC_4X, "exit");
     expect(rim[0]).toBeCloseTo(0.06607, 4);
-    expect(telecentric[0]).toBeCloseTo(0.08303, 4);
+    expect(telecentric[0]).toBeCloseTo(0.08224, 4); // 0.08303 before § 2z
     for (const e of rim) expect(Math.abs(e)).toBeLessThan(0.07);
     for (const e of telecentric) expect(Math.abs(e)).toBeLessThan(0.085);
     // Monotone in λ on both, which is the sentence above stated as a test.
@@ -585,12 +599,12 @@ describe("§ 6r.7 — axial colour, in the wavefront the Abbe sum actually uses"
     }
     // § 6ai read on both members, because "the residual shrinks with λ" is the
     // claim and a single bound is not it: the SAME monotone fall, scaled by one
-    // factor of 1.252 to 1.262 across 250 nm. So the stop moved how much
+    // factor of 1.245 to 1.260 across 250 nm (1.252 to 1.262 before § 2z). So the stop moved how much
     // spherochromatism there is and not what it does with wavelength, which is
     // what a stop is allowed to do: it cannot touch the dispersion, only the
     // height at which the marginal ray meets it.
     const ratios = telecentric.map((e, i) => e / rim[i]!);
-    expect(Math.min(...ratios)).toBeGreaterThan(1.25);
+    expect(Math.min(...ratios)).toBeGreaterThan(1.24);
     expect(Math.max(...ratios)).toBeLessThan(1.265);
   });
 
@@ -601,8 +615,8 @@ describe("§ 6r.7 — axial colour, in the wavefront the Abbe sum actually uses"
     // the one that passes through infinity in the band (§ 2o). Its own factor
     // between the members, 1.22 to 1.24, is the aim layout's record.
     const pairs: readonly (readonly [OpticalSystem, number])[] = [
-      [DIN_4X, 1.3e-4],
-      [TELECENTRIC_4X, 1.01e-3],
+      [DIN_4X_AIM, 1.3e-4],
+      [TELECENTRIC_4X_AIM, 1.01e-3],
     ];
     const aim: number[][] = [];
     for (const [system, bound] of pairs) {
@@ -739,17 +753,19 @@ describe("§ 6r.8 — lateral colour, which nothing here coded for", () => {
     // What it must be, if it is really the distortion: the primary term is
     // linear in h, so a doubling doubles it exactly; the next term is cubic, so
     // its share of the ratio grows as h². The departure from 2 therefore has to
-    // grow ×4 per doubling, and it does — 0.0092, 0.0364, 0.1428, which is
-    // ×3.98 and ×3.92. That is the transverse chromatic aberration of the
+    // grow ×4 per doubling, and it does — 0.0093, 0.0372, 0.1471, which is
+    // ×4.02 and ×3.95 (0.0092, 0.0364, 0.1428 before § 2z). That is the transverse chromatic aberration of the
     // DISTORTION, and no part of this file coded for it either.
     const at = (f: number) => separationOf(TELECENTRIC_4X, f);
     const halfMm = at(0.5);
     const values = [halfMm, at(1), at(2), at(4)];
     expect(at(0)).toBeLessThan(1e-12);
-    // Bigger than the rim member's by one factor, at every field.
+    // Bigger than the rim member's by one factor, at every field: 3.46 at 0.5 mm
+    // to 3.80 at 4 mm on the stops as built (§ 2z), the factor itself growing
+    // with the distortion's colour below.
     for (const f of [0.5, 1, 2, 4]) {
       expect(separationOf(TELECENTRIC_4X, f) / separationOf(DIN_4X, f)).toBeGreaterThan(3.4);
-      expect(separationOf(TELECENTRIC_4X, f) / separationOf(DIN_4X, f)).toBeLessThan(3.8);
+      expect(separationOf(TELECENTRIC_4X, f) / separationOf(DIN_4X, f)).toBeLessThan(3.85);
     }
     const departures = [1, 2, 3].map((i) => values[i]! / values[i - 1]! - 2);
     for (const d of departures) expect(d).toBeGreaterThan(0);
@@ -800,18 +816,23 @@ describe("§ 6r.9 — one condenser for every wavelength, and what that chooses"
     // ν = |M|·n′·σ, which carries the lens's lateral colour: 0.49438 at 450 nm
     // and 0.49419 at 550.
     const offsets = [450, 550, LINE_D, 650].map((nm) =>
-      illuminationOffset(DIN_4X, 2.25, nm, { layout: "aim" }),
+      illuminationOffset(DIN_4X_AIM, 2.25, nm, { layout: "aim" }),
     );
     for (const o of offsets) expect(o).toBe(offsets[0]!);
     expect(offsets[0]!).toBeGreaterThan(0.4);
   });
 
-  it("…and a TELECENTRIC dry objective does not: its NA is chromatic by 0.084%", () => {
+  it("…and a TELECENTRIC dry objective does not: its NA is chromatic by 0.43%", () => {
     // § 6ai, and it is the exactness above read backwards. Put the diaphragm on
     // the back focal plane and the pupil is no longer in object space — there is
     // now glass between the specimen and the stop, so the marginal ray's launch
     // angle is solved THROUGH a dispersing group and stops being a pure ratio of
-    // distances. NA 0.09985 in the blue against 0.09994 in the red.
+    // distances. NA 0.09957 in the blue against 0.09999.6 in the red, under real
+    // aiming (§ 2z): the real rim ray solved onto the stop through the doublet
+    // carries its spherochromatism (§ 6r.7), half the oil's 0.85% from glass alone.
+    // On the paraxial aim and its stop it read 0.09985 against 0.09994, 0.084%,
+    // a tenth of the oil's: that aim's cone is the paraxial one, which the
+    // doublet's rim does not reach.
     //
     // The mechanism is checkable and this rung checks it rather than asserting
     // it: the diaphragm sits on the back focal plane **of the design wavelength**,
@@ -825,16 +846,25 @@ describe("§ 6r.9 — one condenser for every wavelength, and what that chooses"
     expect(blue).not.toBe(red);
     expect(blue).toBeLessThan(red);
     const spread = Math.abs(blue - red) / ((blue + red) / 2);
-    expect(spread).toBeCloseTo(8.37e-4, 5);
-    // Between the front-stopped exact zero and § 6e's oil at 0.85% — a tenth of
-    // it, from glass dispersion alone where the oil's is the immersion medium's.
-    expect(spread).toBeLessThan(0.1 * 0.0085);
+    expect(spread).toBeCloseTo(4.284e-3, 6);
+    // Between the front-stopped exact zero and § 6e's oil at 0.85% — half of it,
+    // from glass dispersion alone where the oil's is the immersion medium's.
+    expect(spread).toBeGreaterThan(0.4 * 0.0085);
+    expect(spread).toBeLessThan(0.6 * 0.0085);
     // …and under § 6f.2's convergence floor, so this step still reuses one
     // source across the band on the shipped lens as well as on the fixture.
     expect(spread).toBeLessThan(0.04);
+    // The paraxial aim's reading, kept: a tenth of the oil's.
+    const paraxial = [450, 650].map((nm) => objectNumericalAperture(TELECENTRIC_4X_AIM, nm));
+    const paraxialSpread = Math.abs(paraxial[0]! - paraxial[1]!) / ((paraxial[0]! + paraxial[1]!) / 2);
+    expect(paraxialSpread).toBeCloseTo(8.37e-4, 5);
+    expect(paraxialSpread).toBeLessThan(0.1 * 0.0085);
 
-    expect(illuminationOffset(TELECENTRIC_4X, 2.25, LINE_D)).toBe(0);
-    const off = [450, 650].map((nm) => illuminationOffset(TELECENTRIC_4X, 2.25, nm));
+    // The offset is read on the paraxial aim, whose chief ray leaves parallel at
+    // the design line by construction; the real one tilts as h³ (§ 6v.4), and at
+    // 450 nm the real offset is −5.1e-3.
+    expect(illuminationOffset(TELECENTRIC_4X_AIM, 2.25, LINE_D)).toBe(0);
+    const off = [450, 650].map((nm) => illuminationOffset(TELECENTRIC_4X_AIM, 2.25, nm));
     for (const o of off) expect(Math.abs(o)).toBeGreaterThan(1e-4);
     for (const o of off) expect(Math.abs(o)).toBeLessThan(1e-3);
   });

@@ -109,7 +109,11 @@ describe("§ 6w.1 — the glass is the beam plus the walk, and the oversize is a
       const h = semiField(FN, M);
       expect(o.objectFieldRadiusMm).toBe(h);
       expect(o.pupilRadiusMm).toBeCloseTo((F_TUBE / M) * NA, 12);
-      expect(o.glassRadiusMm).toBeCloseTo(o.pupilRadiusMm + h, 12);
+      // f·NA + h is where the sizing starts, and under real aiming it is short:
+      // the real rim ray at the field edge crosses the last glass face 1.2% past
+      // it, so the constructor widens the glass to that traced beam (§ 2z.8) —
+      // the same 1.0120618 at every magnification. (Was exactly f·NA + h.)
+      expect(o.glassRadiusMm / (o.pupilRadiusMm + h)).toBeCloseTo(1.0120618, 7);
       // The axial lens is the same constructor with the walk taken out, which is
       // what makes the pair below a controlled comparison.
       const axial = objectiveAt(undefined, M);
@@ -127,18 +131,30 @@ describe("§ 6w.1 — the glass is the beam plus the walk, and the oversize is a
     // and only their absolute sizes differ, which is exactly what made § 6v.5's
     // millimetres look like a verdict about the 40× when they were a verdict
     // about the units.
+    //
+    // The traced widening (§ 2z.8) keeps that: the beam is one lens's scaled, so
+    // the 1.2% it adds at FN 18 is the same 1.2% at every M, and the ratio is
+    // 1.4674896 on all three to the last dozen digits.
     const predicted = 1 + FN / (2 * F_TUBE * NA); // 1.45 at FN 18, NA 0.10
     expect(predicted).toBeCloseTo(1.45, 15);
     for (const M of MAGNIFICATIONS) {
       const o = objectiveAt(FN, M);
-      expect(o.glassRadiusMm / o.pupilRadiusMm).toBeCloseTo(predicted, 12);
+      expect(o.glassRadiusMm / o.pupilRadiusMm).toBeCloseTo(1.4674895703435, 12);
     }
     // …and it moves with NA and with the field number, in opposite directions:
-    // a faster objective already has the glass, a wider field asks for more.
+    // a faster objective already has the glass, a wider field asks for more. The
+    // closed form is the floor: the traced beam adds 0.3–2.3% where it reaches
+    // past it (more for a wider field, more for a slower cone) and nothing at
+    // NA 0.20, where f·NA + h already carries it.
     for (const na of [0.05, 0.1, 0.2]) {
       for (const fn of [10, 18, 25]) {
         const o = objectiveAt(fn, 10, na);
-        expect(o.glassRadiusMm / o.pupilRadiusMm).toBeCloseTo(1 + fn / (2 * F_TUBE * na), 12);
+        const closed = 1 + fn / (2 * F_TUBE * na);
+        if (na === 0.2) expect(o.glassRadiusMm / o.pupilRadiusMm).toBeCloseTo(closed, 12);
+        else {
+          expect(o.glassRadiusMm / o.pupilRadiusMm / closed).toBeGreaterThan(1.003);
+          expect(o.glassRadiusMm / o.pupilRadiusMm / closed).toBeLessThan(1.024);
+        }
       }
     }
   });
@@ -175,17 +191,18 @@ describe("§ 6w.2 — the family is ONE LENS, scaled: every length goes as 1/M",
 describe("§ 6w.3 — it passes the field it was sized for, where the § 6v objective does not", () => {
   it("delivers the WHOLE pupil at the field edge, at every magnification", () => {
     // The point of the step, against the shipped control. The axially-sized
-    // objective loses 84 of 313 lattice points at its own field edge — 26.8% of
-    // the pupil — and it loses exactly the same 84 at 4×, 10× and 40×, which is
+    // objective loses 88 of 313 lattice points at its own field edge — 28.1% of
+    // the pupil — and it loses exactly the same 88 at 4×, 10× and 40×, which is
     // § 6w.2 arriving in a discrete count: the same lens, so the same rays.
+    // (84 on the paraxial aim, whose cone was 0.7% short of the engraving, § 2z.)
     for (const M of MAGNIFICATIONS) {
       const h = semiField(FN, M);
       const sized = exitBundle(scopeAt(FN, M).system, h, L, pupilGrid(21));
       const axial = exitBundle(scopeAt(undefined, M).system, h, L, pupilGrid(21));
       expect(sized.lost).toBe(0);
       expect(sized.rays.length).toBe(313);
-      expect(axial.rays.length).toBe(229);
-      expect(axial.lost).toBe(84);
+      expect(axial.rays.length).toBe(225);
+      expect(axial.lost).toBe(88);
     }
   });
 
@@ -193,7 +210,8 @@ describe("§ 6w.3 — it passes the field it was sized for, where the § 6v obje
     // The bridge to the step this one pays for: the same axially-sized 4×/0.10,
     // read at the absolute field § 6v.5 quotes rather than at a field number.
     const axial = scopeAt(undefined, 4);
-    expect(throughput(axial, 1)).toBeCloseTo(0.888, 3); // § 6v.5's "11% at 1 mm"
+    // § 6v.5's "11% at 1 mm": 0.8818 on the real aim (§ 2z: was 0.888).
+    expect(throughput(axial, 1)).toBeCloseTo(0.8818, 4);
     const sized = scopeAt(FN, 4);
     expect(throughput(sized, 1)).toBe(1);
     // …and it is not magic past what it was sized for: 3 mm is well outside an
@@ -214,8 +232,17 @@ describe("§ 6w.3 — it passes the field it was sized for, where the § 6v obje
   });
 });
 
-describe("§ 6w.4 — the closed form is an UPPER BOUND, and the last glass face is what binds", () => {
-  it("never reaches f·NA + h anywhere on the glass, and the residual has a sign", () => {
+describe("§ 6w.4 — the closed form WAS an upper bound, and the last glass face is what binds", () => {
+  it("the glass is the traced beam on its last face, and the faces before it carry less", () => {
+    // DISPROVED under real aiming (§ 2z.8). On the paraxial aim the footprint
+    // landed 1.1% inside f·NA + h, because that aim's cone was 0.7% short of the
+    // engraving; the real cone at the field edge reaches 1.2% PAST it on the
+    // crown's outer face. So the closed form is not an upper bound, and the
+    // constructor sizes the glass at that traced beam instead: the worst
+    // footprint is the glass radius to the 31² lattice's reach of the rim
+    // (0.99995), and there is no margin left to reclaim. The text below is the
+    // paraxial reading's, kept for the history.
+    //
     // `f·NA + h` is two paraxial statements added: the sine condition puts the
     // emergent marginal ray at f·sin u, and telecentricity puts the chief ray at
     // exactly h. Neither is a height at a VERTEX — the first is a height on the
@@ -243,12 +270,15 @@ describe("§ 6w.4 — the closed form is an UPPER BOUND, and the last glass face
       expect(perSurface[1]!).toBeLessThan(perSurface[2]!);
       const worst = perSurface[2]!;
       expect(worst).toBeLessThan(bound);
-      expect(worst / bound).toBeCloseTo(0.98922, 4);
+      expect(worst / bound).toBeCloseTo(0.99995, 5);
       expect(perSurface.every((r) => r > 0)).toBe(true);
     }
   });
 
-  it("delivers 5.3% MORE field than asked, and the surface that stops it is the last one", () => {
+  it("delivers 1.5% MORE field than asked, and the surface that stops it is the last one", () => {
+    // 1.5% under real aiming, all of it the face's 0.5% rim margin: the glass is
+    // now the beam itself (above). It was 5.3% on the paraxial aim, the extra
+    // 3.8% being the 1.1% of glass that aim's beam never reached.
     // Bisected rather than asserted, and the number is not arbitrary: the extra
     // is the 1.1% above (glass the bundle never reaches) plus
     // `cementedDoubletForm`'s own 0.5% rim margin on the binding face, divided by
@@ -266,7 +296,7 @@ describe("§ 6w.4 — the closed form is an UPPER BOUND, and the last glass face
         else hi = mid;
       }
       expect(lo).toBeGreaterThan(h);
-      expect(lo / h).toBeCloseTo(1.052698, 6);
+      expect(lo / h).toBeCloseTo(1.015134, 6);
 
       const pupil = pupils(s.system, L);
       const stoppedAt = new Set<number>();
@@ -294,7 +324,8 @@ describe("§ 6w.5 — what it costs, and the delivered NA is not what pays", () 
     }
   });
 
-  it("pays in WORKING DISTANCE — 2.1% of it, and the same 2.1% at every magnification", () => {
+  it("pays in WORKING DISTANCE — 2.2% of it, and the same 2.2% at every magnification", () => {
+    // 2.2% on the glass widened to the real beam (§ 2z.8); 2.1% on f·NA + h.
     // Building the doublet at the wider aperture rather than widening its rim is
     // what makes this cost exist, and it is why that route was taken:
     // `achromaticObjective` defaults thicknesses off D and checks edge thickness
@@ -304,18 +335,18 @@ describe("§ 6w.5 — what it costs, and the delivered NA is not what pays", () 
     for (const M of MAGNIFICATIONS) {
       const axial = objectiveAt(undefined, M);
       const sized = objectiveAt(FN, M);
-      expect(sized.objectDistanceMm / axial.objectDistanceMm - 1).toBeCloseTo(-0.02115, 5);
+      expect(sized.objectDistanceMm / axial.objectDistanceMm - 1).toBeCloseTo(-0.022046, 6);
       // The flint's default centre thickness is 0.06·D and therefore scales with
       // the glass EXACTLY; the crown's is finalised from the sags, which grow
       // faster than the aperture, so it more than doubles.
       const t = (o: MicroscopeObjective, i: number) => o.prescription.surfaces[i]!.thickness;
-      expect(t(sized, 0) / t(axial, 0)).toBeCloseTo(1.45, 12);
-      expect(t(sized, 1) / t(axial, 1)).toBeCloseTo(2.031, 3);
+      expect(t(sized, 0) / t(axial, 0)).toBeCloseTo(1.4674895703435, 12); // the glass ratio (§ 6w.1)
+      expect(t(sized, 1) / t(axial, 1)).toBeCloseTo(2.0791, 4); // 2.031 on f·NA + h
       expect(t(sized, 1) / t(axial, 1)).toBeGreaterThan(t(sized, 0) / t(axial, 0));
     }
   });
 
-  it("moves the traced magnification by 0.08% — TOWARD the label, not away from it", () => {
+  it("moves the traced magnification by 0.09% — TOWARD the label, not away from it", () => {
     // A thicker doublet's Gullstrand term is smaller, so its traced EFL sits
     // closer to the design focal length (49.9694 → 49.9871 on the 4×) and the
     // magnification it delivers moves closer to the nominal f_tube/f_obj. That is
@@ -330,7 +361,8 @@ describe("§ 6w.5 — what it costs, and the delivered NA is not what pays", () 
       expect(Math.abs(mSized) - M).toBeLessThan(Math.abs(mAxial) - M);
       return mSized / mAxial - 1;
     });
-    for (const shift of shifts) expect(shift).toBeCloseTo(-8.04e-4, 5);
+    // −8.87e-4 to −8.84e-4 on the glass widened to the real beam (§ 2z.8: was −8.04e-4).
+    for (const shift of shifts) expect(shift).toBeCloseTo(-8.86e-4, 5);
 
     // AND THIS IS THE ONE NUMBER IN THE STEP THAT CARRIES A MAGNIFICATION, which
     // is worth more than the number itself: −8.0516e-4 at 4× against −8.0368e-4
@@ -340,7 +372,7 @@ describe("§ 6w.5 — what it costs, and the delivered NA is not what pays", () 
     // does not shrink with the objective. Everything else here is measured inside
     // the objective and is therefore exactly invariant; a magnification is a
     // property of the pair.
-    expect(shifts[0]! / shifts[2]! - 1).toBeCloseTo(1.85e-3, 4);
+    expect(shifts[0]! / shifts[2]! - 1).toBeCloseTo(2.62e-3, 4); // 1.85e-3 on f·NA + h
   });
 });
 

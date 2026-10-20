@@ -120,6 +120,7 @@ const sysOf = (M: number, NA: number): OpticalSystem => {
   let s = SYSTEMS.get(key);
   if (!s) {
     s = finiteConjugateMicroscope({
+      rayAiming: "paraxial", // measured on the paraxial aim and its stop; under real aiming it is open item 48 (§ 2z)
       objective: finiteConjugateObjective({ magnification: M, numericalAperture: NA }),
     }).system;
     SYSTEMS.set(key, s);

@@ -83,6 +83,7 @@ const DESIGN = 587.5618;
 const RED = 656.2725;
 
 const SYSTEM = finiteConjugateMicroscope({
+  rayAiming: "paraxial", // measured on the paraxial aim and its stop; under real aiming it is open item 48 (§ 2z)
   objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
 }).system;
 

@@ -67,8 +67,8 @@ import { AppRefusal, refused, type Refused } from "./refusal";
  *    On a smooth emitter it is **flat to nine significant figures over ×4 of
  *    grid**. It is two things (§ 2p): the frame's axial offset
  *    (`jacobianAxisOffset`, −3.4e−8 to −6.5e−8) and the distortion over the
- *    emitter, which spreads **18×** across the same five objectives at the same
- *    configuration (4.56e−8 on the DIN 4×/0.20 to 8.27e−7 on the infinity 10×) and
+ *    emitter, which spreads **19×** across the same five objectives at the same
+ *    configuration (4.29e−8 on the DIN 4×/0.20 to 8.22e−7 on the infinity 10×) and
  *    grows 33.34× from a centred disc to one at 0.4 of the half frame on EVERY row
  *    — ⟨r²⟩'s 1 + 2(d/R)² = 33, third-order distortion's own law. The 179× and
  *    the per-lens factors once printed here were the two parts nearly cancelling.

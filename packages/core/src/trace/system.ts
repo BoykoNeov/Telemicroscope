@@ -98,16 +98,20 @@ export interface OpticalSystem {
  * Where a pupil coordinate is aimed AT (docs/VALIDATION.md § 1.5.3).
  *
  *  - `"paraxial"` (default) — at the first-order entrance pupil, which
- *    `pupils()` computes on the straight-axis twin. Exact for an aligned
- *    system, and the reference every rung below § 1.5.3 is written against.
+ *    `pupils()` computes on the straight-axis twin, and the reference every
+ *    rung below § 1.5.3 is written against.
  *  - `"real"` — at the aperture stop itself, found by tracing. The two differ
- *    only when the stop is not where the first-order layer thinks it is, which
- *    is exactly what a MISALIGNMENT does: a decenter or tilt upstream of the
- *    stop carries the stop with it, and the paraxial pupil does not follow.
+ *    where the stop is not where the first-order layer thinks it is — a
+ *    MISALIGNMENT, whose decenter or tilt upstream of the stop carries the stop
+ *    with it while the paraxial pupil stays — and, on an aligned system, by the
+ *    pupil's own aberration: the paraxial rim is not the stop's traced rim, so
+ *    the cone it launches is not the one the stop passes (§ 2z, 0.4–0.8% in
+ *    sine on the microscope presets, 1.4% of an emitter's light).
  *
- * This is opt-in per system rather than inferred, for the same reason
- * `mirrorFrames` is: it changes what every pupil coordinate means, and a
- * misalignment appearing in the data must not silently redefine that.
+ * Declared per system rather than inferred, for the same reason `mirrorFrames`
+ * is: it changes what every pupil coordinate means. The two microscope
+ * compositions declare `"real"` (§ 2z); everything else is paraxial unless it
+ * says otherwise.
  */
 export type RayAiming = "paraxial" | "real";
 

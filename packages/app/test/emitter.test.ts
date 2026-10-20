@@ -206,7 +206,7 @@ describe("Part Q — the two errors, and each is deaf to the other's control", (
     }
   });
 
-  it("...and its distortion part spreads 18× across the objectives the grid could not tell apart", () => {
+  it("...and its distortion part spreads 19× across the objectives the grid could not tell apart", () => {
     // The comparison the panel is built on: same emitter geometry, same grid,
     // same crop — the sampling residual agrees to five figures and this one does
     // not agree at all, because it is the distortion of five different designs.
@@ -228,11 +228,13 @@ describe("Part Q — the two errors, and each is deaf to the other's control", (
     }
     const distortion = centred.map((d) => d.jacobianWorth - d.jacobianAxisOffset);
     const spread = Math.max(...distortion) / Math.min(...distortion);
-    expect(spread).toBeGreaterThan(17);
-    expect(spread).toBeLessThan(19);
+    // 19.19 on the real aim and the engraved stop (§ 2z: 18.1 before — the DIN
+    // 4×/0.20's stop grew 9% and its frame with it).
+    expect(spread).toBeGreaterThan(18.5);
+    expect(spread).toBeLessThan(20);
     // The two ends, by lens, so a reworded page is caught here.
-    expect(distortion[REACHED.indexOf("din-4x-020")]!).toBeCloseTo(4.5626e-8, 11);
-    expect(distortion[REACHED.indexOf("inf-10x-010")]!).toBeCloseTo(8.2675e-7, 10);
+    expect(distortion[REACHED.indexOf("din-4x-020")]!).toBeCloseTo(4.2855e-8, 11); // 4.5626e-8
+    expect(distortion[REACHED.indexOf("inf-10x-010")]!).toBeCloseTo(8.2221e-7, 10); // 8.2675e-7
   });
 
   it("off axis the distortion part grows by ⟨r²⟩ — 1 + 2(d/R)² — on every row alike", () => {
@@ -258,9 +260,10 @@ describe("Part Q — the two errors, and each is deaf to the other's control", (
   });
 
   it("the whole negative control stays inside the range the panel quotes", () => {
-    // Since § 2p the panel quotes the distortion part: 4.6e−8 to 2.8e−5 over the
-    // five rows and both offsets. The worth itself reaches −9.9e−10 on the DIN
-    // 4×/0.20, which is why it is not the number quoted.
+    // Since § 2p the panel quotes the distortion part: 4.3e−8 to 2.7e−5 over the
+    // five rows and both offsets on the real aim (4.6e−8 to 2.8e−5 before § 2z).
+    // The worth itself reaches −9.9e−10 on the DIN 4×/0.20, which is why it is
+    // not the number quoted.
     const all: number[] = [];
     for (const kind of REACHED) {
       const a = halfOf(kind);
@@ -269,8 +272,8 @@ describe("Part Q — the two errors, and each is deaf to the other's control", (
         all.push(d.jacobianWorth - d.jacobianAxisOffset);
       }
     }
-    expect(Math.min(...all)).toBeGreaterThan(4.5e-8);
-    expect(Math.max(...all)).toBeLessThan(2.8e-5);
+    expect(Math.min(...all)).toBeGreaterThan(4.2e-8);
+    expect(Math.max(...all)).toBeLessThan(2.75e-5);
   });
 
   it("the light the chain forms is the light the emitter emitted, to f64", () => {
@@ -331,10 +334,11 @@ describe("Part Q — the frame's corner is what decides, and the panel says so e
     expect(r.ok).toBe(false);
     if (r.ok) return;
     expect(r.headroom).not.toBeNull();
-    // 0.978 since § 2p (just over 0.98 before): the frame is 0.74% wider on the
-    // traced cone's ruler, so it misses by 2.2% now.
-    expect(r.headroom!.fieldHeadroom).toBeGreaterThan(0.975);
-    expect(r.headroom!.fieldHeadroom).toBeLessThan(0.98);
+    // 0.9804 since § 2z (0.978 at § 2p, just over 0.98 before that): its glass is
+    // 1.2% wider to pass the real beam (§ 2z.8), so its field reaches further and
+    // it misses by 2.0%.
+    expect(r.headroom!.fieldHeadroom).toBeGreaterThan(0.98);
+    expect(r.headroom!.fieldHeadroom).toBeLessThan(0.985);
     // One halving of the crop is all it needs, and the panel says so.
     const half = renderEmitterScene(req("inf-20x-010", { pupilSamples: 16, scaleUm: 1 }));
     expect(half.ok).toBe(true);
@@ -480,9 +484,12 @@ describe("Part Q — the optics, which is one number and is not a verdict", () =
       ));
       expect(best, `${kind} should clear it nowhere`).toBeGreaterThan(LIMIT);
     }
-    // The worst row, by the factor the panel quotes: 21.8 against a limit of 0.5.
-    expect(worstOver("din-4x-020")).toBeGreaterThan(21);
-    expect(worstOver("din-4x-020")).toBeLessThan(22);
+    // The worst row, by the factor the panel quotes: 44.6 against a limit of 0.5
+    // (21.8 before § 2z: the real aim fills the stop to the engraved 0.20, which
+    // the paraxial aim's stop delivered at 0.1895, and the rim's wavefront is
+    // where the step is steepest).
+    expect(worstOver("din-4x-020")).toBeGreaterThan(44);
+    expect(worstOver("din-4x-020")).toBeLessThan(45);
   });
 
   it("patches changes the imaged peak by under a percent, which is why it carries no claim", () => {
