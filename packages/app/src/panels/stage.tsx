@@ -163,6 +163,16 @@ export function StagePanel() {
 
   const useful = info?.ok === true ? info.info.usefulPixels : 0;
   const view = useful * TILES_ACROSS;
+  /** The field stop's radius on the composed plane, in plane pixels. */
+  const fieldRadiusPx =
+    info?.ok === true ? (info.info.fieldMm / 2) * 1e6 / info.info.objectPixelNm : 0;
+  /** How much of the viewport lies outside it — the readout says so in words. */
+  const outsideField =
+    fieldRadiusPx > 0 &&
+    Math.hypot(
+      Math.abs(pan.x - useful / 2) + view / 2,
+      Math.abs(pan.y - useful / 2) + view / 2,
+    ) > fieldRadiusPx;
 
   /** Repaint from the cache. Nothing is resampled: a tile's kept pixels are its
    * own (§ 6o), and the composed plane is exactly them, laid side by side. */
@@ -182,7 +192,29 @@ export function StagePanel() {
         tile.row * useful - top,
       );
     }
-  }, [pan.x, pan.y, useful, view]);
+    // The eyepiece's field stop: a circle FN across in the image plane, which is
+    // the plane the tiles are pitched on, so on the canvas it is `fieldMm/2` of
+    // object on the anchor's ruler — distortion included, because the stop cuts
+    // the IMAGE. Since § 6cu the stage renders well past it (the lens images
+    // there; the eyepiece would not show it), so everything outside is dimmed
+    // rather than refused. The axis is tile (0, 0)'s centre.
+    if (fieldRadiusPx > 0) {
+      const cx = useful / 2 - left;
+      const cy = useful / 2 - top;
+      context.beginPath();
+      context.rect(0, 0, view, view);
+      context.arc(cx, cy, fieldRadiusPx, 0, 2 * Math.PI);
+      context.fillStyle = "rgba(0, 0, 0, 0.6)";
+      context.fill("evenodd");
+      context.beginPath();
+      context.arc(cx, cy, fieldRadiusPx, 0, 2 * Math.PI);
+      context.setLineDash([6, 4]);
+      context.strokeStyle = "rgba(255, 255, 255, 0.8)";
+      context.lineWidth = 1;
+      context.stroke();
+      context.setLineDash([]);
+    }
+  }, [pan.x, pan.y, useful, view, fieldRadiusPx]);
 
   /** Hand every free worker the next tile — nearest the viewport centre first,
    * which is D4's "live centre tile" and falls straight out of the ordering. */
@@ -528,6 +560,15 @@ export function StagePanel() {
                 front of it agree
               </span>
               <br />
+              {outsideField && (
+                <>
+                  <span style={{ color: "var(--warn)" }}>
+                    past the dashed circle the eyepiece&rsquo;s field stop would cut the view off —
+                    the lens images there, so it is drawn, dimmed, but you would not see it
+                  </span>
+                  <br />
+                </>
+              )}
               tile {info.info.tileSpanUm.toFixed(1)} µm kept · {info.info.objectPixelNm.toFixed(0)} nm
               per pixel · NA {info.info.tracedNA.toFixed(4)}
               <br />

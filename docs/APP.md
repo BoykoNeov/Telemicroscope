@@ -3927,6 +3927,21 @@ and left the stage unseeded as the stage's decision, and it is
 [§ 6cu](VALIDATION.md#step-6cu--the-seed-reaches-the-brightfield-mosaic-and-the-lookup-stops-limiting-the-stage).
 Real aiming stays open, on cost.
 
+#### The field stop, drawn
+
+§ 6cu took away the limit that had hidden this. The panel never stopped a pan,
+and until § 6cu the DIN 4×/0.10's tiles ran out at 1.8 mm, inside its 2.25 mm
+field, by the bracket's accident. Seeded, they render to 3.7 mm and on, so the
+stage drew specimen an eyepiece would never show, with nothing on screen to say
+so. The lens does image there, which is why it is marked rather than refused
+(the author's decision, 2026-10-20). The canvas draws the field stop as a dashed
+circle FN across in the image plane — the plane the tiles are pitched on, so on
+the canvas its radius is `fieldMm/2` of object on the anchor's ruler — and dims
+everything outside it. When any of the viewport lies past it the readout says
+the eyepiece would cut the view off there. Display only: no tile, verdict or
+golden changes. Checked in a headless browser on the infinity 20×/0.10 panned
+toward its 0.45 mm edge.
+
 The original scope follows, unchanged.
 
 **The priority surface, and the first thing in this repo that looks like a
