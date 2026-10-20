@@ -3765,6 +3765,40 @@ recording them:
    tiles, the guard bound and the goldens are unchanged. **Open:** the stage on
    real aiming, which needs the exit layout first (point 4).
 
+#### The stage on the exit layout — the hypothesis, written before the reading
+
+Point 4's seam figure is borrowed. 1.34e-2 against 6.7e-3 is § 6bi.2's,
+the **fluorescence** mosaic, where a tile's light is an incoherent sum over a
+point-sampled rim. The stage is brightfield. Its clear field passes only the
+condenser's own directions, which sit inside the rim at S = 0.5, and only the
+specimen's diffracted orders meet the rim. And the located rim the engine's
+mosaic chain took (`edgeRule`, `edgeSamples`) does not exist on the brightfield
+path at all. So the stage cannot take the located rim without an engine step,
+and whether it needs one is a measurement nobody has taken. The 3.8× tile cost
+(§ 2r.1) was the located rim's, so it does not carry over either. The closer
+prior is § 2k's 1.14×, the exit layout's own cost on a 10× tile.
+
+**Hypothesis.** On the stage's own request (DIN 4×/0.10 on the paraxial aim,
+pupilSamples 32, grid 64, guard 4, S = 0.5 commensurate, the section specimen,
+the radial map at `RADIAL_MAP_NODES`), the layout alone is a flip the stage can
+take:
+
+- **Seam.** The seam error is measured as § 6o.7 measures it: the mosaic's two
+  pixels either side of a seam against a tile centred on that seam, as a fraction
+  of that tile's peak, maximum over the kept rows. On the exit layout it stays
+  within 1.5× of the aim layout's at each of four seams: the axis, ~1 mm of
+  object along x, ~1 mm on the diagonal, and next to the field edge.
+- **Cost.** A warm tile on the exit layout costs at most 1.5× the aim layout's,
+  in monochrome and in colour.
+- **Verdicts.** The golden block's verdicts hold: `valid` in monochrome,
+  `no-honest-image` in colour.
+
+**Refuted by** any seam on the exit layout above 2× the aim layout's (the
+fluorescence chain's doubling, arriving on brightfield). That would make the
+located rim an engine step on the brightfield path, ahead of this flip. Also
+refuted by a warm tile above 2× the aim layout's cost, or by either verdict
+flipping.
+
 The original scope follows, unchanged.
 
 **The priority surface, and the first thing in this repo that looks like a
