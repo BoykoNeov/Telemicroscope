@@ -6649,6 +6649,49 @@ paraxially, under-filled to NA 0.0994. Pinned (`real-aiming.test.ts`): the oil
 NA 0.095 delivers 0.095 to 1e-14; an eyepiece keeps either aim and NA 0.10 to
 1e-14.
 
+## Step 2aa — where the DIN 4×/0.20's real-aimed light goes
+
+Source: measurement only — no engine change
+
+Register item 47: on the DIN 4×/0.20, sized by a real ray (§ 2z.5), the
+real-aimed emitter light on the axis reads 7.8e-5, −2.9e-5, −5.5e-5, −6.1e-5
+off the referee at pupil samples 64/128/256/512, and the entry calls that "not
+converging".
+
+**What was read before the hypothesis** — arithmetic on § 2z.5's four
+readings, no new probe. They are an offset plus a term in 1/PS²: fitted to 64
+and 128, x = a + c/PS² gives c = 0.584, a = −6.47e-5, and predicts −5.57e-5 and
+−6.25e-5 at 256 and 512, where −5.5e-5 and −6.1e-5 were read; fitted to 256 and
+512, a = −6.3e-5. So the reading converges, as the lattice's square, to a value
+about 6.4e-5 under the referee, and the sign change is the 1/PS² term crossing
+it. Something the pupil-sample count does not refine is off. On the axis the
+outline is a circle and ν cancels between the density's units and the light's,
+so the candidate is the one piece at a fixed resolution: the exit density's
+21-node lattice (`DENSITY_GRID`), the residue register item 35 left on the oil
+100× (−1.58e-4 at 21 nodes, −5e-7 at 61, § 2u).
+
+**Hypothesis.** The offset is the density lattice's. On the 4×/0.20's axis at
+its design wavelength, three legs, each compared like with like:
+
+1. The launches' light with throughput (`emitterLaunchEnergy`, § 2q.5 — no
+   exit coordinate, no lattice, no fit), as a fraction of 4π, equals the
+   referee's to **2e-6**. Both are exact integrals of one quantity; if this
+   fails the step is about one of them and stops there.
+2. The density's own light (`exitDensityEnergy`, lattice 21) against the
+   launches' without throughput reads **−6.4e-5 ± 1e-5**.
+3. At lattice 61 that gap is under **2e-6** in magnitude.
+
+**Refuted by** leg 2 outside [−7.4e-5, −5.4e-5], or leg 3 at or above 2e-6.
+Alongside, not a leg: the in-disc nodes whose `exitAt` or `targetAt` stencil is
+narrower than seven at lattice 21 — § 2q.5's failure shape, and the next
+candidate if leg 3 fails; the stop grew 9% at § 2z.5, so the continued chain
+may run out nearer the rim than the 4×/0.10's 1.168.
+
+Written after § 2z.5's readings and the fit above, before any reading of the
+density on this lens. § 2z's threshold cited the DIN 4×'s density fit as good
+to 7e-8; that was the 4×/0.10, and is not carried here. This is the first
+measurement-only step since § 2z's engine change.
+
 ## Step 3a — the standard observer and thermal sources
 
 The layer that makes the hero image *visible*. Purple fringing is not new
