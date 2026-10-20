@@ -414,6 +414,12 @@ describe("§ 2aa — the DIN 4×/0.20's offset is the density lattice's, over th
     expect(gap(41)).toBeCloseTo(-3.75e-6, 8);
     expect(gap(61)).toBeCloseTo(4.746e-6, 8);
   });
+
+  it("the laid pupil's light with no pixel grid is the PS series' limit, −6.3e-5", () => {
+    // −6.295e-5, where x = a + c/PS² through § 2z.5's readings gives −6.3e-5 to −6.5e-5.
+    const laid = exactPupilEnergy(system, 0, nm, "exit") / emitterLaunchEnergy(system, 0, nm, { throughput: true }) - 1;
+    expect(laid).toBeCloseTo(-6.295e-5, 7);
+  });
 });
 
 describe("§ 2q.5 — § 2j.3's two branches agreed by cancelling", () => {

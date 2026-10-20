@@ -6656,7 +6656,7 @@ NA 0.095 delivers 0.095 to 1e-14; an eyepiece keeps either aim and NA 0.10 to
 ## Step 2aa — where the DIN 4×/0.20's real-aimed light goes
 
 Source: measurement only — no engine change
-· Tests: `packages/core/test/exit-density-rim.test.ts` (§ 2aa's two rungs)
+· Tests: `packages/core/test/exit-density-rim.test.ts` (§ 2aa's three rungs)
 
 Register item 47: on the DIN 4×/0.20, sized by a real ray (§ 2z.5), the
 real-aimed emitter light on the axis reads 7.8e-5, −2.9e-5, −5.5e-5, −6.1e-5
@@ -6722,18 +6722,23 @@ nodes on it scatters, −3.75e-6, +4.75e-6, +1.36e-6, with no sign of settling.
 - **The fit has a floor.** The density here spans 0.466–1.003, centre to rim, and
   √ of it fitted in 45 Zernike terms (`MAX_ZERNIKE_TERMS`, radial order 8) misses
   its own nodes by 8e-4 rms and 4.4e-3–4.9e-3 at worst (ρ > 0.9), at 41, 61 and
-  81 nodes alike (1.8e-3 at 21). Integrated, that residue is a few 1e-6 of the
-  light whose sign follows which nodes the fit sees — the scatter. It is also
-  the pupil's apodization wrong by ~4e-4 in amplitude locally, which no light
-  total shows.
+  81 nodes alike (1.8e-3 at 21). The nodes themselves have converged by then —
+  61 against 81 at the shared aim points, mean ≤ 1.7e-7 in every band, max
+  5.2e-7 — so integrated, that residue is the scatter: a few 1e-6 of the light
+  whose sign follows which nodes the fit sees. It is also the pupil's
+  apodization wrong by ~4e-4 in amplitude locally, which no light total shows.
 - **Lattice 21's error is in the node values, inside the rim.** Against the
   81-node lattice's density at the same aim points, the 21-node nodes read
   mean −7.9e-5 at ρ 0.8–0.9 (max 1.8e-4), −7.6e-6 at 0.9–1 (max 5.9e-4, the
   scatter large and the mean small), −7.6e-6 at 0.5–0.8 and +1.7e-6 inside 0.5.
-  The 68 nodes past 0.9 are exactly those whose stencil runs out (12 ring nodes
-  at 1.17 and 1.2 never aim — the stop point is unreachable), but the bias sits
-  one band in, on centred seven-node windows: a step of 0.1 is too coarse for a
-  map whose slope halves toward the rim, whatever the window does.
+  68 nodes have a stencil that runs out (12 ring nodes at 1.17 and 1.2 never
+  aim — the stop point is unreachable): 60 at ρ ≥ 0.9 and 8 at 0.8–0.9. The
+  bias is not theirs — the 48 centred nodes at 0.8–0.9 read mean −1.17e-4, the
+  8 narrow ones there +1.51e-4. A step of 0.1 is too coarse for a map whose
+  slope halves toward the rim, whatever the window does.
+- **The laid pupil's light with no pixel grid** (`exactPupilEnergy`, throughput
+  in) against the launches' with throughput: −6.295e-5 — the PS-converged
+  limit, read directly rather than extrapolated, and like with like.
 
 So the register's "does not converge" was a misreading of two terms of
 opposite sign; what is left is item 35's lattice on another lens, now with a
