@@ -3837,6 +3837,54 @@ aperture sine, so a pixel is 1470.67 nm of object, not 1461.54. The picture is
 0.62% less magnified, and the goldens moved by up to 16/255 at the cells'
 edges. `golden.test.ts` records why. `STAGE_LAYOUT` says `"exit"`.
 
+#### The stage on real aiming
+
+The hypothesis below was committed before the readings under it were taken.
+Point 5 kept the stage on the paraxial aim because the aim layout needs it; the
+stage has been on the exit layout since the section above, so the one line in
+`systemFor` (`rayAiming: "paraxial"`) is all that holds it there.
+
+**What was read before the hypothesis** (one trace each, on the stage's own
+request): on the DIN 4×/0.10 the traced NA is 0.1000000000 on both aims, and a
+pixel is 1470.67298 nm of object on both, so the monochrome ruler does not move.
+The colour stage keeps 46 pixels a tile on both, and its ruler stays the 450 nm
+plane at guard 4.5000. The other two planes' guards move, 6.6122 → 6.5910 cells
+at 550 nm and 8.0650 → 8.0385 at 650 nm. A probe that forms the monochrome tile
+the stage's way reproduces `renderStageTile` byte for byte on the paraxial aim,
+at (0,0) and (1,1).
+
+So any change in the picture is the pupil's: real aiming fills the stop as built
+rather than the paraxial aim's cone. The prior that worries is cost. § 2z.6
+measured a real-aimed bundle at 3.9× its paraxial twin on the DIN 4×, and a tile
+at 3.4× on the axis and 5–8× off it. A stage tile is mostly the Abbe sum
+(~45 ms, finding 2), so it should pay much less than that, but nobody has
+measured it.
+
+**Hypothesis.** On the stage's request (DIN 4×/0.10, pupilSamples 32, grid 64,
+guard 4, S = 0.5 commensurate, the section specimen, the exit layout, the radial
+map at `RADIAL_MAP_NODES`), real aiming is a flip the stage can take:
+
+- **Cost.** A warm tile on real aiming costs at most 1.5× the paraxial aim's, in
+  monochrome and in colour (median of eight tiles, the two aims alternated).
+- **Seam.** The seam error, measured as in the section above (the mosaic's two
+  pixels either side of a seam against a tile centred on it, as a fraction of
+  that tile's peak, max over the rows), stays within 1.5× of the paraxial aim's
+  at four seams: tiles 0|1 on the axis, 13|14 along x (~0.95 mm), 10|11 on row 10
+  (~0.74, 0.71 mm), and 21|22 (~1.52 mm), next to the field edge.
+- **Verdicts.** The golden block's verdicts hold (`valid` in monochrome,
+  `no-honest-image` in colour), and the worst grid phase step on every tile
+  measured stays within 1.5× of the paraxial aim's.
+- **Field edge.** The first refused tile along x and along the diagonal is the
+  same tile on both aims.
+- **Order.** A tile rendered cold is the same tile, bit for bit, as one rendered
+  after others in the same worker (§ 2z.6's solve history, which a worker pool's
+  tile order would otherwise expose as seams).
+
+**Refuted by** a warm tile above 2× the paraxial aim's cost (then the stage
+stays where it is and the cost goes to the user), any seam above 2× the
+paraxial aim's, a verdict flip, a phase step above 2×, a refusal edge that moves
+inward, or any bit of difference in the order check.
+
 The original scope follows, unchanged.
 
 **The priority surface, and the first thing in this repo that looks like a
