@@ -6159,7 +6159,8 @@ cannot rank tiles whose rims cross the lattice differently.
 `stage-mosaic`'s § 6bj.6 carries the rim pairs `Object.is`-equal to the guard
 and the half-axis split. The guard is unchanged: it is a point-sample
 readout by design (`fluorescence.ts`), and whether a cut cell should enter it
-is a separate decision.
+is a separate decision. **Decided (2026-10-20, by the author): it stays a
+point-sample readout**, blind to the steep side's last partial cell.
 
 ## Step 2y — the outline turns at the rim's corners
 
