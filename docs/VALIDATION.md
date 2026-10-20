@@ -32167,6 +32167,36 @@ the seed on both of its paths.
 40×/0.40), a pixel moved by more than 1e-14 of the peak, a `"none"` that is not
 bitwise the omitted option, or a golden byte that moves.
 
+**§ 6cu.2 read first, and refuted on the two oil rows.** Seven rows render at
+their field radius, along x and on the diagonal. The oil 100×/1.25 and /1.40 do
+not: seeded, their stage reaches col 11 and col 14 (0.062 and 0.071 mm of a
+0.090 mm field). Their chief rays trace to 0.1355 and 0.1576 mm, 1.5× and 1.75×
+the field, so the lens is not the limit. The seed opens the bracket at r/|M|,
+whose radius falls just short of r, and the bracket's next step doubles it to
+2r/|M| (0.181 mm at the field edge), where the chief ray is dead. The bracket
+throws on a probe that stepped past the lens, the same failure as the unseeded
+one, a factor of 2 out rather than |M|.
+
+**§ 6cu.5 — the back-off. Written after that reading.** When a doubling
+probe's chief ray is lost, `objectHeightForImageRadius` bisects between the
+last traced height and the dead one for a traced height that reaches the radius,
+and throws the doubling's own error only if none does. Only the doubling backs
+off. A dead first probe still throws, so the unseeded refusals (§ 6bk, § 6ct.1,
+§ 6cu.1, § 6cu.4) stand. Every query that returns today takes the same probes,
+so it returns the same float.
+
+- **Prediction.** Seeded, the oil rows' field-edge tiles render, which closes
+  § 6cu.2 as the hypothesis stated it. No other test in the suite changes
+  outcome. The refusals the suite pins either fail on the first probe (the
+  unseeded ones; `object-field`'s seed of 1e-3) or ask for a radius past the
+  last traced chief ray (`guard-share`'s 17.889–19.154 mm on a lens that stops
+  at about 17.4; `field-seam-map`'s seven offsets). The least certain is
+  `field-seam-seidel`'s seed of 1 on the 10× at 2 mm, read here as a dead first
+  probe.
+- **Refuted by** an oil field-edge tile that still throws, any pinned refusal
+  that now returns, any other test that changes outcome, or a returned value
+  that moves by a bit.
+
 ## Step 8a — the photon zero point, and the one draw a camera makes
 
 Source: `photometry/magnitude.ts`, `math/random.ts` (`poisson`),
