@@ -12,7 +12,7 @@ import { spectralXyzBasis, type XyzBasis } from "../photometry/spectrum";
 import { colorImageFromStack, type ColorImage } from "./image";
 import { mosaicGuardPixels } from "./mosaic";
 import { objectFieldTile, type FieldPupilOptions, type ObjectFieldFrame } from "./object-field";
-import { radialMapCovering, type RadialMap } from "./radial-map";
+import { radialMapCovering, type RadialMap, type RadialMapSeed } from "./radial-map";
 import type { SpecimenMap, SpectralSpecimen } from "./specimen";
 
 /**
@@ -178,6 +178,12 @@ export interface SpectralMosaicOptions extends FieldPupilOptions {
    * one over the single tile unless it is handed the shared ones.
    */
   readonly radialMapNodes?: number;
+  /**
+   * Open each plane's radial-map bracket at its frame's traced magnification —
+   * `brightfield-spectrum.ts`'s option (§ 6ct), carried to the mosaic at § 6cu.
+   * Default `"none"`, for the same mantissa reason.
+   */
+  readonly radialMapSeed?: RadialMapSeed;
 }
 
 /** `no-honest-image` ≻ `unknown` ≻ `valid` — `imaging/brightfield`'s order. */
@@ -198,6 +204,7 @@ function planeOptions(options: SpectralMosaicOptions): BrightfieldSpectrumOption
     ...(options.probeHeightMm === undefined ? {} : { probeHeightMm: options.probeHeightMm }),
     ...(options.map === undefined ? {} : { map: options.map }),
     ...(options.radialMapNodes === undefined ? {} : { radialMapNodes: options.radialMapNodes }),
+    ...(options.radialMapSeed === undefined ? {} : { radialMapSeed: options.radialMapSeed }),
     ...(options.traceSamples === undefined ? {} : { traceSamples: options.traceSamples }),
     ...(options.zernikeTerms === undefined ? {} : { zernikeTerms: options.zernikeTerms }),
     ...(options.aim === undefined ? {} : { aim: options.aim }),
@@ -618,6 +625,9 @@ export function renderSpectralMosaic(
             {
               nodes: options.radialMapNodes!,
               ...(options.aim === undefined ? {} : { aim: options.aim }),
+              ...(options.radialMapSeed === "magnification"
+                ? { magnification: layout.tiles[0]!.planes[i]!.frame.magnification }
+                : {}),
             },
           ),
         );

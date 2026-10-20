@@ -176,6 +176,7 @@ whole ladder.
 | [6cr](#step-6cr--hopkins-kernel-and-the-specimen-taken-out-of-the-sum) | The TCC: exactly Hermitian, PSD, and Abbe's image to 1e-15. A three-disc closed form pins it off the diagonal; § 6f's two curves are one complex number | `hopkins` |
 | [6cs](#step-6cs--the-coherent-systems-and-the-factor-that-was-already-there) | TCC = A·Aᴴ: the modes are a discarded factor's singular vectors, so 47.1 MB becomes 4.75 MB with nothing dropped. Truncation is lossy: 99% needs 48 of 69 | `coherent-systems` |
 | [6ct](#step-6ct--the-seed-reaches-the-colour-stack-and-high-power-renders-in-colour) | § 6bk's seed on the colour brightfield stack: the oil 100× renders in colour where it threw; off by default, and inert at 4× to six ulp | `colour-seed` |
+| [6cu](#step-6cu--the-seed-reaches-the-brightfield-mosaic-and-the-lookup-stops-limiting-the-stage) | The stage's tile lookup was unseeded: the 4× stopped at 1.8 of 2.25 mm. Seeded, and a dead doubling backs off; the oil rows' edge stays refused by sampling | `mosaic-seed` |
 | [8a](#step-8a--the-photon-zero-point-and-the-one-draw-a-camera-makes) | AB = 0 is 3631 Jy: a 0-mag star is 996 photons·s⁻¹·cm⁻²·Å⁻¹ at 550 nm (textbook 1000), a band's count is (f_ν/h)·ln(λ₂/λ₁) for any spectrum, shot noise is Poisson | `photon-zero-point` |
 | [8b](#step-8b--the-sky-and-the-magnitude-it-hides) | The sky per pixel is B·Ω·A·t: twice the mirror at one focal ratio is 4× the star and 1.000000000000× the sky, and the limit deepens 1.5051 mag per 4× exposure, 0.7526 swamped | `sky-background` |
 | [8c](#step-8c--the-resampler-that-conserves) | Bilinear × k² is a one-point quadrature: the stack ran +0.3–3.0% heavy with `truncatedFraction` at 0. A conservative minmod regrid conserves AND beats it on accuracy | `resample-conservation` |
@@ -32114,16 +32115,17 @@ seeded rung fails and nothing else does — the inertness rungs cannot see a see
 that never arrives, which is why the oil rung is there.
 
 **Not done here, on purpose.** The app's own colour section (`#/section`) and
-the stage still build unseeded, so their high-power rows still refuse. Turning
+~~the stage~~ still build unseeded, so their high-power rows still refuse. *(The
+stage takes the seed at [§ 6cu](#step-6cu--the-seed-reaches-the-brightfield-mosaic-and-the-lookup-stops-limiting-the-stage).)* Turning
 the seed on there moves their pinned numbers by the mantissa and is that panel's
 decision, recorded as Part S's leftover in APP.md rather than taken silently
 here.
 
-## Step 6cu — the seed reaches the brightfield mosaic, and the stage covers its field
+## Step 6cu — the seed reaches the brightfield mosaic, and the lookup stops limiting the stage
 
 Source: `packages/core/src/imaging/mosaic.ts`, `packages/core/src/imaging/mosaic-spectrum.ts`,
-`packages/app/src/stage.ts` ·
-Tests: `packages/core/test/mosaic-seed.test.ts`
+`packages/core/src/imaging/object-field.ts` (§ 6cu.5), `packages/app/src/stage.ts` ·
+Tests: `packages/core/test/mosaic-seed.test.ts`, `packages/app/test/stage.test.ts` (§ 6cu.2)
 
 Found while measuring the stage on real aiming (APP.md D4, *the stage on real
 aiming*). The stage refuses every tile past about 1.8 mm on the DIN 4×/0.10, a
@@ -32196,6 +32198,34 @@ so it returns the same float.
 - **Refuted by** an oil field-edge tile that still throws, any pinned refusal
   that now returns, any other test that changes outcome, or a returned value
   that moves by a bit.
+
+### The reading
+
+| Rung | Pinned to | Status |
+| --- | --- | --- |
+| **§ 6cu.1 — inside the field, the tile needs the seed** | the DIN 4×/0.10 at 1.84 mm of 2.25 and the infinity 10×/0.10 at 0.4 mm of 0.9 throw `/…UNSEEDED/` unseeded and render `valid` seeded; the 10×'s colour tile the same | ✅ |
+| **§ 6cu.2 — the stage at each row's field radius** | seven rows render along x and on the diagonal; the oil rows refuse there, and not for the lookup | ❌ oil rows — items 49, 50 |
+| **§ 6cu.3 — where both paths work, inert** | `"none"` is `Object.is` the omitted option on every pixel; the seed moves a pixel by at most 5.7e-15 of the peak (monochrome), 3.3e-15 (colour) | ✅ |
+| **§ 6cu.4 — the whole-mosaic renderers** | a 2×2 on the 10× at 0.4 mm throws unseeded and renders seeded, in `renderMosaic` and `renderSpectralMosaic` | ✅ |
+| **§ 6cu.5 — the doubling backs off** | on the oil 100×/1.25 the field edge (9 mm of image) inverts to 0.0978 mm, between the seed and the dead 2r/|M|; past the last chief ray the doubling's own error; a dead first probe still `UNSEEDED` | ✅ |
+| **The app** | the stage's goldens, byte for byte | ✅ |
+
+**§ 6cu.5's prediction is refuted on the oil tiles, and holds on the lookup.**
+With the back-off the oil 100×/1.25's stage reaches col 15 (0.085 mm of 0.090,
+from col 11), and its field-edge tile along x is refused by `abbeImage`: the
+pupil there is shifted to (1.079, −0.156) and runs off the 64-bin frequency grid
+at pupilSamples 32 (register item 49). On the diagonal it renders. The /1.40
+stays at col 14 (0.071 mm) and is refused from col 15 on, along x and on the
+diagonal, by the rim outline: a stop arc that does not converge at 129 nodes
+(register item 50). No row's stage is limited by the lookup any more. The
+Lister 40×/0.20 reaches 0.353 mm, past its 0.225 mm field. The rest of the
+prediction holds: the full suite (229 files, 4 174 tests) passes with no other
+test changing outcome, so no pinned refusal returned and no pinned value moved.
+
+Damage run: with the seed disabled in all four places (`renderMosaicTile`,
+`renderMosaic`, the spectral plane options, `renderSpectralMosaic`), § 6cu.1 and
+§ 6cu.4 fail, five rungs, and § 6cu.3's two pass. As at § 6ct, the inertness
+rungs cannot see a seed that never arrives.
 
 ## Step 8a — the photon zero point, and the one draw a camera makes
 

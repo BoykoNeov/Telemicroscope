@@ -295,3 +295,71 @@ describe("Part F — a spec is a cache key by value, in an order this app fixes"
     expect(new Set(keys).size).toBe(MICROSCOPE_CATALOG.length);
   });
 });
+
+describe("§ 6cu.2 — the stage covers each objective's field", () => {
+  // The stage's radial maps are seeded (`STAGE_SEED`). Unseeded, the bracket
+  // probed the chief ray at |M| times the height a tile needs: the DIN 4×/0.10
+  // refused every tile past 1.8 mm of its 2.25 mm field, the infinity 10×/0.10
+  // past 0.21 mm of its 0.90. The Lister 40×/0.40 is left out because it refuses
+  // as a design (§ 6d), before any tile exists.
+  //
+  // The field radius is FIELD_NUMBER_MM / (2|M|), as `stageInfo` states it, and
+  // the tile asked for is the one whose centre sits nearest it: along x, and on
+  // the diagonal.
+  //
+  // The two oil rows do not render there, and the lookup is not why (§ 6cu.5
+  // backed its doubling off the dead chief ray). The 1.25's tile along x has its
+  // pupil shifted off the 64-bin frequency grid; the 1.40's rim outline does not
+  // converge, along x and on the diagonal. Both are the engine refusing at the
+  // stage's sampling, and both are open (register items 49 and 50).
+  const ROWS = MICROSCOPE_CATALOG.filter(
+    (e) => e.kind !== "lister-40x-040" && !e.kind.startsWith("oil-"),
+  );
+  const OIL_EDGE: Record<string, { along: RegExp | null; diagonal: RegExp | null }> = {
+    "oil-100x-125": { along: /runs off a 64-bin frequency grid/, diagonal: null },
+    "oil-100x-140": { along: /rim outline: a stop arc did not converge/, diagonal: /rim outline: a stop arc did not converge/ },
+  };
+
+  it.each(Object.entries(OIL_EDGE))("%s: the field edge refuses, and not for the lookup", (kind, expected) => {
+    const over = { spec: entryOf(kind as Parameters<typeof entryOf>[0]).spec };
+    const info = infoOf(over);
+    const radiusMm = info.fieldMm / 2;
+    const pitchMm = info.tileSpanUm / 1000;
+    const along = Math.round(radiusMm / pitchMm);
+    const diagonal = Math.round(radiusMm / Math.SQRT2 / pitchMm);
+    for (const [col, row, refusal] of [
+      [along, 0, expected.along],
+      [diagonal, diagonal, expected.diagonal],
+    ] as const) {
+      const result = renderStageTile({ ...BASE, ...over, col, row });
+      if (refusal === null) {
+        expect(result.ok, `${kind} tile ${col},${row}: ${result.ok ? "" : result.error}`).toBe(true);
+      } else {
+        expect(result.ok).toBe(false);
+        if (!result.ok) {
+          expect(result.error).toMatch(refusal);
+          expect(result.error).not.toMatch(/no object height reaches/);
+        }
+      }
+    }
+  });
+
+  it.each(ROWS.map((e) => [e.kind, e] as const))("%s: the field-edge tiles render", (_, entry) => {
+    const over = { spec: entry.spec };
+    const info = infoOf(over);
+    const radiusMm = info.fieldMm / 2;
+    const pitchMm = info.tileSpanUm / 1000;
+    const along = Math.round(radiusMm / pitchMm);
+    const diagonal = Math.round(radiusMm / Math.SQRT2 / pitchMm);
+    for (const [col, row] of [
+      [along, 0],
+      [diagonal, diagonal],
+    ] as const) {
+      const result = renderStageTile({ ...BASE, ...over, col, row });
+      expect(result.ok, `${entry.kind} tile ${col},${row}: ${result.ok ? "" : result.error}`).toBe(true);
+      if (!result.ok) continue;
+      const centre = Math.hypot(result.readout.objectCentreMm.x, result.readout.objectCentreMm.y);
+      expect(Math.abs(centre - radiusMm)).toBeLessThan(pitchMm);
+    }
+  });
+});

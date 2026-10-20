@@ -3924,7 +3924,7 @@ What did not:
 
 That second finding is a fix of its own. § 6ct put the seed on the colour stack
 and left the stage unseeded as the stage's decision, and it is
-[§ 6cu](VALIDATION.md#step-6cu--the-seed-reaches-the-brightfield-mosaic-and-the-stage-covers-its-field).
+[§ 6cu](VALIDATION.md#step-6cu--the-seed-reaches-the-brightfield-mosaic-and-the-lookup-stops-limiting-the-stage).
 Real aiming stays open, on cost.
 
 The original scope follows, unchanged.
@@ -7305,9 +7305,11 @@ and the guard says so in words, with "try fine quality".
 ≈5 µm at 100×), not the eyepiece's whole field of view — a field-wide picture
 is the stage's mosaic, and the readout says the real field is wider. There is no
 light budget: the lamp is a spectrum, not a brightness, as on every colour
-surface here. And `#/section` and `#/stage` still build unseeded, so their high
+surface here. And `#/section` and ~~`#/stage`~~ still build unseeded, so their high
 rows still refuse; turning § 6ct's seed on there moves their pinned numbers by
-the mantissa and is their decision, not this part's.
+the mantissa and is their decision, not this part's. *(The stage took it at
+[§ 6cu](VALIDATION.md#step-6cu--the-seed-reaches-the-brightfield-mosaic-and-the-lookup-stops-limiting-the-stage),
+and its goldens did not move by a byte.)*
 
 ## What the app itself needs to hold this
 

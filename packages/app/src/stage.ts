@@ -145,8 +145,9 @@ function systemFor(spec: BuildSpec): OpticalSystem {
   // aim layout, whose condenser directions go through the paraxial aim's affine
   // map, and the engine refuses that layout under real aiming. The stop follows
   // the aim (§ 2z.5): the paraxial radius, where this aim's cone is the engraved
-  // NA. The stage is on the exit layout now (below), so real aiming is open to it;
-  // it is a separate move, with its own picture change, and APP.md D4 holds it.
+  // NA. The stage is on the exit layout now (below), so real aiming is open to it,
+  // and APP.md D4 measured it: seams, verdicts and tile order hold, but a
+  // monochrome tile costs 4.4×, so it stays here until that cost is answered.
   const system = buildMicroscope(spec, { rayAiming: "paraxial" }).system;
   SYSTEMS.set(key, system);
   return system;
@@ -167,6 +168,14 @@ function systemFor(spec: BuildSpec): OpticalSystem {
  */
 const STAGE_LAYOUT = "exit" as const;
 
+/**
+ * Every tile's radial map opens its bracket at the frame's magnification —
+ * § 6cu. Unseeded, the bracket probed the chief ray at |M| times the height a
+ * tile needs and lost it there: the DIN 4×/0.10 refused every tile past 1.8 mm
+ * of its 2.25 mm field, and the infinity 10×/0.10 past 0.21 mm of its 0.90.
+ */
+const STAGE_SEED = "magnification" as const;
+
 function optionsOf(request: StageRequest): MosaicOptions {
   return {
     tiles: 1,
@@ -186,6 +195,7 @@ function spectralOptionsOf(request: StageRequest): SpectralMosaicOptions {
     guardCells: request.guardCells,
     samples: lampSamples(request.lamp, request.wavelengths),
     layout: STAGE_LAYOUT,
+    radialMapSeed: STAGE_SEED,
   };
 }
 
@@ -471,7 +481,7 @@ export function renderStageTile(request: StageTileRequest): StageTileResult {
       // rather than a three-plane stack that happens to look grey.
       atWavelength(specimenOf(request.specimen).specimen, LAMBDA_NM),
       source,
-      { ...options, patches: 1, radialMapNodes: RADIAL_MAP_NODES },
+      { ...options, patches: 1, radialMapNodes: RADIAL_MAP_NODES, radialMapSeed: STAGE_SEED },
       tile,
     );
     return {

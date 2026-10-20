@@ -422,14 +422,47 @@ export function objectHeightForImageRadius(
   let hi = m > 0 ? radiusMm / m : radiusMm;
   if (!(hi > 0) || !Number.isFinite(hi)) hi = radiusMm;
   let grown = 0;
-  while (radiusAt(hi) < radiusMm && grown < 60) {
-    hi *= 2;
+  // A dead FIRST probe throws here, as it always has: that is the unseeded
+  // refusal § 6bk names, and the seed is its cure.
+  let reached = radiusAt(hi);
+  while (reached < radiusMm && grown < 60) {
+    const doubled = hi * 2;
+    try {
+      reached = radiusAt(doubled);
+      hi = doubled;
+    } catch (lost) {
+      // § 6cu.5: the doubling stepped past where the chief ray survives while
+      // the radius is still inside it — the oil 100×'s seeded bracket opens
+      // just short of its field edge and doubles to 2r/|M|, past the 1.5r/|M|
+      // its chief ray reaches. Back off: bisect between the last traced height
+      // and the dead one for a traced height that reaches the radius, and throw
+      // the doubling's own error only if none does. A doubling that traces
+      // takes exactly the steps it always took, so returns the same float.
+      let below = hi;
+      let dead = doubled;
+      let found = false;
+      for (let i = 0; i < 60 && !found; i++) {
+        const mid = (below + dead) / 2;
+        if (mid === below || mid === dead) break;
+        try {
+          const r = radiusAt(mid);
+          if (r >= radiusMm) {
+            hi = mid;
+            reached = r;
+            found = true;
+          } else below = mid;
+        } catch {
+          dead = mid;
+        }
+      }
+      if (!found) throw lost;
+    }
     grown++;
   }
-  if (radiusAt(hi) < radiusMm) {
+  if (reached < radiusMm) {
     throw new Error(
       `objectHeightForImageRadius: no object height reaches image radius ${radiusMm} mm ` +
-        `(the traced chief ray tops out at ${radiusAt(hi)} mm by object height ${hi} mm)`,
+        `(the traced chief ray tops out at ${reached} mm by object height ${hi} mm)`,
     );
   }
 

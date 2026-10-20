@@ -10,7 +10,7 @@ import {
   type ObjectFieldFrame,
 } from "./object-field";
 import { rasterizeSpecimen, type Specimen } from "./specimen";
-import { radialMapCovering, type RadialMap } from "./radial-map";
+import { radialMapCovering, type RadialMap, type RadialMapSeed } from "./radial-map";
 
 /**
  * The mosaic — § 6h.2's closed form taken to its conclusion.
@@ -417,6 +417,18 @@ export interface RenderMosaicOptions {
    * every rung pinning the map runs on.
    */
   readonly radialMapNodes?: number;
+  /**
+   * Open the radial map's bracket at the frame's traced magnification —
+   * `radial-map.ts`'s `RadialMapSeed`, § 6cu.
+   *
+   * Unseeded, the bracket opens at the image radius, |M| object heights out, and
+   * the chief ray is lost there long before the tile is: the DIN 4×/0.10 refused
+   * every tile past 1.8 mm of its 2.25 mm field, the infinity 10×/0.10 past
+   * 0.21 mm of its 0.90. `"none"` stays the default for § 6bf.6's reason — a
+   * seeded table differs in the mantissa, and the mosaic rungs are pinned on the
+   * unseeded path. A table passed in as `radialMap` is used as given.
+   */
+  readonly radialMapSeed?: RadialMapSeed;
 }
 
 export interface MosaicTileImage {
@@ -467,6 +479,9 @@ export function renderMosaicTile(
       : radialMapCovering(system, [frame], {
           nodes: options.radialMapNodes,
           ...(options.aim === undefined ? {} : { aim: options.aim }),
+          ...(options.radialMapSeed === "magnification"
+            ? { magnification: frame.magnification }
+            : {}),
         }));
   const rasterOptions = {
     ...(options.aim === undefined ? {} : { aim: options.aim }),
@@ -553,6 +568,11 @@ export function renderMosaic(
           {
             nodes: options.radialMapNodes,
             ...(options.aim === undefined ? {} : { aim: options.aim }),
+            // A seed opens the bracket and chooses nothing else (§ 6m.2), so
+            // the first tile's magnification serves the whole table.
+            ...(options.radialMapSeed === "magnification"
+              ? { magnification: layout.tiles[0]!.frame.magnification }
+              : {}),
           },
         ));
   const tileOptions = shared === undefined ? options : { ...options, radialMap: shared };

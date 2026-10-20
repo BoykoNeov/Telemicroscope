@@ -1049,6 +1049,26 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     and say nothing about the presets as they ship. *What would close it:* each
     chain re-measured on real aiming, one at a time — its own hypothesis and
     threshold restated — the way item 24 flipped the layout chain by chain.
+49. **The oil 100×/1.25's stage tile at its field edge runs off the frequency
+    grid.** Found at [§ 6cu](VALIDATION.md#step-6cu--the-seed-reaches-the-brightfield-mosaic-and-the-lookup-stops-limiting-the-stage). At the stage's sampling (pupilSamples 32, grid 64)
+    the tile at 0.091 mm along x has its pupil shifted to (1.079, −0.156), off
+    the 64-bin grid, and `abbeImage` refuses it; the stage reaches 0.085 mm of
+    the 0.090 mm field, and the diagonal edge renders. *What would close it:* the
+    edge tile at a grid that holds the shift (the refusal asks for 69 bins, so
+    128), and a measured cost for offering it there.
+50. **The oil 100×/1.40's rim outline does not converge past 0.071 mm.** Found
+    at [§ 6cu](VALIDATION.md#step-6cu--the-seed-reaches-the-brightfield-mosaic-and-the-lookup-stops-limiting-the-stage). From col 15 on, along x and on the diagonal, the stage's tile
+    is refused with "a stop arc did not converge at 129 nodes — a corner inside
+    it no rim ray saw" (§ 2y's arcs). The chief ray traces to 0.158 mm, so it is
+    not the lens's field. *What would close it:* the arc read at that field
+    point: which edge changes inside it, and whether it is item 45's unseen cut.
+51. **The stage on real aiming costs 4.4× a monochrome tile.** Measured at APP.md
+    D4, [*the stage on real aiming*](APP.md#the-stage-on-real-aiming): seams,
+    verdicts and tile order hold, but a warm monochrome tile goes 73 → 320 ms
+    (colour 1.2×), about a third of it the per-tile radial map's real-aimed
+    chief rays. The stage stays on the paraxial aim by name. *What would close
+    it:* a cheaper real-aimed tile (one radial map per worker rather than per
+    tile is the first candidate), or the author accepting the cost.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;
