@@ -3755,9 +3755,11 @@ recording them:
    chain took the located rim with it, at 3.8× a tile (§ 2r.1). ~~**Open:** the
    stage on the exit layout and the located rim — a measured cost per tile
    against the ~45 ms above, and the goldens re-recorded with the cause.~~
-   **Done, and without the located rim**: see *the stage on the exit layout*
-   below. The seam figure was the fluorescence mosaic's, and brightfield's did
-   not double.
+   **Done, and without the located rim**: see [the stage on the exit
+   layout](#the-stage-on-the-exit-layout) below. The seam figure was the
+   fluorescence mosaic's. On brightfield the clear field's tile-to-tile step does
+   double off axis, but to 2e-6, about 3e-4 of a grey level, and the seam error
+   against a centred tile stays at the aim layout's.
 5. **It stays on the paraxial aim, by name** ([§ 2z](VALIDATION.md#step-2z--real-aiming-for-the-finite-presets)). When every finite
    preset went to real aiming, the aim layout stayed the paraxial aim's: its
    direction map is that aim's affine map, and it refuses a real-aiming system
@@ -3766,9 +3768,10 @@ recording them:
    tiles, the guard bound and the goldens are unchanged. **Open:** the stage on
    real aiming. It needed the exit layout first (point 4), which it now has.
 
-#### The stage on the exit layout — the hypothesis, written before the reading
+#### The stage on the exit layout
 
-Point 4's seam figure is borrowed. 1.34e-2 against 6.7e-3 is § 6bi.2's,
+The hypothesis below was committed (7d6ad4e) before the reading under it was
+taken. Point 4's seam figure is borrowed. 1.34e-2 against 6.7e-3 is § 6bi.2's,
 the **fluorescence** mosaic, where a tile's light is an incoherent sum over a
 point-sampled rim. The stage is brightfield. Its clear field passes only the
 condenser's own directions, which sit inside the rim at S = 0.5, and only the
@@ -3815,8 +3818,12 @@ the edge, on both layouts), so what this guard leaves is the tile's own error
 and not a step. The last seam is the farthest one that renders: from about
 1.8 mm out, the radial map's chief ray is vignetted and the stage refuses the
 tile on **both** layouts, which it already did. A clear field's tile-to-tile
-step does double, 1.06e-6 → 2.00e-6 at the edge, but that is 3e-4 of one grey
-level.
+step does double off axis (5.0e-7 → 1.09e-6 at 1 mm along x, 3.6e-7 → 7.9e-7 on
+the diagonal, 1.06e-6 → 2.00e-6 at the edge). That is the fluorescence chain's
+mechanism, arriving here at 2e-6 rather than 1e-2: about 3e-4 of one grey level.
+So the reason no located rim is needed is the step's size, not that it held
+still. The seam error against a centred tile is no witness to a step this small:
+at guard 4 it sits on the tile's own floor.
 
 Cost, as the median of eight warm tiles, two runs, alternating the layouts:
 monochrome 42.1 → 41.9 ms and 65.1 → 61.0 ms (0.99×, 0.94×), colour 645 →

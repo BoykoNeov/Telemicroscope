@@ -23,7 +23,8 @@ import {
  * microscope rather than an experiment.
  *
  * Every other microscope panel shows one frame, which § 6h.2 says spans
- * `pupilSamples` resolution cells and no more: 93.5 µm at 4×/0.10, 2.6 µm at
+ * `pupilSamples` resolution cells and no more: 93.5 µm at 4×/0.10 (94.1 on the
+ * exit layout's traced ruler, which this panel is on), 2.6 µm at
  * 100×/1.40, and raising the grid cannot widen it. This one pans across a
  * specimen that is larger than a frame, by tiling — § 6m put a tile off axis,
  * § 6n warped its grid so two tiles agree about where the specimen is, § 6o

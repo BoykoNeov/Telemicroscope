@@ -4394,7 +4394,8 @@ mirrors' rulers missing their closed forms by more than 1e-12.
   such reader, the spot panel's fidelity share, does sit beside a PSF and now
   reads through `laidPupil`. Readings that moved inside their tolerances were
   not audited.
-- **The finite chains are still on the aim layout** — the mosaic, seam and stage
+- **The finite chains are still on the aim layout** — the mosaic, seam and
+  ~~stage~~ (on the exit layout at [APP.md D4](APP.md#the-stage-on-the-exit-layout))
   chains, ~~the telecentric scene~~ (brightfield, flipped at [§ 2n](#step-2n--brightfield-on-the-exit-layout-a-direction-at-its-optical-sine)),
   `aperture-and-field`: register item 24, the seam chain last.
 
@@ -5580,8 +5581,9 @@ name when it is that layout's own ruler (§ 2r.3 and the table above).
 - ~~**The exit layout's fit drops the off-axis rim** (item 42, § 2s.3).~~ Closed at
   [§ 2t](#step-2t--the-exit-layouts-fit-keeps-the-traced-rim).
 - ~~**The app's stage** stays on the aim layout until the located rim is costed
-  for it (APP.md D4).~~ It took the exit layout with no located rim, at APP.md
-  D4's *the stage on the exit layout*: the brightfield seam did not double.
+  for it (APP.md D4).~~ It took the exit layout with no located rim, at [APP.md
+  D4](APP.md#the-stage-on-the-exit-layout): its clear-field step doubles off axis,
+  but to 2e-6, about 3e-4 of a grey level.
 
 ## Step 2t — the exit layout's fit keeps the traced rim
 

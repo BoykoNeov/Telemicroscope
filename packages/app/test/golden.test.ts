@@ -144,7 +144,8 @@ function checkGolden(name: string, composed: Composed): void {
  * magnified. Across the 2×2 block the same cells then land up to about half a
  * pixel away, which is where the monochrome frame's max Δ of 16/255 (mean 1.9)
  * sits: on the cells' sharp edges. Tile (1,1)'s mean intensity moves 0.70846 →
- * 0.70899, and a clear field 0.90321 → 0.90263 (the field's own cos θ, § 2n).
+ * 0.70899, and a clear field 0.90321 → 0.90263: −6.52e-4, the field's own cos θ
+ * (§ 2n), whose mean over the condenser's 208 directions is −6.46e-4.
  * The colour frame moved by at most 7/255. The cells, their placement and the
  * seams look the same, and both verdicts are unchanged.
  */
@@ -172,7 +173,9 @@ describe("the stage's picture (regression, NOT validation)", () => {
     // more than pinning a prettier one at settings nobody selects, and the
     // assertion is what stops the golden quietly becoming a record of a
     // different regime. (Honest costs `pupilSamples` 64 at grid 128: measured
-    // 1.9 s a tile against 0.14 s here, for a picture no default reaches.)
+    // 1.9 s a tile against 0.14 s here, for a picture no default reaches. Both
+    // were the aim layout's; this test's four exit-layout tiles took 1.7 s in
+    // all on 2026-10-20, so ~0.4 s a tile — the 0.14 s is stale.)
     const composed = compose({ wavelengths: 3 });
     for (const tile of composed.tiles) expect(tile.verdict).toBe("no-honest-image");
     checkGolden("stage-section-colour", composed);

@@ -34,8 +34,8 @@ import { specimenOf, type SpecimenKind } from "./specimens";
  *
  * Every other microscope panel forms ONE frame, and § 6h.2's closed form says
  * that frame spans `pupilSamples` resolution cells whatever the grid does — 93.5
- * µm at 4×/0.10 and 2.6 µm at 100×/1.40, a detail crop that raising the grid
- * cannot widen. A field of view is therefore reached by **tiling**, which is
+ * µm at 4×/0.10 (94.1 on the exit layout's traced ruler) and 2.6 µm at
+ * 100×/1.40, a detail crop that raising the grid cannot widen. A field of view is therefore reached by **tiling**, which is
  * § 6m–§ 6p, and this is the surface those four steps were built for.
  *
  * ## A tile's identity is its index, not the viewport
@@ -159,10 +159,11 @@ function systemFor(spec: BuildSpec): OpticalSystem {
  * reason for holding it back was the fluorescence mosaic's: there the
  * point-sampled rim's error stops cancelling between tiles and the seam step
  * doubles (1.34e-2 against 6.7e-3). A brightfield tile's clear field passes only
- * the condenser's directions, inside the rim at S = 0.5, and measured on this
- * panel's own request the seam error against a tile centred on the seam is 0.88–
- * 1.06× the aim layout's at four seams out to 1.54 mm. A warm tile costs 0.94–
- * 0.99× in monochrome and 1.29–1.31× in colour.
+ * the condenser's directions, inside the rim at S = 0.5. Measured on this
+ * panel's own request, its tile-to-tile step does double off axis, but to 2e-6,
+ * about 3e-4 of a grey level, and the seam error against a tile centred on the
+ * seam is 0.88–1.06× the aim layout's at four seams out to 1.54 mm. A warm tile
+ * costs 0.94–0.99× in monochrome and 1.29–1.31× in colour.
  */
 const STAGE_LAYOUT = "exit" as const;
 

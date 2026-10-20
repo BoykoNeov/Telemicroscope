@@ -598,7 +598,7 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     table, whose oil rows' cells gap was the aim ruler. **Item 24's residue:**
     the chains named in § 2s's *What it leaves* stay on the aim layout by name
     and are not flipped (~~and the app's stage with them~~ — the stage took the
-    exit layout at APP.md D4, *the stage on the exit layout*); ~~item 42 is
+    exit layout at [APP.md D4](APP.md#the-stage-on-the-exit-layout)); ~~item 42 is
     the exit layout's own~~ — closed at [§ 2t](VALIDATION.md#step-2t--the-exit-layouts-fit-keeps-the-traced-rim).
     Readings that moved INSIDE their tolerances under § 2m were not audited
     (§ 2j's follow-up did that for its own flip); one met while editing was the
