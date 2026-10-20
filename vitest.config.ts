@@ -1,8 +1,15 @@
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
+import { HEAVY } from "./vitest.heavy";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   test: {
     include: ["packages/*/test/**/*.test.ts"],
+    /**
+     * Two tiers (2026-10-20). `npm test` is the fast tier, every file outside
+     * `vitest.heavy.ts`; `npm run test:full` passes `--mode full` and runs them
+     * all. The list and the reason for its cut live in that file.
+     */
+    exclude: mode === "full" ? configDefaults.exclude : [...configDefaults.exclude, ...HEAVY],
     /**
      * Drops each worker to below-normal OS priority so a full run leaves the
      * machine usable. The reasoning for doing it per worker rather than once in
@@ -78,4 +85,4 @@ export default defineConfig({
      */
     testTimeout: 600_000,
   },
-});
+}));

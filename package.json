@@ -11,6 +11,7 @@
   ],
   "scripts": {
     "test": "vitest run",
+    "test:full": "vitest run --mode full",
     "test:watch": "vitest",
     "test:ports": "node scripts/port-guard.test.mjs",
     "typecheck": "tsc --noEmit -p packages/core && tsc --noEmit -p packages/core/tsconfig.test.json && tsc --noEmit -p packages/app && tsc --noEmit -p packages/app/tsconfig.test.json",

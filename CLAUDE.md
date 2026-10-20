@@ -71,13 +71,19 @@ project's server is not.
 ## Repo etiquette
 
 - Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `chore:`).
-- Every commit must typecheck and pass `npm test` on its own — no "fix tests
-  in the next commit".
+- Every commit must typecheck and pass `npm test` (the fast tier) on its own —
+  no "fix tests in the next commit". The full suite, `npm run test:full`, must
+  pass before every push.
 - Commit in stages that match a roadmap step, not one dump per session.
 
 ## Commands
 
-- `npm test` — vitest physics suite (must stay green)
+- `npm test` — the fast tier of the vitest physics suite (must stay green):
+  every test file except those listed in `vitest.heavy.ts`
+- `npm run test:full` — the whole suite, heavy tier included. Run one heavy file
+  by name with `--mode full`, or vitest reports "No test files found". A file
+  moves between tiers only on a re-measured full run; the cut and its date are
+  in `vitest.heavy.ts`.
 - `npm run typecheck` — strict tsc, no emit
 - `npm run test:ports` — port-guard ownership tests; spawns processes and binds
   real ports, so it is deliberately outside `npm test`. Run it after touching

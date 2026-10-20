@@ -58,7 +58,8 @@ start.cmd              launch the dev server via the port guard
 
 ```
 npm install        # once
-npm test           # run the validation/test suite (vitest)
+npm test           # the fast tier of the validation/test suite (vitest)
+npm run test:full  # the whole suite, heavy tier included (vitest.heavy.ts)
 npm run typecheck  # strict TypeScript check
 npm run test:ports # port-guard ownership tests (spawns processes, binds ports)
 ```
