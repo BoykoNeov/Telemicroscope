@@ -3752,18 +3752,19 @@ recording them:
    on the exit layout a tile's outline changes with field, the point-sampled
    rim's error stops cancelling at the seams, and § 2r's trial measured the
    brightness step there doubling (1.34e-2 against 6.7e-3). The engine's mosaic
-   chain took the located rim with it, at 3.8× a tile (§ 2r.1). **Open:** the
+   chain took the located rim with it, at 3.8× a tile (§ 2r.1). ~~**Open:** the
    stage on the exit layout and the located rim — a measured cost per tile
-   against the ~45 ms above, and the goldens re-recorded with the cause. Until
-   then `STAGE_LAYOUT` in `stage.ts` says `"aim"`, and the pictures are
-   unchanged.
+   against the ~45 ms above, and the goldens re-recorded with the cause.~~
+   **Done, and without the located rim**: see *the stage on the exit layout*
+   below. The seam figure was the fluorescence mosaic's, and brightfield's did
+   not double.
 5. **It stays on the paraxial aim, by name** ([§ 2z](VALIDATION.md#step-2z--real-aiming-for-the-finite-presets)). When every finite
    preset went to real aiming, the aim layout stayed the paraxial aim's: its
    direction map is that aim's affine map, and it refuses a real-aiming system
    (§ 2z.7). The stage builds its microscope with `rayAiming: "paraxial"`, and its
    stop follows its aim — the paraxially sized one, not the real ray's — so the
    tiles, the guard bound and the goldens are unchanged. **Open:** the stage on
-   real aiming, which needs the exit layout first (point 4).
+   real aiming. It needed the exit layout first (point 4), which it now has.
 
 #### The stage on the exit layout — the hypothesis, written before the reading
 
@@ -3798,6 +3799,36 @@ fluorescence chain's doubling, arriving on brightfield). That would make the
 located rim an engine step on the brightfield path, ahead of this flip. Also
 refuted by a warm tile above 2× the aim layout's cost, or by either verdict
 flipping.
+
+**The reading: it holds on every count.** The seam error, aim against exit, as
+a fraction of the centred tile's peak:
+
+| Seam | Object (mm) | aim | exit | exit / aim |
+|---|---|---|---|---|
+| axis | 0, 0 | 6.43e-3 | 6.12e-3 | 0.95 |
+| along x | 0.98, 0 | 1.57e-2 | 1.40e-2 | 0.89 |
+| diagonal | 0.70, 0.70 | 1.29e-2 | 1.14e-2 | 0.88 |
+| field edge | 1.54, 0 | 3.83e-2 | 4.08e-2 | 1.06 |
+
+The pixels four columns from the seam are off by as much (2.7e-2 to 3.0e-2 at
+the edge, on both layouts), so what this guard leaves is the tile's own error
+and not a step. The last seam is the farthest one that renders: from about
+1.8 mm out, the radial map's chief ray is vignetted and the stage refuses the
+tile on **both** layouts, which it already did. A clear field's tile-to-tile
+step does double, 1.06e-6 → 2.00e-6 at the edge, but that is 3e-4 of one grey
+level.
+
+Cost, as the median of eight warm tiles, two runs, alternating the layouts:
+monochrome 42.1 → 41.9 ms and 65.1 → 61.0 ms (0.99×, 0.94×), colour 645 →
+848 ms and 675 → 869 ms (1.31×, 1.29×). The colour tiles here cost several
+times the 0.14 s the golden file quotes. Both layouts were timed the same way,
+so the ratio stands, but the absolute figure is this probe's and not the panel's.
+
+Every tile in the probe and in the golden block reads the verdict it read
+before. What did move is the ruler: the exit layout reads it off the traced
+aperture sine, so a pixel is 1470.67 nm of object, not 1461.54. The picture is
+0.62% less magnified, and the goldens moved by up to 16/255 at the cells'
+edges. `golden.test.ts` records why. `STAGE_LAYOUT` says `"exit"`.
 
 The original scope follows, unchanged.
 

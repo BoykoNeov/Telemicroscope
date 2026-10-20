@@ -135,6 +135,18 @@ function checkGolden(name: string, composed: Composed): void {
  * change in what is drawn where. The verdicts either side of it are unchanged
  * and are still asserted below, which is the part that says the regime is the
  * same one.
+ *
+ * ## And again when the stage took the exit layout (APP.md D4)
+ *
+ * The exit layout reads its ruler off the traced aperture sine, not the paraxial
+ * reference sphere (§ 2r.2's "each lens reads its own ruler"). On the DIN 4×/0.10
+ * that makes a pixel 1470.67 nm of object, not 1461.54: the picture is 0.62% less
+ * magnified. Across the 2×2 block the same cells then land up to about half a
+ * pixel away, which is where the monochrome frame's max Δ of 16/255 (mean 1.9)
+ * sits: on the cells' sharp edges. Tile (1,1)'s mean intensity moves 0.70846 →
+ * 0.70899, and a clear field 0.90321 → 0.90263 (the field's own cos θ, § 2n).
+ * The colour frame moved by at most 7/255. The cells, their placement and the
+ * seams look the same, and both verdicts are unchanged.
  */
 describe("the stage's picture (regression, NOT validation)", () => {
   it("the monochrome stage has not changed", () => {

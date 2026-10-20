@@ -141,12 +141,12 @@ function systemFor(spec: BuildSpec): OpticalSystem {
   const key = specKey(spec);
   const hit = SYSTEMS.get(key);
   if (hit) return hit;
-  // Aimed paraxially, though the preset aims real (§ 2z): the stage is on the
-  // aim layout (below), whose condenser directions go through the paraxial aim's
-  // affine map, and the engine refuses that layout under real aiming. The stop
-  // follows the aim (§ 2z.5) — the paraxial radius, where this aim's cone is the
-  // engraved NA — so the stage is the instrument it was. It takes real aiming
-  // when it takes the exit layout, the same open move.
+  // Aimed paraxially, though the preset aims real (§ 2z). The stage was on the
+  // aim layout, whose condenser directions go through the paraxial aim's affine
+  // map, and the engine refuses that layout under real aiming. The stop follows
+  // the aim (§ 2z.5): the paraxial radius, where this aim's cone is the engraved
+  // NA. The stage is on the exit layout now (below), so real aiming is open to it;
+  // it is a separate move, with its own picture change, and APP.md D4 holds it.
   const system = buildMicroscope(spec, { rayAiming: "paraxial" }).system;
   SYSTEMS.set(key, system);
   return system;
@@ -155,15 +155,16 @@ function systemFor(spec: BuildSpec): OpticalSystem {
 /**
  * The stage's pupil layout, named rather than defaulted — § 2s.
  *
- * The aim layout, which is what the stage has drawn since § A10 and what its
- * goldens pin. A mosaic does not move to the exit layout on the layout alone:
- * there a tile's outline changes shape with field, the point-sampled rim's error
- * stops cancelling between tiles, and § 2r's trial measured the brightness step
- * at a seam doubling (1.34e-2 against 6.7e-3). The engine's mosaic chain took
- * the located rim with it at § 2r.2, at 3.8× a tile; the stage has not been
- * costed for that, and APP.md records it as open.
+ * The exit layout, since APP.md D4's *the stage on the exit layout*. § 2r's
+ * reason for holding it back was the fluorescence mosaic's: there the
+ * point-sampled rim's error stops cancelling between tiles and the seam step
+ * doubles (1.34e-2 against 6.7e-3). A brightfield tile's clear field passes only
+ * the condenser's directions, inside the rim at S = 0.5, and measured on this
+ * panel's own request the seam error against a tile centred on the seam is 0.88–
+ * 1.06× the aim layout's at four seams out to 1.54 mm. A warm tile costs 0.94–
+ * 0.99× in monochrome and 1.29–1.31× in colour.
  */
-const STAGE_LAYOUT = "aim" as const;
+const STAGE_LAYOUT = "exit" as const;
 
 function optionsOf(request: StageRequest): MosaicOptions {
   return {

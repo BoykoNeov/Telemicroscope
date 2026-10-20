@@ -208,8 +208,9 @@ export interface BuildOptions {
   /**
    * How the instrument aims, and so how its stop is sized (§ 2z.5): real by
    * default, where the stop delivers the engraved NA along a real marginal ray;
-   * paraxial for the stage, whose aim layout places condenser directions
-   * through the paraxial aim's map and so keeps the paraxial stop.
+   * paraxial for the stage, which was on the aim layout (condenser directions
+   * through the paraxial aim's map) and keeps the paraxial stop until it is
+   * moved to real aiming on its own (APP.md D4).
    */
   readonly rayAiming?: RayAiming;
 }

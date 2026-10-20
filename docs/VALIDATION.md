@@ -5579,8 +5579,9 @@ name when it is that layout's own ruler (§ 2r.3 and the table above).
   exit layout's ruler, where several of its readings are 0 or ∞.
 - ~~**The exit layout's fit drops the off-axis rim** (item 42, § 2s.3).~~ Closed at
   [§ 2t](#step-2t--the-exit-layouts-fit-keeps-the-traced-rim).
-- **The app's stage** stays on the aim layout until the located rim is costed
-  for it (APP.md D4).
+- ~~**The app's stage** stays on the aim layout until the located rim is costed
+  for it (APP.md D4).~~ It took the exit layout with no located rim, at APP.md
+  D4's *the stage on the exit layout*: the brightfield seam did not double.
 
 ## Step 2t — the exit layout's fit keeps the traced rim
 
