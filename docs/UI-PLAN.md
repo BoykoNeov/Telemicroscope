@@ -1285,8 +1285,8 @@ was in the wrong place.
 4. The picture and its plot, with their readouts.
 5. `<div className="notes-group">` holding `<Notes title="…">` folds (`ui.tsx`)
    — the long explanation, **word for word**, grouped under titles that say
-   what each fold answers. Closed by default. Children render while closed, so a
-   note quoting a live number is current when opened.
+   what each fold answers. **Open by default**; a reader can fold any one shut.
+   Children render while closed, so a note quoting a live number stays current.
 
 **What landed.**
 
@@ -1295,7 +1295,7 @@ was in the wrong place.
   and the keyboard focus ring.
 - `styles.css`: `.lead`, `.controls`, `.controls-advanced`, `.notes*`,
   `button.choice-option`.
-- `panels/brightfield.tsx` (2 396 px → 1 405 px tall; picture at 530 px),
+- `panels/brightfield.tsx` (the picture moved from 1 480 px down to 530 px),
   `panels/telescope.tsx`, and the start page.
 - **The start page** leads with three illustrated cards, one per guided path
   (`panels/home-art.tsx` — schematics in the microscope diagram's own classes,
@@ -1318,10 +1318,11 @@ star page's "This paragraph used to end …" was a correction notice addressed t
 the document's own history. Its three measurements are kept, in a fold titled
 *Which way the comet tails point, and how we know*.
 
-**Decided: folded shut, not merely moved below.** The alternative — notes open
-under the picture — keeps the page as long as it was. If that is ever wanted,
-it is one line: pass `open` in `Notes`' `<details>` by default. Do not make it
-per-page.
+**Decided by the author (2026-11-13): the notes are open.** The step first
+landed with them folded shut, which made brightfield 1 405 px tall; asked, the
+author chose open. So the gain is the ORDER — lead, controls, picture, then the
+notebook under titled headings a reader can fold — not a shorter page. It is one
+default in `Notes` (`open ?? true`); do not set it per page.
 
 ## Step 12 — the page shape on the other 29 panels (plan — not started)
 

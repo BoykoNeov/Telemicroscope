@@ -96,19 +96,21 @@ export function Toggles<T extends string>(props: {
  *
  * A panel opens with its title and ONE short paragraph in plain words, then the
  * controls and the picture, and only then the long explanation — inside one or
- * more of these. `Notes` is a native `<details>`: closed by default, opened by
- * a click or by the keyboard, and findable by the browser's own page search
- * (Chrome opens a closed `<details>` when a search hits text inside it).
+ * more of these. `Notes` is a native `<details>`: **open by default** (the
+ * author's decision, 2026-11-13 — the notes are to be read, and the shape's
+ * gain is their position under the picture, not hiding them), and a reader can
+ * fold any one shut with a click or the keyboard. Pass `open={false}` for a
+ * note that should start folded.
  *
  * Nothing is deleted by moving it in here. The engineering notes — what was
  * measured, what a guard means, why a control exists — are the app's teaching
  * layer and stay word for word; what changes is that a first-time reader meets
  * the experiment before the lab notebook. Children render even while closed,
- * so a note that quotes a live number is current the moment it is opened.
+ * so a note that quotes a live number is current the moment it is reopened.
  */
 export function Notes(props: { title: string; children: React.ReactNode; open?: boolean }) {
   return (
-    <details className="notes" open={props.open}>
+    <details className="notes" open={props.open ?? true}>
       <summary>{props.title}</summary>
       <div className="notes-body">{props.children}</div>
     </details>

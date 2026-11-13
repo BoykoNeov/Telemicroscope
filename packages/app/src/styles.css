@@ -415,9 +415,9 @@ button.choice-option[aria-pressed="true"]:hover {
 }
 
 /*
- * `Notes` (`ui.tsx`): the long explanation, folded under the experiment —
- * UI-PLAN step 11. A quiet rule and a mono caption when closed, so a page with
- * four of them reads as a short table of contents rather than as four boxes.
+ * `Notes` (`ui.tsx`): the long explanation, under the experiment — UI-PLAN
+ * step 11. Open by default; each has a titled summary line a reader can fold,
+ * so a page with four of them reads as four headed sections, not four boxes.
  */
 .notes {
   max-width: 760px;

@@ -42,7 +42,7 @@ are all on screen. Step 8 opened with the photon zero point and shot noise
 There is a working UI in `packages/app`: a start page with three guided paths,
 and one page per subject. The pages are moving to a *picture first* shape —
 a short plain lead, the controls and the picture, and the engineering notes
-folded underneath (`docs/UI-PLAN.md` step 11; steps 12–15 are the queue).
+underneath (`docs/UI-PLAN.md` step 11; steps 12–15 are the queue).
 
 ## Layout
 
