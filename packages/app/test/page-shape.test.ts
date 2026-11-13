@@ -49,7 +49,6 @@ const NOT_YET = new Set([
   "mtf.tsx",
   "optimize.tsx",
   "phase.tsx",
-  "rayfan.tsx",
   "reflector.tsx",
   "section.tsx",
   "seeing.tsx",
@@ -101,7 +100,7 @@ describe("the page shape (UI-PLAN step 11)", () => {
         expect(converted, `${name} is converted: delete it from NOT_YET in this file`).toBe(false);
       });
     } else {
-      it(`${name} opens on a lead, then the experiment, with its notes folded`, () => {
+      it(`${name} opens on a lead, then the experiment, with its notes beneath`, () => {
         const s = shape(source(name));
         expect(s.lead, "a <p className=\"lead\"> directly under the first <h1>").toBe(true);
         expect(s.notes, "at least one <Notes> fold").toBe(true);

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Plot, type PlotSeries } from "../plot";
 import { rayFan, FAN_LINES } from "../rayfan";
-import { Choice, Fact, Guard, Slider, thresholdLevel } from "../ui";
+import { Choice, Fact, Guard, Notes, Slider, thresholdLevel } from "../ui";
 import { linkHref } from "../teaching";
 import type { LensKind } from "../render";
 import type { PanelProps } from "./registry";
@@ -93,6 +93,12 @@ export function RayFanPanel({ link, linkBroken }: PanelProps) {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>Where each ray in the pupil lands</h1>
+      <p className="lead">
+        Each curve follows one colour of light through the lens. Across: where a ray enters the
+        lens, from one edge (−1) through the centre to the other (+1). Up: how far it lands from
+        the central ray. Set the field to zero, then slide it out &mdash; when both edges miss to
+        the same side, the star becomes a comet.
+      </p>
       {linkBroken && (
         <p className="readout" style={{ color: "var(--bad)" }}>
           The link that opened this page did not decode, so these are the panel&rsquo;s own
@@ -100,23 +106,8 @@ export function RayFanPanel({ link, linkBroken }: PanelProps) {
           field yourself, or go back and click the artifact again.
         </p>
       )}
-      <p className="prose">
-        A ray fan is the one picture in this app where an aberration is laid out against the thing
-        that <em>causes</em> it — position in the pupil — instead of summed over the pupil the way a
-        spot, a PSF or an image is. Each curve is one wavelength: the horizontal axis is where the
-        ray entered the pupil, from one rim (−1) through the centre to the other (+1), and the
-        vertical axis is how far it missed the chief ray at the image plane.
-      </p>
-      <p className="prose">
-        Read it by symmetry. <strong>Defocus</strong> is a straight line. <strong>Spherical
-        aberration</strong> is a cubic and it is <em>odd</em> — the ray from +ρ and the ray from −ρ
-        miss by the same amount in opposite directions, so they still straddle a centre.{" "}
-        <strong>Coma is the even half</strong>: both rim rays miss on the <em>same</em> side, and
-        half a pupil&rsquo;s worth of light piled to one side of the chief ray is not a disc, it is
-        a comet. That is the flare in the star field, and this is the number under it.
-      </p>
 
-      <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 16 }}>
+      <div className="controls">
         <Choice label="lens" options={["singlet", "achromat"] as const} value={lens} onChange={setLens} />
         <Slider
           label={`aperture ${aperture.toFixed(0)} mm (f/${(focalLengthMm / aperture).toFixed(1)})`}
@@ -130,12 +121,17 @@ export function RayFanPanel({ link, linkBroken }: PanelProps) {
           value={fieldDeg}
           onChange={setFieldDeg}
         />
-        <Choice
-          label="rays across the pupil"
-          options={RAY_COUNTS}
-          value={rays}
-          onChange={setRays}
-        />
+        <details className="controls-advanced">
+          <summary>simulation settings — how many rays are traced</summary>
+          <div className="controls-advanced-body">
+            <Choice
+              label="rays across the pupil"
+              options={RAY_COUNTS}
+              value={rays}
+              onChange={setRays}
+            />
+          </div>
+        </details>
       </div>
 
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
@@ -214,45 +210,6 @@ export function RayFanPanel({ link, linkBroken }: PanelProps) {
         <Fact label="traced in" value={`${result.elapsedMs.toFixed(0)} ms`} note="on this thread — see below" />
       </div>
 
-      <h2 style={{ fontSize: 16, marginTop: 32 }}>What the two plots say together</h2>
-      <p className="prose">
-        Put the field slider at zero. The tangential fan becomes an odd curve through the origin and
-        the even number above collapses by eleven orders, to about 1e-13 µm. An axially symmetric
-        lens cannot tell +ρ from −ρ on its own axis, so coma there is not a small quantity, it is an
-        absent one. It is worth knowing why the reading is not the flat zero you would expect from
-        that sentence, because the answer is not about the lens: the pupil sampler spells the pair
-        either side of centre +0.10000000000000009 and −0.09999999999999998, so those two rays are
-        not mirror images but rays at two slightly different heights. Where the sampling{" "}
-        <em>is</em> exact — the rim pair, ±1 — the cancellation is bitwise. What is left in the curve is the odd
-        cubic: spherical aberration, 0.66 µm on the achromat at f/10 against an Airy radius of 7.17.
-      </p>
-      <p className="prose">
-        Now walk the field out. The even half appears and grows in proportion to the field angle —
-        7.67 µm at 1.13° on the achromat at f/10, which is 1.07 Airy radii and therefore a comet you
-        can see rather than a coefficient. The <strong>sagittal</strong> fan stays even-free at every
-        field — the same floor, at every field angle rather than only on axis — and that is the other
-        half of the shape: a comatic star is stretched along the direction it sits from the axis and
-        not across it.
-      </p>
-      <p className="prose">
-        The sign is worth reading rather than assuming. On this achromat the even half is{" "}
-        <strong>negative</strong> at the rim, meaning both rim rays land on the side of the chief ray
-        nearer the axis — so the tail points <strong>inward</strong>, toward the middle of the frame.
-        Two independent measurements agree on that and one printed sentence in this app did not; see
-        the star field&rsquo;s own note.
-      </p>
-
-      <p style={{ marginTop: 24, fontSize: 13, color: "var(--ink-3)", maxWidth: 640 }}>
-        No web worker on this route, which every other tracing panel uses. The reason is the elapsed
-        number above: a fan is a few dozen traced rays and lands in{" "}
-        <strong>{result.elapsedMs.toFixed(0)} ms</strong>, where the cost of posting the job to a
-        thread would be a visible share of the work. If that number ever grows, this paragraph is
-        the thing that has stopped being true — <em>in the built app</em>, which is the reading that
-        counts. Under the dev server the first trace on a cold route ran 13.8 seconds against the
-        build&rsquo;s 45 ms, all of it interpreter warm-up on unbundled modules, and reading this
-        justification&rsquo;s own number off a dev page would condemn the decision it supports.
-      </p>
-
       <p style={{ marginTop: 16, fontSize: 13 }}>
         <a href={`#${link?.from ?? "telescope"}`}>← back to the star field this explains</a>
         {" · "}
@@ -273,6 +230,69 @@ export function RayFanPanel({ link, linkBroken }: PanelProps) {
       <p className="readout" style={{ color: "var(--ink-5)", maxWidth: 640 }}>
         wavelengths drawn: {FAN_LINES.map((l) => `${l.name} ${l.nm.toFixed(1)} nm`).join(" · ")}
       </p>
+
+      <div className="notes-group">
+        <p className="notes-group-label">the notes — what was measured, and why each control exists</p>
+        <Notes title="How to read a ray fan">
+          <p className="prose">
+            A ray fan is the one picture in this app where an aberration is laid out against the thing
+            that <em>causes</em> it — position in the pupil — instead of summed over the pupil the way a
+            spot, a PSF or an image is. Each curve is one wavelength: the horizontal axis is where the
+            ray entered the pupil, from one rim (−1) through the centre to the other (+1), and the
+            vertical axis is how far it missed the chief ray at the image plane.
+          </p>
+          <p className="prose">
+            Read it by symmetry. <strong>Defocus</strong> is a straight line. <strong>Spherical
+            aberration</strong> is a cubic and it is <em>odd</em> — the ray from +ρ and the ray from −ρ
+            miss by the same amount in opposite directions, so they still straddle a centre.{" "}
+            <strong>Coma is the even half</strong>: both rim rays miss on the <em>same</em> side, and
+            half a pupil&rsquo;s worth of light piled to one side of the chief ray is not a disc, it is
+            a comet. That is the flare in the star field, and this is the number under it.
+          </p>
+        </Notes>
+        <Notes title="What the two plots say together">
+          <p className="prose">
+            Put the field slider at zero. The tangential fan becomes an odd curve through the origin and
+            the even number above collapses by eleven orders, to about 1e-13 µm. An axially symmetric
+            lens cannot tell +ρ from −ρ on its own axis, so coma there is not a small quantity, it is an
+            absent one. It is worth knowing why the reading is not the flat zero you would expect from
+            that sentence, because the answer is not about the lens: the pupil sampler spells the pair
+            either side of centre +0.10000000000000009 and −0.09999999999999998, so those two rays are
+            not mirror images but rays at two slightly different heights. Where the sampling{" "}
+            <em>is</em> exact — the rim pair, ±1 — the cancellation is bitwise. What is left in the curve is the odd
+            cubic: spherical aberration, 0.66 µm on the achromat at f/10 against an Airy radius of 7.17.
+          </p>
+          <p className="prose">
+            Now walk the field out. The even half appears and grows in proportion to the field angle —
+            7.67 µm at 1.13° on the achromat at f/10, which is 1.07 Airy radii and therefore a comet you
+            can see rather than a coefficient. The <strong>sagittal</strong> fan stays even-free at every
+            field — the same floor, at every field angle rather than only on axis — and that is the other
+            half of the shape: a comatic star is stretched along the direction it sits from the axis and
+            not across it.
+          </p>
+        </Notes>
+        <Notes title="Which way the comet's tail points">
+          <p className="prose">
+            The sign is worth reading rather than assuming. On this achromat the even half is{" "}
+            <strong>negative</strong> at the rim, meaning both rim rays land on the side of the chief ray
+            nearer the axis — so the tail points <strong>inward</strong>, toward the middle of the frame.
+            Two independent measurements agree on that; the star field&rsquo;s note <em>Which way the
+            comet tails point, and how we know</em> gives both, beside this fan&rsquo;s own reading.
+          </p>
+        </Notes>
+        <Notes title="Why this page traces without a web worker">
+          <p className="prose">
+            No web worker on this route, which every other tracing panel uses. The reason is the elapsed
+            number above: a fan is a few dozen traced rays and lands in{" "}
+            <strong>{result.elapsedMs.toFixed(0)} ms</strong>, where the cost of posting the job to a
+            thread would be a visible share of the work. If that number ever grows, this paragraph is
+            the thing that has stopped being true — <em>in the built app</em>, which is the reading that
+            counts. Under the dev server the first trace on a cold route ran 13.8 seconds against the
+            build&rsquo;s 45 ms, all of it interpreter warm-up on unbundled modules, and reading this
+            justification&rsquo;s own number off a dev page would condemn the decision it supports.
+          </p>
+        </Notes>
+      </div>
     </>
   );
 }
