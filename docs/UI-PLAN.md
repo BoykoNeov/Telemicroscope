@@ -1383,7 +1383,9 @@ its `return (…)` first.
 then look at it: start the dev server (`node packages/app/dev-server.mjs` —
 never pick a port by hand), open the route, confirm the picture is visible
 without scrolling at 1400 × 900, open every fold, and confirm the page still
-paints after changing each control once. The canvas harness
+paints after changing each control once.
+`node scripts/canvas-harness/shot.mjs <tag> dark 1400 <route>@full` takes the
+screenshot and prints any console error. The canvas harness
 (`scripts/canvas-harness/sweep.mjs`) can prove the pictures did not change:
 sweep the route before and after and `cmp.mjs` the two — the hashes must match,
 because this step moves text and never touches a request.
