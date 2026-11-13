@@ -117,9 +117,15 @@ function PlotCanvas(props: PlotProps) {
     c.font = `11px ${getComputedStyle(element).getPropertyValue("--mono").trim() || "monospace"}`;
     c.textBaseline = "middle";
 
-    const plotW = width - PAD.left - PAD.right;
+    // The left margin holds the rotated axis title AND the tick labels, and a
+    // fixed 46 px was sized for a two-character tick: "1.75" or "−0.25" ran
+    // under the title. Measure the widest label and make room for it.
+    const yTicks = ticks(props.yMin, props.yMax);
+    const widestTick = Math.max(0, ...yTicks.map((tick) => c.measureText(String(tick)).width));
+    const left = Math.max(PAD.left, Math.ceil(widestTick) + 30);
+    const plotW = width - left - PAD.right;
     const plotH = height - PAD.top - PAD.bottom;
-    const sx = (x: number) => PAD.left + ((x - props.xMin) / (props.xMax - props.xMin)) * plotW;
+    const sx = (x: number) => left + ((x - props.xMin) / (props.xMax - props.xMin)) * plotW;
     const sy = (y: number) => PAD.top + plotH - ((y - props.yMin) / (props.yMax - props.yMin)) * plotH;
 
     // Grid and ticks first, so every line sits on top of them.
@@ -127,13 +133,13 @@ function PlotCanvas(props: PlotProps) {
     c.fillStyle = paint("var(--ink-4)");
     c.lineWidth = 1;
     c.textAlign = "right";
-    for (const t of ticks(props.yMin, props.yMax)) {
+    for (const t of yTicks) {
       const y = Math.round(sy(t)) + 0.5;
       c.beginPath();
-      c.moveTo(PAD.left, y);
-      c.lineTo(PAD.left + plotW, y);
+      c.moveTo(left, y);
+      c.lineTo(left + plotW, y);
       c.stroke();
-      c.fillText(String(t), PAD.left - 6, y);
+      c.fillText(String(t), left - 6, y);
     }
     c.textAlign = "center";
     for (const t of ticks(props.xMin, props.xMax)) {
@@ -146,10 +152,10 @@ function PlotCanvas(props: PlotProps) {
     }
 
     c.strokeStyle = paint("var(--ink-5)");
-    c.strokeRect(PAD.left + 0.5, PAD.top + 0.5, plotW, plotH);
+    c.strokeRect(left + 0.5, PAD.top + 0.5, plotW, plotH);
 
     c.fillStyle = paint("var(--ink-2)");
-    c.fillText(props.xLabel, PAD.left + plotW / 2, height - 8);
+    c.fillText(props.xLabel, left + plotW / 2, height - 8);
     c.save();
     c.translate(11, PAD.top + plotH / 2);
     c.rotate(-Math.PI / 2);
@@ -170,19 +176,25 @@ function PlotCanvas(props: PlotProps) {
       }
       if (m.y !== undefined) {
         const y = Math.round(sy(m.y)) + 0.5;
-        c.moveTo(PAD.left, y);
-        c.lineTo(PAD.left + plotW, y);
+        c.moveTo(left, y);
+        c.lineTo(left + plotW, y);
       }
       c.stroke();
       if (m.label) {
         c.fillStyle = paint(m.color);
         c.setLineDash([]);
         if (m.x !== undefined) {
-          c.textAlign = "left";
-          c.fillText(m.label, Math.min(sx(m.x) + 4, PAD.left + plotW - 40), PAD.top + 8);
+          // A rule near the right edge used to run its label off the canvas
+          // ("chief ra…" on the reflector's wall): the old clamp assumed every
+          // label was 40 px wide. Measure it, and flip it to the rule's left
+          // side when the right side has no room.
+          const x = sx(m.x);
+          const fits = x + 4 + c.measureText(m.label).width <= left + plotW - 2;
+          c.textAlign = fits ? "left" : "right";
+          c.fillText(m.label, fits ? x + 4 : x - 4, PAD.top + 8);
         } else if (m.y !== undefined) {
           c.textAlign = "right";
-          c.fillText(m.label, PAD.left + plotW - 4, sy(m.y) - 8);
+          c.fillText(m.label, left + plotW - 4, sy(m.y) - 8);
         }
       }
       c.restore();
@@ -190,7 +202,7 @@ function PlotCanvas(props: PlotProps) {
 
     c.save();
     c.beginPath();
-    c.rect(PAD.left, PAD.top, plotW, plotH);
+    c.rect(left, PAD.top, plotW, plotH);
     c.clip();
     for (const s of props.series) {
       if (s.points.length === 0) continue;

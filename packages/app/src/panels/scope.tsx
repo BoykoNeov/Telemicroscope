@@ -151,7 +151,15 @@ function Diagram({
     >
       <rect className="scope-hit" x={hit.x} y={28} width={hit.w} height={row === 0 ? 248 : 268} rx={6} />
       {children}
-      <text className="scope-label" x={PART_X[id]} y={row === 0 ? 268 : 290} textAnchor="middle">
+      {/* The stage, slip and objective sit within 110 units of each other, and a
+          centred "stage & slide" ran under the objective's highlight. Its label
+          ends at the slide instead, so the three names never share a span. */}
+      <text
+        className="scope-label"
+        x={id === "stage" ? 324 : PART_X[id]}
+        y={row === 0 ? 268 : 290}
+        textAnchor={id === "stage" ? "end" : "middle"}
+      >
         {PART_NAME[id]}
       </text>
     </g>
