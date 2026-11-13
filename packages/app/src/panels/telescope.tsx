@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useLatestFromWorker, useRenderedField } from "../hooks";
-import { Slider } from "../ui";
+import { Slider, Notes } from "../ui";
 import { linkHref, type TeachingLink } from "../teaching";
 import { createStarWorker } from "../workers";
 import {
@@ -342,14 +342,14 @@ export function TelescopePanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>One star, two lenses</h1>
-      <p className="prose">
+      <p className="lead">
         Same star, same aperture, same focus criterion, <strong>same exposure</strong>. The only
         difference is the glass: an equiconvex N-BK7 singlet against an N-BK7/F2 achromat whose
         powers are computed from the catalogue&rsquo;s own Abbe numbers. The violet halo is not
         drawn — it is where the short wavelengths actually land.
       </p>
 
-      <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 20 }}>
+      <div className="controls">
         <Slider
           label={`aperture ${aperture.toFixed(0)} mm (f/${(100 / aperture).toFixed(1)})`}
           min={4}
@@ -397,22 +397,28 @@ export function TelescopePanel() {
         <StarCanvas request={achromat} />
       </div>
 
-      <p style={{ marginTop: 24, fontSize: 13, color: "var(--ink-3)", maxWidth: 640 }}>
+      <div className="notes-group">
+        <Notes title="What to try: aperture and the colour of the star">
+        <p className="prose">
         Open the aperture and the singlet&rsquo;s halo grows as f·NA²; cool the source and the
         fringe reddens because the spectrum moved, not because anything was recoloured. Each panel
         traces in its own worker — the elapsed time is real, and it is why the panel dims while it
         catches up.
-      </p>
-      <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 640 }}>
+        </p>
+        </Notes>
+        <Notes title="What the seeing dial does">
+        <p className="prose">
         The <strong>seeing</strong> dial stamps an atmospheric phase screen — one Kolmogorov draw,
         scaled to the aperture — onto both star panels. It is a single short exposure, so what you
         see is a speckle, not the fuzzy long-exposure disc (that is an ensemble average, the next
         step). One screen serves the whole spectrum, and the blue speckles smear more because the
         same air is more wavelengths deep to them. The field panel below is left seeing-free for now.
-      </p>
+        </p>
+        </Notes>
+      </div>
 
       <h1 style={{ fontSize: 20, marginTop: 40 }}>The same star, across the field</h1>
-      <p className="prose">
+      <p className="lead">
         Twenty-five <em>identical</em> stars imaged through the achromat at once. The only thing
         that changes star to star is where it sits in the field, so every difference in the picture
         is the optics: a tight disk on axis, and a coma tail that lengthens with field angle. The
@@ -420,26 +426,30 @@ export function TelescopePanel() {
         shift-invariant blur could not show this. <strong>Click any star</strong> to open its ray
         fan, at that star&rsquo;s own field angle and this panel&rsquo;s aperture.
       </p>
-      <p className="prose">
-        This paragraph used to end &ldquo;<s>points radially outward</s>&rdquo;, and building the
-        ray fan is what caught it. On this achromat the tails point <strong>inward</strong>, toward
-        the middle of the frame. Three measurements say so and none of them is this sentence: the
-        ray fan&rsquo;s even half is negative at the pupil rim, the traced wavefront PSF&rsquo;s
-        centre of light sits 2.52 µm on the axis side of the chief ray at 1.13°, and the centre of
-        light of the stars in this very frame is 5–7 µm inward of where the renderer placed them.
-        Which way a comet points is a property of the lens and not a rule of optics, and the
-        original sentence had recited the rule.
-      </p>
-
       <div style={{ display: "flex", gap: 32, flexWrap: "wrap" }}>
         <FieldCanvas request={field} />
       </div>
 
-      <p style={{ marginTop: 24, fontSize: 13, color: "var(--ink-3)", maxWidth: 640 }}>
+      <div className="notes-group">
+        <Notes title="Which way the comet tails point, and how we know">
+          <p className="prose">
+            On this achromat the tails point <strong>inward</strong>, toward the middle of the
+            frame &mdash; not outward, as the usual rule of thumb says and as this page once said.
+            Three separate measurements agree: in the ray fan the rays from both rims of the lens
+            land on the axis side of the central ray; the traced blur&rsquo;s centre of light sits
+            2.52 µm on the axis side at 1.13° off axis; and the stars in this very frame are 5–7 µm
+            inward of where the renderer placed them. Which way a comet points is a property of the
+            particular lens, not a law of optics.
+          </p>
+        </Notes>
+        <Notes title="Why the first frame is blocky">
+        <p className="prose">
         The blocky first frame is a coarse patch grid; it sharpens in place as finer grids finish,
         so the cost of a field-varying PSF stays visible without leaving the panel blank. Widen the
         aperture to grow the coma, or move to the corners of the frame to watch it lengthen.
-      </p>
+        </p>
+        </Notes>
+      </div>
     </>
   );
 }

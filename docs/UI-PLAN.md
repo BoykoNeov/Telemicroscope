@@ -1261,6 +1261,210 @@ mixed — which surfaces as *the whole file rewritten* in the diff, three times
 over before it was understood. Any future sweep over these files must normalise
 to LF on the way in and put the file's own ending back on the way out.
 
+## Step 11 — picture first: the page shape ✅ 2026-11-13 (three pages; the rest is step 12)
+
+**Why.** A survey of all thirty-one routes in a headless Chrome (full-page
+screenshots, dark and light, 1400 px) found no page that throws and almost no
+page a newcomer could use. Every panel was written as a lab notebook: a title,
+then three to seven paragraphs of findings, then the controls, then the picture.
+On `#/brightfield` the first control sat 1 100 px down and the picture 1 480 px
+down; `#/volume` carries 16 000 characters of text. ARCHITECTURE says the hero
+output is the simulated image and the plots are the teaching layer — the pages
+had it the other way round. The text is good and is the app's teaching layer; it
+was in the wrong place.
+
+**The shape.** Every page reads top to bottom as:
+
+1. `<h1>` — the title, unchanged.
+2. `<p className="lead">` — **one** paragraph, at most about 60 words, in plain
+   words: what is on screen, which controls matter, what to try. No section
+   signs, no doc names, no engine identifiers, no numbers that are findings.
+3. `<div className="controls">` — the controls in a tray. The two or three that
+   ARE the experiment come first; sampling and solver settings go inside
+   `<details className="controls-advanced">` with a `<summary>` naming them.
+4. The picture and its plot, with their readouts.
+5. `<div className="notes-group">` holding `<Notes title="…">` folds (`ui.tsx`)
+   — the long explanation, **word for word**, grouped under titles that say
+   what each fold answers. Closed by default. Children render while closed, so a
+   note quoting a live number is current when opened.
+
+**What landed.**
+
+- `ui.tsx`: `Notes`; `Choice` and `Toggles` moved from inline style objects to
+  the `choice-option` class with `aria-pressed`, so they finally have a hover
+  and the keyboard focus ring.
+- `styles.css`: `.lead`, `.controls`, `.controls-advanced`, `.notes*`,
+  `button.choice-option`.
+- `panels/brightfield.tsx` (2 396 px → 1 405 px tall; picture at 530 px),
+  `panels/telescope.tsx`, and the start page.
+- **The start page** leads with three illustrated cards, one per guided path
+  (`panels/home-art.tsx` — schematics in the microscope diagram's own classes,
+  nothing computed). The separate "start here" banner is gone: the first card
+  is the recommended way in and says so.
+- `test/page-shape.test.ts` pins the shape and holds step 12's queue.
+
+**Three bugs the survey found, fixed in the same change.**
+
+- `plot.tsx`: a marker label near the right edge ran off the canvas ("chief
+  ra…" on `#/reflector`) — the clamp assumed every label was 40 px wide. It is
+  measured now, and flips to the rule's left side when the right has no room.
+- `plot.tsx`: a four-character tick ("1.75") ran under the rotated axis title —
+  the left margin was a fixed 46 px. It is sized from the widest tick now.
+- `panels/scope.tsx`: "stage & slide" ran under the objective's highlight; the
+  label ends at the slide now. And the app had no favicon (a 404 on every load).
+
+**One sentence was rewritten rather than moved**, and it is the only one: the
+star page's "This paragraph used to end …" was a correction notice addressed to
+the document's own history. Its three measurements are kept, in a fold titled
+*Which way the comet tails point, and how we know*.
+
+**Decided: folded shut, not merely moved below.** The alternative — notes open
+under the picture — keeps the page as long as it was. If that is ever wanted,
+it is one line: pass `open` in `Notes`' `<details>` by default. Do not make it
+per-page.
+
+## Step 12 — the page shape on the other 29 panels (plan — not started)
+
+**For whoever picks this up: this is mechanical work with one judgement call
+per page (the lead). Do ONE PANEL PER COMMIT. Do not change any number, any
+control's behaviour, or any sentence inside a fold.**
+
+**The queue** is the `NOT_YET` set in `packages/app/test/page-shape.test.ts`.
+Converting a panel means deleting its line there; the test fails if you convert
+without deleting, and fails if you delete without converting.
+
+**Order.** Guided-path pages first, because those are what a newcomer walks:
+`rayfan`, `spot`, `wavefront`, `mtf`, `seeing` (telescope path); `phase`,
+`fluorescence`, `volume`, `section` (microscope path); `builder`, `editor`,
+`design`, `optimize`, `tolerance`, `budget` (design path). Then the rest in any
+order. `volume` and `optimize` are the two largest (1 159 and 924 lines) — do
+them after you have done five others.
+
+**Recipe, per panel.** Use `panels/brightfield.tsx` as the worked example — read
+its `return (…)` first.
+
+1. Read the panel's `return`. Mark three things: the opening `.prose`
+   paragraphs; the controls; the closing explanation paragraphs (often
+   `style={{ marginTop: 24, fontSize: 13, color: "var(--ink-3)", maxWidth: 640 }}`).
+2. Write the lead (rules above). It replaces nothing — the opening paragraphs
+   all move into folds. If the first opening paragraph is already short and
+   plain, it may BE the lead (`telescope.tsx` did this): change its class only.
+3. Wrap the controls' flex `<div>` as `<div className="controls">`, deleting the
+   inline `display/gap/flexWrap/marginBottom` it carried. Move sampling knobs
+   (`pupil samples`, `grid`, lattice/source counts, solver iteration caps) into
+   `<details className="controls-advanced"><summary>…</summary><div
+   className="controls-advanced-body">…</div></details>` as the tray's last
+   child. A note that is advice about one of those knobs moves in with it.
+4. Move every opening paragraph and every closing paragraph into
+   `<Notes title="…">` folds inside one `<div className="notes-group">` at the
+   end of the page (a page with two `<h1>` sections gets one group per section,
+   as `telescope.tsx` has). Two to five folds per group. A fold's title is the
+   question it answers, in plain words ("Why the first frame is blocky"), never
+   a section number. The closing grey paragraphs become `className="prose"`.
+5. Import `Notes` from `"../ui"`.
+6. Delete the panel's line from `NOT_YET`.
+
+**Traps, each of which has already cost time in this repo.**
+
+- **Line endings.** `core.autocrlf=true`: working files are CRLF. Any script
+  that rewrites a file must convert to LF on read and back to CRLF on write, or
+  git shows the whole file changed. The `Edit` tool is safe. After each panel,
+  `git diff --stat` — a 900-line diff on a 40-line change means this happened.
+- **Hooks cannot move below a `return`.** If a paragraph sits above an early
+  `return` (a refusal path), leave the hook order alone and only move JSX.
+- **A paragraph that reads a variable** (`{WHITE_OVER_MEAN}`, `{readout.x}`)
+  must still be inside the component that defines it after the move.
+- **Do not reword inside a fold.** The one exception is a sentence about the
+  page's own editing history ("this paragraph used to say…"); state the finding
+  plainly and keep every number.
+- **Do not touch `scope.tsx`, `home.tsx`, `boundary.tsx`.**
+
+**Check, per panel.** `npm run typecheck`; `npx vitest run packages/app`;
+then look at it: start the dev server (`node packages/app/dev-server.mjs` —
+never pick a port by hand), open the route, confirm the picture is visible
+without scrolling at 1400 × 900, open every fold, and confirm the page still
+paints after changing each control once. The canvas harness
+(`scripts/canvas-harness/sweep.mjs`) can prove the pictures did not change:
+sweep the route before and after and `cmp.mjs` the two — the hashes must match,
+because this step moves text and never touches a request.
+
+**Done when** `NOT_YET` is empty and deleted.
+
+## Step 13 — plain words in everything a reader sees (plan — not started)
+
+**Why.** Step 12 moves the notebook under the picture; it does not translate
+it. Visible strings still cite the validation ladder and the docs — 353 hits
+for `§`, `APP.md`, `VALIDATION`, `ROADMAP`, "rung", "the ladder" across
+`panels/` (some are code comments, which are fine). A reader has no way to
+follow "§ 6b's finite conjugate".
+
+**Change.** Three passes, each its own commit series:
+
+1. **Labels and captions first** — control labels, figure captions, table
+   headings, guard labels. These are met by every reader, folded or not.
+   Example: `pupil — ideal is the only way to reach the unknown verdict` →
+   `lens model`, with options `traced (the real lens)` / `ideal (perfect)`.
+2. **The objective catalogue's one-line notes** (`objective.ts`) — shown on six
+   pages, e.g. "§ 6b's finite conjugate — a re-solved lens…".
+3. **Fold contents** — replace a section citation with what it refers to
+   ("the cover-slip test", "the published design it was checked against"), or
+   drop it where the sentence stands without it. Keep every number.
+
+**The maintainer's pointer is not lost**: put the `§` in a code comment above
+the JSX, or in the element's `title` attribute, which is what `App.tsx` already
+does with each page's `blurb`.
+
+**Pin it.** Extend `test/guide.test.ts`'s jargon check (it already forbids
+section signs in summaries, hints and path titles) to JSX text: for each panel,
+strip comments and `title="…"` attributes, then assert no `§`, `APP.md`,
+`VALIDATION`, `ROADMAP` remains in string literals or JSX text. Use the same
+shrinking-queue pattern as `page-shape.test.ts` so it can land one panel at a
+time.
+
+**Must not change.** Any number; any guard's level or threshold; the meaning of
+a refusal message that comes from the engine (`refusalVoice` output is the
+engine's own words by design — translate around it, not through it).
+
+## Step 14 — readouts as a grid of facts, not a column of sentences (plan — not started)
+
+**Why.** `#/camera`, `#/train`, `#/eyepiece` and `#/visual` each end in a wall
+of mono lines where a number, its unit, its meaning and a paragraph of
+provenance share one line (`#/camera` is 3 339 px tall and has 9 400 characters,
+most of them in that wall). `ui.tsx` already has the right primitive — `Fact`
+(label / value / note) — and `#/rayfan` uses it well.
+
+**Change.** Per panel: each line that is "name value — explanation" becomes a
+`<Fact label value note>` inside a wrapping flex row (`display: flex; gap: 20px
+28px; flex-wrap: wrap`); the explanation longer than one line moves to a
+`<Notes>` fold titled by the readout's name. Guards (`<Guard>`) stay guards.
+Start with `camera.tsx`; it has the most to gain and its sections are already
+headed.
+
+**Check.** The same numbers are on screen before and after — copy the page's
+`innerText` before, and afterwards confirm every numeric token from the old
+text appears in the new (a ten-line script; digits, signs, exponents).
+
+## Step 15 — small visual debts, each one commit (plan — not started)
+
+- **Five pages still scroll sideways at 400 px** (step 6's leftovers): the
+  tables in `reflector`, `editor`, `telecentric`, `design` need a
+  `<div className="scroll-x">` wrapper, and `optimize`'s fixed-width result
+  rows need `maxWidth` in place of `width`. Check: `scrollWidth <= clientWidth`
+  on the document at 400 px for all 31 routes.
+- **`<h1 style={{ fontSize: 20 }}>` is written 29 times.** Delete the inline
+  style (the base `h1` rule already says 20 px), then raise the base rule to
+  22 px in one line if a larger title is wanted. Mind the two that also carry
+  `marginTop` — keep that property.
+- **Picture frames.** Raster canvases sit bare on the page; in the light theme a
+  black square with no edge reads as a hole. Add `outline: 1px solid
+  var(--line)` to `.raster` and check both themes.
+- **The star field's stars are visibly square** at the final "4×4 field
+  patches" level (`#/telescope`, second picture). Find out whether that is the
+  intended last level or a refinement that stops early (`render.ts`,
+  `useRenderedField` in `hooks.ts`, `patches: 4` in `telescope.tsx`). If it is
+  intended, the caption should say the picture is final; if not, it is a bug.
+  **Measure before changing anything** — a finer patch grid costs seconds.
+
 ## Out of scope, and why
 
 - **Keeping a panel's workers alive across routes.** APP.md item 1 chose the

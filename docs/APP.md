@@ -7411,6 +7411,15 @@ Structural work implied by the above, independent of which surfaces land:
    nav is three rows, one per engine branch, which is the registry's `group`
    field and not a reordering — `PANELS` is unchanged in order and content.
 
+7. **One page shape: picture first.** ✅ **begun** — `docs/UI-PLAN.md` step 11.
+   Part R gave the app a map and said the panels' own prose was "a different and
+   much larger job". This is that job's frame: a page opens on one plain
+   paragraph, then the controls and the picture, and the notebook — every
+   finding recorded in the parts above, word for word — sits under them in
+   folds (`Notes` in `ui.tsx`). Two panels and the start page have it;
+   `test/page-shape.test.ts` holds the queue for the rest, and a new panel is
+   written in this shape from the start.
+
 Note that `@telemicroscope/core/illumination` is already in the package's
 `exports` map, so no packaging work is needed for the brightfield surfaces.
 

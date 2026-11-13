@@ -5,7 +5,7 @@ import { readSavedBuild } from "../saved";
 import { useLatestFromWorker } from "../hooks";
 import { MICROSCOPE_CATALOG, entryOf, type MicroscopeKind } from "../microscope";
 import { Plot } from "../plot";
-import { Choice, Guard, GUARD_COLOR, ObjectiveLine, Slider, VERDICT_LEVEL } from "../ui";
+import { Choice, Guard, GUARD_COLOR, ObjectiveLine, Slider, VERDICT_LEVEL, Notes } from "../ui";
 import { createBrightfieldWorker } from "../workers";
 import {
   cutoffSweep,
@@ -362,74 +362,14 @@ export function BrightfieldPanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>Brightfield: the condenser is not a brightness control</h1>
-      <p className="prose">
-        A cosine absorption grating on the specimen, imaged through one of the bench&rsquo;s
-        objectives by summing over the directions the condenser lights it from.{" "}
-        <strong>S</strong> is that condenser&rsquo;s aperture as a fraction of the
-        objective&rsquo;s — the dial on the front of a real microscope — and <strong>ν</strong> is
-        how fine the grating is, in units of NA/λ where 1 is the coherent limit and 2 is the
-        incoherent one.
+      <p className="lead">
+        A striped test slide under ordinary microscope lighting. Two dials matter: how wide the
+        condenser opens (<strong>S</strong>, as a fraction of what the objective accepts) and how
+        fine the stripes are (<strong>ν</strong>). Make the stripes finer until they vanish, then
+        open the condenser and watch them come back &mdash; a wider cone of light resolves finer
+        detail, at the price of contrast.
       </p>
-      <p className="prose">
-        The experiment: push ν past 1 and the grating dies, then open S and watch it come back. It
-        reappears exactly where the marker crosses the curve, because both come from the same sum —
-        d = λ/(NA_obj + NA_cond), not written down but <em>measured</em>, by bisecting for the last
-        frequency the pupil still transmits. Closing S to a pinhole costs a factor of two in
-        resolution and buys back full contrast everywhere below ν = 1; that trade is what the dial
-        is for.
-      </p>
-      <p className="prose">
-        The third curve is the one worth the panel. The measured cutoff does not land on the
-        textbook line — it lands on the <strong>lattice reach</strong>, the outermost illumination
-        direction the sampled condenser actually holds and the pupil actually admits. The residual
-        printed under the plot is that agreement for the objective <em>currently selected</em>;
-        switch objectives and it is re-measured, which is the check rather than a claim about a
-        table you cannot see. The gap between the two curves is a finite condenser lattice, which
-        this engine has and a real condenser does not. Refine the condenser — a smaller{" "}
-        <strong>lattice step</strong>, or more <strong>source samples</strong> — and watch the two
-        close.
-      </p>
-      <p className="prose">
-        <strong>Two condensers, and the difference between them is why one is fast.</strong> The{" "}
-        <strong>pupil-matched</strong> one puts its directions on the objective&rsquo;s own
-        frequency lattice: opening S admits more of them and <em>moves none of the ones already
-        there</em>, so every direction reads the pupil at the same coordinates and the traced lens
-        is evaluated <em>once</em> instead of once per direction. At these defaults that is 197
-        directions in 144 ms where the 97-point disc this panel used to ship took 236 — more
-        converged and faster at the same time. The <strong>independent</strong> one spaces its
-        points by 2S/N, a spacing chosen for the source and unrelated to the pupil, so opening S
-        moves every direction it has and nothing can be reused. That is the whole trade, and it is
-        physics rather than bookkeeping.
-      </p>
-      <p className="prose">
-        The saving is the <em>tracing</em>, so it is worth nothing on an <strong>ideal</strong>
-        pupil — there the transforms are the whole bill and twice the directions cost twice as much
-        (163 ms against 90). Switch the pupil to ideal and the pupil-matched condenser is the slower
-        of the two, which is not a contradiction: it is the same measurement saying that what was
-        removed was never the arithmetic.
-      </p>
-      <p className="prose">
-        One consequence to watch, because the <strong>ms</strong> under the picture will show it. A
-        lattice step is a fixed <em>angular density</em>, so a pupil-matched condenser&rsquo;s
-        direction count follows the aperture&rsquo;s area — 49 directions at S = 0.25, 197 at 0.5,
-        797 at 1.0 — while the independent one holds its count wherever S goes. Below about
-        S = 0.75 the matched condenser is both cheaper and better sampled (135 ms against 244 at
-        S = 0.5); above it the counts cross and it becomes the slower one (1 115 ms against 272 at
-        S = 1.5) while sampling the cone eighteen times more finely. Neither is wrong. It is worth
-        knowing which is happening: a fixed count does not stay a fixed <em>quality</em> as the
-        diaphragm opens, it just stops saying so. Raise the <strong>lattice step</strong> to trade it
-        back.
-      </p>
-      <p className="prose">
-        It also decides what each can show. Past S = 1 the continuum says opening further changes
-        nothing; on an <strong>independent</strong> lattice the outermost points march out of the
-        pupil entirely and the measured cutoff steps back <em>down</em>, which is sampling and not
-        physics, and more source samples walk it back up. A pupil-matched lattice cannot do that —
-        its directions are pinned, so the reach saturates at 2 and stays. <em>That</em> demonstration
-        lives only in the independent mode, and it is why that mode is still here.
-      </p>
-
-      <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 16 }}>
+      <div className="controls">
         <Choice
           label="objective"
           options={options.map((o) => o.id)}
@@ -437,70 +377,6 @@ export function BrightfieldPanel() {
           onChange={setKind}
           format={(k) => objectiveOf(options, k).label}
         />
-        <Choice
-          label="pupil — ideal is the only way to reach the unknown verdict"
-          options={["traced", "ideal"] as const}
-          value={pupil}
-          onChange={setPupil}
-        />
-        <Choice
-          label={`pupil samples ${pupilSamples}`}
-          options={[32, 64]}
-          value={pupilSamples}
-          onChange={setPupilSamples}
-        />
-        <Choice
-          label={`grid ${size}² — also the headroom the shifted pupil needs`}
-          options={[128, 256]}
-          value={size}
-          onChange={setSize}
-        />
-        <Choice
-          label="condenser — matched to the pupil's lattice, or on its own"
-          options={["pupil-matched", "independent"] as const}
-          value={condenserKind}
-          onChange={setCondenserKind}
-        />
-        {condenserKind === "pupil-matched" ? (
-          <Choice
-            label={`lattice step × the pupil's own — the direction count follows S`}
-            options={LATTICE_STEPS}
-            value={latticeStep}
-            onChange={setLatticeStep}
-            format={(m) =>
-              `${m}× · ${directionCount({ kind: "pupil-matched", stepMultiple: m }, s, pupilSamples)}`
-            }
-          />
-        ) : (
-          <Choice
-            label={`source samples ${sourceSamples} across the diameter`}
-            options={[7, 11, 15, 21]}
-            value={sourceSamples}
-            onChange={setSourceSamples}
-          />
-        )}
-      </div>
-      {condenserKind === "pupil-matched" && (
-        <div className="readout" style={{ marginBottom: 12, maxWidth: 720 }}>
-          {liveSteps.length === 0 ? (
-            <span style={{ color: GUARD_COLOR.warn }}>
-              at ν = {frequencyOf(cycles, pupilSamples).toFixed(4)} no lattice step disagrees with
-              the textbook cutoff — (cycles − pupilSamples/2) is divisible by every step offered, so
-              the gap is provably empty rather than hard to find. Move the grating by one cycle.
-            </span>
-          ) : (
-            <span style={{ color: "var(--ink-4)" }}>
-              at ν = {frequencyOf(cycles, pupilSamples).toFixed(4)} the textbook and the lattice
-              disagree about this grating only at step {liveSteps.join("×, ")}× — at the others
-              (cycles − pupilSamples/2) divides exactly and the two agree at every S.
-            </span>
-          )}
-        </div>
-      )}
-      <div className="readout" style={{ marginBottom: 12, maxWidth: 720 }}>
-        <ObjectiveLine label={objective.label} note={objective.note} />
-      </div>
-      <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 20 }}>
         <Slider
           label={`condenser S = ${s.toFixed(2)}${maxS < 1.5 ? ` (capped at ${maxS.toFixed(2)} by the grid)` : ""}`}
           min={0}
@@ -517,6 +393,73 @@ export function BrightfieldPanel() {
           value={cycles}
           onChange={setCycles}
         />
+        <details className="controls-advanced">
+          <summary>simulation settings — pupil, grid and the condenser&rsquo;s sampling</summary>
+          <div className="controls-advanced-body">
+            <Choice
+              label="pupil — ideal is the only way to reach the unknown verdict"
+              options={["traced", "ideal"] as const}
+              value={pupil}
+              onChange={setPupil}
+            />
+            <Choice
+              label={`pupil samples ${pupilSamples}`}
+              options={[32, 64]}
+              value={pupilSamples}
+              onChange={setPupilSamples}
+            />
+            <Choice
+              label={`grid ${size}² — also the headroom the shifted pupil needs`}
+              options={[128, 256]}
+              value={size}
+              onChange={setSize}
+            />
+            <Choice
+              label="condenser — matched to the pupil's lattice, or on its own"
+              options={["pupil-matched", "independent"] as const}
+              value={condenserKind}
+              onChange={setCondenserKind}
+            />
+            {condenserKind === "pupil-matched" ? (
+              <Choice
+                label={`lattice step × the pupil's own — the direction count follows S`}
+                options={LATTICE_STEPS}
+                value={latticeStep}
+                onChange={setLatticeStep}
+                format={(m) =>
+                  `${m}× · ${directionCount({ kind: "pupil-matched", stepMultiple: m }, s, pupilSamples)}`
+                }
+              />
+            ) : (
+              <Choice
+                label={`source samples ${sourceSamples} across the diameter`}
+                options={[7, 11, 15, 21]}
+                value={sourceSamples}
+                onChange={setSourceSamples}
+              />
+            )}
+            {condenserKind === "pupil-matched" && (
+              <div className="readout" style={{ flexBasis: "100%", maxWidth: 720 }}>
+                {liveSteps.length === 0 ? (
+                  <span style={{ color: GUARD_COLOR.warn }}>
+                    at ν = {frequencyOf(cycles, pupilSamples).toFixed(4)} no lattice step disagrees with
+                    the textbook cutoff — (cycles − pupilSamples/2) is divisible by every step offered, so
+                    the gap is provably empty rather than hard to find. Move the grating by one cycle.
+                  </span>
+                ) : (
+                  <span style={{ color: "var(--ink-4)" }}>
+                    at ν = {frequencyOf(cycles, pupilSamples).toFixed(4)} the textbook and the lattice
+                    disagree about this grating only at step {liveSteps.join("×, ")}× — at the others
+                    (cycles − pupilSamples/2) divides exactly and the two agree at every S.
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        </details>
+      </div>
+      <div className="readout" style={{ marginBottom: 12, maxWidth: 720 }}>
+        <ObjectiveLine label={objective.label} note={objective.note} />
       </div>
 
       <div style={{ display: "flex", gap: 32, flexWrap: "wrap", alignItems: "flex-start" }}>
@@ -529,30 +472,110 @@ export function BrightfieldPanel() {
         />
       </div>
 
-      <p style={{ marginTop: 24, fontSize: 13, color: "var(--ink-3)", maxWidth: 640 }}>
-        Mid-grey is the frame&rsquo;s own mean and white is {WHITE_OVER_MEAN}× it, linearly —
-        nothing is stretched. One thing the model does not show: the source weights sum to 1, so
-        closing the diaphragm costs no <em>light</em> here where a real one goes dim. What it costs
-        is resolution, and the mean intensity is printed so the normalization is not hiding a
-        change. The contrast beside it is measured at the grating&rsquo;s own Fourier bin, and{" "}
-        <strong>2mT</strong> is what it would be if the object were weak — the residual is the
-        finite modulation m = {BRIGHTFIELD_MODULATION}, not an error. The number at{" "}
-        <strong>2ν</strong> is a frequency no linear imager could put there from a single-frequency
-        object: it is partial coherence&rsquo;s nonlinearity, as a reading rather than an assertion.
-      </p>
-      <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 640 }}>
-        The fidelity line has <em>three</em> states and the middle one is not a shade of green. A
-        traced pupil carries the sampling of the trace behind it, so it can be ruled{" "}
-        <span style={{ color: GUARD_COLOR.ok }}>valid</span> or{" "}
-        <span style={{ color: GUARD_COLOR.bad }}>no-honest-image</span> — the
-        latter meaning the wavefront has left the regime a coherent sum describes, where a PSF would
-        quietly cross-fade to a ray histogram and brightfield cannot, because rays carry no phase.
-        Switch the pupil to <strong>ideal</strong> and the verdict reads{" "}
-        <span style={{ color: GUARD_COLOR.warn }}>unknown</span>: a bare pupil function has no
-        memory of what produced it, and this engine will not call that a clean bill of health. The
-        ideal pupil is also ~3× faster, and its contrast is the ceiling the traced ones fall below —
-        in wavefront order.
-      </p>
+
+      <div className="notes-group">
+        <p className="notes-group-label">the notes — what was measured, and why each control exists</p>
+        <Notes title="What S and ν are, and the experiment in full">
+          <p className="prose">
+            A cosine absorption grating on the specimen, imaged through one of the bench&rsquo;s
+            objectives by summing over the directions the condenser lights it from.{" "}
+            <strong>S</strong> is that condenser&rsquo;s aperture as a fraction of the
+            objective&rsquo;s — the dial on the front of a real microscope — and <strong>ν</strong> is
+            how fine the grating is, in units of NA/λ where 1 is the coherent limit and 2 is the
+            incoherent one.
+          </p>
+          <p className="prose">
+            The experiment: push ν past 1 and the grating dies, then open S and watch it come back. It
+            reappears exactly where the marker crosses the curve, because both come from the same sum —
+            d = λ/(NA_obj + NA_cond), not written down but <em>measured</em>, by bisecting for the last
+            frequency the pupil still transmits. Closing S to a pinhole costs a factor of two in
+            resolution and buys back full contrast everywhere below ν = 1; that trade is what the dial
+            is for.
+          </p>
+        </Notes>
+        <Notes title="The third curve: why the measured cutoff misses the textbook line">
+          <p className="prose">
+            The third curve is the one worth the panel. The measured cutoff does not land on the
+            textbook line — it lands on the <strong>lattice reach</strong>, the outermost illumination
+            direction the sampled condenser actually holds and the pupil actually admits. The residual
+            printed under the plot is that agreement for the objective <em>currently selected</em>;
+            switch objectives and it is re-measured, which is the check rather than a claim about a
+            table you cannot see. The gap between the two curves is a finite condenser lattice, which
+            this engine has and a real condenser does not. Refine the condenser — a smaller{" "}
+            <strong>lattice step</strong>, or more <strong>source samples</strong> — and watch the two
+            close.
+          </p>
+        </Notes>
+        <Notes title="Two condensers, and why one of them is fast">
+          <p className="prose">
+            <strong>Two condensers, and the difference between them is why one is fast.</strong> The{" "}
+            <strong>pupil-matched</strong> one puts its directions on the objective&rsquo;s own
+            frequency lattice: opening S admits more of them and <em>moves none of the ones already
+            there</em>, so every direction reads the pupil at the same coordinates and the traced lens
+            is evaluated <em>once</em> instead of once per direction. At these defaults that is 197
+            directions in 144 ms where the 97-point disc this panel used to ship took 236 — more
+            converged and faster at the same time. The <strong>independent</strong> one spaces its
+            points by 2S/N, a spacing chosen for the source and unrelated to the pupil, so opening S
+            moves every direction it has and nothing can be reused. That is the whole trade, and it is
+            physics rather than bookkeeping.
+          </p>
+          <p className="prose">
+            The saving is the <em>tracing</em>, so it is worth nothing on an <strong>ideal</strong>
+            pupil — there the transforms are the whole bill and twice the directions cost twice as much
+            (163 ms against 90). Switch the pupil to ideal and the pupil-matched condenser is the slower
+            of the two, which is not a contradiction: it is the same measurement saying that what was
+            removed was never the arithmetic.
+          </p>
+          <p className="prose">
+            One consequence to watch, because the <strong>ms</strong> under the picture will show it. A
+            lattice step is a fixed <em>angular density</em>, so a pupil-matched condenser&rsquo;s
+            direction count follows the aperture&rsquo;s area — 49 directions at S = 0.25, 197 at 0.5,
+            797 at 1.0 — while the independent one holds its count wherever S goes. Below about
+            S = 0.75 the matched condenser is both cheaper and better sampled (135 ms against 244 at
+            S = 0.5); above it the counts cross and it becomes the slower one (1 115 ms against 272 at
+            S = 1.5) while sampling the cone eighteen times more finely. Neither is wrong. It is worth
+            knowing which is happening: a fixed count does not stay a fixed <em>quality</em> as the
+            diaphragm opens, it just stops saying so. Raise the <strong>lattice step</strong> to trade it
+            back.
+          </p>
+          <p className="prose">
+            It also decides what each can show. Past S = 1 the continuum says opening further changes
+            nothing; on an <strong>independent</strong> lattice the outermost points march out of the
+            pupil entirely and the measured cutoff steps back <em>down</em>, which is sampling and not
+            physics, and more source samples walk it back up. A pupil-matched lattice cannot do that —
+            its directions are pinned, so the reach saturates at 2 and stays. <em>That</em> demonstration
+            lives only in the independent mode, and it is why that mode is still here.
+          </p>
+        </Notes>
+        <Notes title="How the picture is scaled, and what the model leaves out">
+          <p className="prose">
+            Mid-grey is the frame&rsquo;s own mean and white is {WHITE_OVER_MEAN}× it, linearly —
+            nothing is stretched. One thing the model does not show: the source weights sum to 1, so
+            closing the diaphragm costs no <em>light</em> here where a real one goes dim. What it costs
+            is resolution, and the mean intensity is printed so the normalization is not hiding a
+            change. The contrast beside it is measured at the grating&rsquo;s own Fourier bin, and{" "}
+            <strong>2mT</strong> is what it would be if the object were weak — the residual is the
+            finite modulation m = {BRIGHTFIELD_MODULATION}, not an error. The number at{" "}
+            <strong>2ν</strong> is a frequency no linear imager could put there from a single-frequency
+            object: it is partial coherence&rsquo;s nonlinearity, as a reading rather than an assertion.
+          </p>
+        </Notes>
+        <Notes title="The fidelity line has three states">
+          <p className="prose">
+            The fidelity line has <em>three</em> states and the middle one is not a shade of green. A
+            traced pupil carries the sampling of the trace behind it, so it can be ruled{" "}
+            <span style={{ color: GUARD_COLOR.ok }}>valid</span> or{" "}
+            <span style={{ color: GUARD_COLOR.bad }}>no-honest-image</span> — the
+            latter meaning the wavefront has left the regime a coherent sum describes, where a PSF would
+            quietly cross-fade to a ray histogram and brightfield cannot, because rays carry no phase.
+            Switch the pupil to <strong>ideal</strong> and the verdict reads{" "}
+            <span style={{ color: GUARD_COLOR.warn }}>unknown</span>: a bare pupil function has no
+            memory of what produced it, and this engine will not call that a clean bill of health. The
+            ideal pupil is also ~3× faster, and its contrast is the ceiling the traced ones fall below —
+            in wavefront order.
+          </p>
+        </Notes>
+      </div>
     </>
   );
 }

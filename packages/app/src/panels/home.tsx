@@ -1,4 +1,5 @@
 import { TOPICS, TOURS, type Topic } from "../guide";
+import { BranchArt } from "./home-art";
 import { PANELS, PANEL_GROUPS, type Panel } from "./registry";
 
 /**
@@ -22,6 +23,8 @@ function warm(entry: Panel): void {
 }
 
 const byId = (id: string): Panel | undefined => PANELS.find((p) => p.id === id);
+
+const groupLabel = (id: string): string => PANEL_GROUPS.find((g) => g.id === id)?.label ?? id;
 
 function SurfaceCard({ entry }: { entry: Panel }) {
   return (
@@ -64,33 +67,21 @@ export function HomePanel() {
         instead of drawing something plausible.
       </p>
 
-      <a
-        className="home-hero"
-        href="#/scope"
-        onMouseEnter={() => {
-          const scope = byId("scope");
-          if (scope) warm(scope);
-        }}
-      >
-        <span className="home-hero-kicker">start here</span>
-        <span className="home-hero-title">The whole microscope →</span>
-        <span className="home-hero-text">
-          A drawing of a microscope from lamp to camera. Click any part — the condenser, the slide, the
-          cover slip, the objective, the tube lens, the camera or your eye — change it, and see what
-          happens to the picture, side by side with how it looked before.
-        </span>
-      </a>
-
-      <h2 className="home-section">Guided paths</h2>
+      <h2 className="home-section">Three ways in</h2>
       <p className="home-section-hint">
-        Not sure where to begin? Each path visits a handful of pages in order; every page on a path
-        has a &ldquo;next&rdquo; link at the top.
+        Each is a short guided path: a handful of pages in order, with a &ldquo;next&rdquo; link at
+        the top of every one. New here? Take the first.
       </p>
       <div className="home-tours">
-        {TOURS.map((tour) => {
+        {TOURS.map((tour, i) => {
           const first = byId(tour.steps[0]!);
           return (
-            <section className="home-tour" key={tour.id}>
+            <section className={`home-tour${i === 0 ? " home-tour-first" : ""}`} key={tour.id}>
+              <BranchArt group={tour.group} />
+              <span className="home-tour-kicker">
+                {groupLabel(tour.group)}
+                {i === 0 ? " · start here" : ""}
+              </span>
               <h3>{tour.title}</h3>
               <p className="home-topic-hint">{tour.why}</p>
               <ol className="home-tour-steps">
@@ -107,8 +98,13 @@ export function HomePanel() {
                 })}
               </ol>
               {first ? (
-                <a className="home-tour-start" href={`#/${first.id}`}>
-                  start this path →
+                <a
+                  className="home-tour-start"
+                  href={`#/${first.id}`}
+                  onMouseEnter={() => warm(first)}
+                  onFocus={() => warm(first)}
+                >
+                  {i === 0 ? `open ${first.label} →` : "start this path →"}
                 </a>
               ) : null}
             </section>

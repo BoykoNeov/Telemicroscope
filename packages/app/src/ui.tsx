@@ -36,15 +36,10 @@ export function Choice<T extends string | number>(props: {
       {props.options.map((option) => (
         <button
           key={option}
+          type="button"
+          className="choice-option"
+          aria-pressed={option === props.value}
           onClick={() => props.onChange(option)}
-          style={{
-            marginRight: 4,
-            padding: "2px 8px",
-            border: option === props.value ? "1px solid var(--ink)" : "1px solid var(--line)",
-            background: option === props.value ? "var(--ink)" : "var(--bg)",
-            color: option === props.value ? "var(--bg)" : "var(--ink)",
-            cursor: "pointer",
-          }}
         >
           {props.format ? props.format(option) : option}
         </button>
@@ -81,17 +76,11 @@ export function Toggles<T extends string>(props: {
         return (
           <button
             key={option}
+            type="button"
+            className="choice-option"
+            aria-pressed={on}
             onClick={() => props.onToggle(option)}
             title={note}
-            style={{
-              marginRight: 4,
-              marginBottom: 4,
-              padding: "2px 8px",
-              border: on ? "1px solid var(--ink)" : "1px solid var(--line)",
-              background: on ? "var(--ink)" : "var(--bg)",
-              color: on ? "var(--bg)" : "var(--ink)",
-              cursor: "pointer",
-            }}
           >
             {on ? "✓ " : ""}
             {props.format ? props.format(option) : option}
@@ -99,6 +88,30 @@ export function Toggles<T extends string>(props: {
         );
       })}
     </div>
+  );
+}
+
+/**
+ * The page shape every panel is moving to — UI-PLAN step 11, "picture first".
+ *
+ * A panel opens with its title and ONE short paragraph in plain words, then the
+ * controls and the picture, and only then the long explanation — inside one or
+ * more of these. `Notes` is a native `<details>`: closed by default, opened by
+ * a click or by the keyboard, and findable by the browser's own page search
+ * (Chrome opens a closed `<details>` when a search hits text inside it).
+ *
+ * Nothing is deleted by moving it in here. The engineering notes — what was
+ * measured, what a guard means, why a control exists — are the app's teaching
+ * layer and stay word for word; what changes is that a first-time reader meets
+ * the experiment before the lab notebook. Children render even while closed,
+ * so a note that quotes a live number is current the moment it is opened.
+ */
+export function Notes(props: { title: string; children: React.ReactNode; open?: boolean }) {
+  return (
+    <details className="notes" open={props.open}>
+      <summary>{props.title}</summary>
+      <div className="notes-body">{props.children}</div>
+    </details>
   );
 }
 
